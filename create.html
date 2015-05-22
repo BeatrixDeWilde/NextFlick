@@ -1,0 +1,17 @@
+<div style="padding:10px;">
+    <input type="submit" onclick="create_room();" id="create" value="Create" />
+    <input id="num" style="width:200px;" />
+    <input id="create_room" style="width:200px;" />  
+</div>
+<div style="padding:10px;">
+    <input type="submit" onclick="join_room();" id="join" value="Join" />
+    <input type="text" id="join_room" style="width:200px;" />  
+</div>
+<script>
+    function join_room(){
+        window.location='/room/' + document.getElementById('join_room').value;
+    }
+    function create_room(){ 
+        //TODO 
+    }
+</script>

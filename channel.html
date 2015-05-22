@@ -2,13 +2,18 @@
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
 <script> 
 	
-    var id = window.location.pathname.substring(6);
+    var info = window.location.pathname.substring(6).split(/\//);
 
     var socket = io.connect('http://localhost:8080');
 
     socket.on('connect', function(){
-
-                socket.emit('user_join', prompt("What's your name?"), id);
+        if (info[1] == null) {
+            // Guest user
+            socket.emit('user_join', 'guest', info[0]);
+        } else {
+            // Login user
+            socket.emit('user_join', info[1], info[0]);
+        }   
     });
 
     socket.on('update_chat', function(username, text) {

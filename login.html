@@ -1,0 +1,26 @@
+<script src="/socket.io/socket.io.js"></script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
+<div style="padding:10px;">
+    <input type="submit" onclick="window.location='/create.html';" id="guest" value="Guest" /> 
+</div>
+<div style="padding:10px;">
+    <input type="submit" id="login" value="Login" />
+    <input type="text" id="username" style="width:200px;" value="user1"/>
+    <input type="password" id="password" style="width:200px;" />   
+</div>
+<div style="padding:10px;">
+    <input type="text" id="out" value = ""/>  
+</div>
+<script>
+    var socket = io.connect('http://localhost:8080');
+    socket.on('logged_in', function(password){
+        document.getElementById('out').value = password;
+    });
+    $(function(){
+        $('#login').click( function() {
+            var username = document.getElementById('username').value;
+            socket.emit('login', username);
+        });
+    });
+
+</script>
