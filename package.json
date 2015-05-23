@@ -1,9 +1,9 @@
 { 
-	"name": "filmfinder",
-	"description": "Find your film!",
-	"version": "0.1.0",
-	"dependencies": {
-		"express": "",
-		"socket.io": ""
-	}
+  "name": "filmfinder",
+  "description": "Find your film!",
+  "version": "0.1.0",
+  "dependencies": {
+    "express": "",
+    "socket.io": ""
+  }
 }

@@ -10,45 +10,44 @@ server.listen(port);
 var users = {};
 var guest = 0;
 
-app.get('/create.html', function(req, res) {
-   res.sendFile(__dirname + '/create.html');
+app.get('/create/', function(req, res) {
+  res.sendFile(__dirname + '/create.html');
 });
 
 app.get('/room/*', function(req, res) {
-   res.sendFile(__dirname + '/channel.html');
+  res.sendFile(__dirname + '/page.html');
 });
 
 app.get('', function(req, res) {
-   res.sendFile(__dirname + '/login.html');
+  res.sendFile(__dirname + '/login.html');
 });
 
 io.sockets.on('connection', function(socket) {
 
-   socket.on('user_join', function(username, channel) {
-   	if (username == 'guest') {
-   		guest++;
-   		username = username + guest;
-   	}
-	socket.username = username;
-	socket.channel = channel;
-	users[username] = username;
-	socket.join(channel);
-	socket.emit('update_chat', 'SERVER', 'Connected to channel ' + channel);
-	socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', username + ' has joined the channel');
+  socket.on('user_join', function(username, channel) {
+    if (username == 'guest') {
+      guest++; // TODO amount in total
+      username = username + guest;
+    }
+    socket.username = username;
+    socket.channel = channel;
+    users[username] = username;
+    socket.join(channel);
+    socket.emit('update_chat', 'SERVER', 'Connected to channel ' + channel);
+    socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', username + ' has joined the channel');
     io.sockets.in(socket.channel).emit('update_user_list', users);
-   });
-  
-  socket.on('send_message', function(message) {
-	socket.emit('update_chat', 'You', message);
-	socket.broadcast.to(socket.channel).emit('update_chat', socket.username, message);
-//	io.sockets.in(socket.channel).emit('update_chat', socket.username, message);
   });
 
   socket.on('disconnect', function() {
-	delete users[socket.username];
-	socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', socket.username + ' has left the channel');
-	io.sockets.in(socket.channel).emit('update_user_list', users);
-	socket.leave(socket.room);
+    delete users[socket.username];
+    socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', socket.username + ' has left the channel');
+    io.sockets.in(socket.channel).emit('update_user_list', users);
+    socket.leave(socket.room);
+  });
+
+  socket.on('choice', function(decision) {
+    //TODO
+    // socket.emit('new_film', etc);
   });
 
   // At the moment gets the user from the database 
@@ -57,18 +56,17 @@ io.sockets.on('connection', function(socket) {
     var pg = require("pg");
     var con = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
     pg.connect(con, function(err, client, done) {
+      if(err) {
+        return console.error('error connecting', err);
+      }
+      client.query('SELECT * FROM users WHERE username = $1', [username], function(err, result) {
+        done();
         if(err) {
-            return console.error('error connecting', err);
+          return console.error('error running query', err);
         }
-        client.query('SELECT * FROM users WHERE username = $1', [username], function(err, result) {
-            done();
-            if(err) {
-                return console.error('error running query', err);
-            }
-            socket.emit('logged_in',result.rows[0].password);
-            client.end();
-        });
+        socket.emit('logged_in',result.rows[0].password);
+        client.end();
+      });
     });
   });
-
 });

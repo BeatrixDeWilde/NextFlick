@@ -1,22 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-        <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
-    </head>
-    <body>
-        <div class="container">
-            <h1>Test</h1>
-            <img src="iron-manposter.jpg" class = "img-rounded" width="20%" height="20%">
-        </div>
-        <div class= "container">
-        <button type="button" class="btn btn-default">YES</button>
-        <button type="button" class="btn btn-default">NO</button>
-        </div>
-    </body>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script> 
+      var info = window.location.pathname.substring(6).split(/\//);
+      var socket = io.connect('http://localhost:8080');
+      socket.on('connect', function(){
+        if (info[1] == null) {
+          // Guest user
+          socket.emit('user_join', 'guest', info[0]);
+        } else {
+          // Login user
+          socket.emit('user_join', info[1], info[0]);
+        }   
+      });
+      socket.on('new_film', function(){
+        //TODO
+      });
+      $(function(){
+        $('#yes').click( function() {
+          socket.emit('choice', "yes");
+        });
+
+        $('#no').keypress(function(e) {
+          socket.emit('choice', "no");
+        });
+      });
+    </script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Test</h1>
+      <img src="iron-manposter.jpg" class = "img-rounded" width="20%" height="20%">
+    </div>
+    <div class= "container">
+    <button type="button" id="yes" class="btn btn-default">YES</button>
+    <button type="button" id="no" class="btn btn-default">NO</button>
+    </div>
+  </body>
 </html>
 
 
