@@ -4,6 +4,8 @@ var app     = express();
 var http    = require('http');
 var server  = http.createServer(app);
 var io      = require('socket.io').listen(server);
+var request = require('request');
+var api_param = 'api_key=a91369e1857e8c0cf2bd02b5daa38260';
 
 server.listen(port);
 
@@ -46,8 +48,7 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('choice', function(decision) {
-    //TODO
-    socket.emit('new_film', url);
+    getRandomFilmImageURL();
   });
 
   // At the moment gets the user from the database 
@@ -81,4 +82,26 @@ io.sockets.on('connection', function(socket) {
       });
     });
   });
+
+// Get random film from movie database API
+// Thriller genre: 'http://api.themoviedb.org/3/genre/53/movies'
+// Base image url: 'http://image.tmdb.org/t/p/w500'
+function getRandomFilmImageURL() {
+  request({
+  method: 'GET',
+  url: 'http://api.themoviedb.org/3/movie/popular' + '?' + api_param + '&page=1',
+  headers: {
+    'Accept': 'application/json'
+  }}, 
+  function (error, response, body) {
+    if (response.statusCode === 200) {
+      var response = JSON.parse(body);
+      var res_len = response.results.length;
+      var rand_index = Math.floor(Math.random() * res_len);
+      var img_url_extension = response.results[rand_index].poster_path;
+      var img_url = 'http://image.tmdb.org/t/p/w500' + img_url_extension;
+    }
+    socket.emit('new_film', img_url);
+  });
+}
 });
