@@ -1,12 +1,12 @@
 <script src="/socket.io/socket.io.js"></script>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js"></script>
 <div style="padding:10px;">
-  <input type="submit" onclick="window.location='/create/';" id="guest" value="Guest" /> 
+  <input type="submit" id="guest" value="Guest" /> 
 </div>
 <div style="padding:10px;">
   <input type="submit" id="login" value="Login" />
   <input type="text" id="username" style="width:200px;" value="user1"/>
-  <input type="password" id="password" style="width:200px;" />   
+  <input type="password" id="password" style="width:200px;" value="pass1" />   
 </div>
 <div style="padding:10px;">
   <input id="out" value = ""/>  
@@ -15,8 +15,9 @@
   // http://codetheory.in/using-the-node-js-bcrypt-module-to-hash-and-safely-store-passwords/
   // Secure password etc ?? Better way of doing this? 
   var socket = io.connect('http://localhost:8080');
-  socket.on('correct_login', function(){
-    window.location='/create/' + document.getElementById('username').value;
+  socket.on('correct_login', function(username){
+    socket.emit('user_join', username);
+    window.location='/create/';
   });
   socket.on('incorrect_login', function(message){
     document.getElementById('out').value = message;
@@ -28,5 +29,10 @@
       socket.emit('login', username, password);
     });
   });
-
+    $(function(){
+    $('#guest').click( function() {
+      socket.emit('user_join', 'guest');
+      window.location='/create/';
+    });
+  });
 </script>
