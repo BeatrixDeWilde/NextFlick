@@ -1,5 +1,6 @@
 var port = 8080;
 var express = require('express');
+var connect = require('connect');
 var app     = express();
 var http    = require('http');
 var server  = http.createServer(app);
@@ -9,6 +10,12 @@ server.listen(port);
 
 var users = {};
 var guest = 0;
+
+/*MemoryStore = require('connect/middleware/session/memory'),
+var session_store = new MemoryStore();
+app.configure(function () {
+  app.use(express.session({ store: session_store }));
+}); */
 
 app.get('/create/*', function(req, res) {
   res.sendFile(__dirname + '/create.html');
@@ -24,25 +31,28 @@ app.get('', function(req, res) {
 
 io.sockets.on('connection', function(socket) {
 
-  socket.on('user_join', function(username, channel) {
+  socket.on('room_join', function(channel) {
+    username = socket.username ;
+    socket.channel = channel;
+    socket.join(channel);
+  });
+
+  socket.on('user_join', function(username) {
     if (username == 'guest') {
       guest++; // TODO amount in total
       username = username + guest;
     }
     socket.username = username;
-    socket.channel = channel;
     users[username] = username;
-    socket.join(channel);
-    socket.emit('update_chat', 'SERVER', 'Connected to channel ' + channel);
-    socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', username + ' has joined the channel');
-    io.sockets.in(socket.channel).emit('update_user_list', users);
   });
 
   socket.on('disconnect', function() {
     delete users[socket.username];
-    socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', socket.username + ' has left the channel');
-    io.sockets.in(socket.channel).emit('update_user_list', users);
     socket.leave(socket.room);
+  });
+
+  socket.on('test', function(decision) {
+    socket.emit('testClient', socket.username, socket.channel);
   });
 
   socket.on('choice', function(decision) {
@@ -75,10 +85,15 @@ io.sockets.on('connection', function(socket) {
         }
         else
         {
-          socket.emit('correct_login');
+          socket.emit('correct_login',username);
         }
         client.end();
       });
     });
   });
+
+  //socket.on('signup', function(username, password) {
+
+  //});
+
 });

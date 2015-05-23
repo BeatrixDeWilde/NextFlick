@@ -23,9 +23,13 @@
         document.getElementById('image').src = url;
         //TODO
       });
+      socket.on('testClient', function(user, channel){
+        document.getElementById('out').value = user;
+        document.getElementById('out2').value = channel;
+      });
       $(function(){
         $('#yes').click( function() {
-          socket.emit('choice', "yes");
+          socket.emit('test', "yes");
         });
         $('#no').keypress(function(e) {
           socket.emit('choice', "no");
@@ -41,6 +45,10 @@
     <div class= "container">
     <button type="button" id="yes" class="btn btn-default">YES</button>
     <button type="button" id="no" class="btn btn-default">NO</button>
+    </div>
+    <div style="padding:10px;">
+      <input id="out" value = ""/>  
+      <input id="out2" value = ""/>  
     </div>
   </body>
 </html>
