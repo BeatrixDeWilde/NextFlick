@@ -23,15 +23,11 @@
         document.getElementById('image').src = url;
         //TODO
       });
-      socket.on('testClient', function(user, channel){
-        document.getElementById('out').value = user;
-        document.getElementById('out2').value = channel;
-      });
       $(function(){
         $('#yes').click( function() {
-          socket.emit('test', "yes");
+          socket.emit('choice', "yes");
         });
-        $('#no').keypress(function(e) {
+        $('#no').click(function() {
           socket.emit('choice', "no");
         });
       });
