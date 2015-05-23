@@ -1,6 +1,5 @@
 var port = 8080;
 var express = require('express');
-var connect = require('connect');
 var app     = express();
 var http    = require('http');
 var server  = http.createServer(app);
@@ -10,12 +9,6 @@ server.listen(port);
 
 var users = {};
 var guest = 0;
-
-/*MemoryStore = require('connect/middleware/session/memory'),
-var session_store = new MemoryStore();
-app.configure(function () {
-  app.use(express.session({ store: session_store }));
-}); */
 
 app.get('/create/*', function(req, res) {
   res.sendFile(__dirname + '/create.html');
