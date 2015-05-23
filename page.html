@@ -19,14 +19,14 @@
           socket.emit('user_join', info[1], info[0]);
         }   
       });
-      socket.on('new_film', function(){
+      socket.on('new_film', function(url){
+        document.getElementById('image').src = url;
         //TODO
       });
       $(function(){
         $('#yes').click( function() {
           socket.emit('choice', "yes");
         });
-
         $('#no').keypress(function(e) {
           socket.emit('choice', "no");
         });
@@ -36,7 +36,7 @@
   <body>
     <div class="container">
       <h1>Test</h1>
-      <img src="iron-manposter.jpg" class = "img-rounded" width="20%" height="20%">
+      <img id="image" src="iron-manposter.jpg" class = "img-rounded" width="20%" height="20%">
     </div>
     <div class= "container">
     <button type="button" id="yes" class="btn btn-default">YES</button>

@@ -9,17 +9,23 @@
   <input type="password" id="password" style="width:200px;" />   
 </div>
 <div style="padding:10px;">
-  <input type="text" id="out" value = ""/>  
+  <input id="out" value = ""/>  
 </div>
 <script>
+  // http://codetheory.in/using-the-node-js-bcrypt-module-to-hash-and-safely-store-passwords/
+  // Secure password etc ?? Better way of doing this? 
   var socket = io.connect('http://localhost:8080');
-  socket.on('logged_in', function(password){
-    document.getElementById('out').value = password;
+  socket.on('correct_login', function(){
+    window.location='/create/' + document.getElementById('username').value;
+  });
+  socket.on('incorrect_login', function(message){
+    document.getElementById('out').value = message;
   });
   $(function(){
     $('#login').click( function() {
       var username = document.getElementById('username').value;
-      socket.emit('login', username);
+      var password = document.getElementById('password').value;
+      socket.emit('login', username, password);
     });
   });
 

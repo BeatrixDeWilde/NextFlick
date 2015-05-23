@@ -10,7 +10,7 @@ server.listen(port);
 var users = {};
 var guest = 0;
 
-app.get('/create/', function(req, res) {
+app.get('/create/*', function(req, res) {
   res.sendFile(__dirname + '/create.html');
 });
 
@@ -47,24 +47,36 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('choice', function(decision) {
     //TODO
-    // socket.emit('new_film', etc);
+    socket.emit('new_film', url);
   });
 
   // At the moment gets the user from the database 
   // and returns the password should be be somewhere else?
-  socket.on('login', function(username) {
+  socket.on('login', function(username, password) {
     var pg = require("pg");
     var con = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
+    // This has the database password in it? 
     pg.connect(con, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
       client.query('SELECT * FROM users WHERE username = $1', [username], function(err, result) {
+        // SQL injection? 
         done();
         if(err) {
           return console.error('error running query', err);
         }
-        socket.emit('logged_in',result.rows[0].password);
+        if(result.rows.length != 1){
+          socket.emit('incorrect_login',"No such user");
+        } 
+        else if(result.rows[0].password != password)
+        {
+          socket.emit('incorrect_login',"Incorrect password");
+        }
+        else
+        {
+          socket.emit('correct_login');
+        }
         client.end();
       });
     });

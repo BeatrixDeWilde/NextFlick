@@ -9,7 +9,8 @@
 </div>
 <script>
   function join_room(){
-    window.location='/room/' + document.getElementById('join_room').value;
+    var user = window.location.pathname.substring(6).split(/\//);
+    window.location='/room/' + document.getElementById('join_room').value + "/" + user[1];
   }
   function create_room(){ 
     //TODO 
