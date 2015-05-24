@@ -108,4 +108,28 @@ function getRandomFilmImageURL() {
   });
 }
 
+function getListOfPopularFilms() {
+  request({
+  method: 'GET',
+  url: 'http://api.themoviedb.org/3/movie/popular' + '?' + api_param + '&page=1',
+  headers: {
+    'Accept': 'application/json'
+  }}, 
+  function (error, response, body) {
+    if (response.statusCode === 200) {
+      var response = JSON.parse(body);
+      var film_list = response.results;
+      for (var i = 0, len = film_list.length; i < len; i++) {
+        film_list[i].poster_path = 'http://image.tmdb.org/t/p/w500' + film_list[i].poster_path;
+        delete film_list[i].backdrop_path;
+        delete film_list[i].video;
+        delete film_list[i].vote_average;
+        delete film_list[i].vote_count;
+      }
+    }
+    socket.emit('new_film', film_list);
+  });
+}
+
+
 });
