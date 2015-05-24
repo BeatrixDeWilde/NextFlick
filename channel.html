@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+<script> 
+  
+    var id = window.location.pathname.substring(6);
+    var index = 0;
+    var socket = io.connect('http://localhost:8080');
+
+    socket.on('connect', function(){
+                socket.emit('user_join', prompt("What's your name?"), id);
+    });
+
+    socket.on('update_chat', function(username, text) {
+         $('#chat').append('<b>'+username + ':</b> ' + text + '<br>');
+    });
+
+    socket.on('update_user_list', function(users) {
+    $('#users').empty();
+          $.each(users, function(key, value) {
+                $('#users').append('<div>' + value+ '</div>');
+        });
+
+    });
+
+ $(function(){
+                $('#datasend').click( function() {
+                        var message = $('#data').val();
+                        $('#data').val('');
+                        socket.emit('send_message', message);
+                });
+
+                $('#data').keypress(function(e) {
+                        if(e.which == 13) {
+                                $(this).blur();
+                                $('#datasend').focus().click();
+                        }
+                });
+        });
+      socket.on('new_film', function(url){
+          $('#chat').append('Changing image!<br>');
+        document.getElementById('image').src = url;
+        //TODO
+      });
+
+      socket.on('film_found', function(film) {
+        confirm('Film found! Film: ' + film.title);
+      });
+
+      socket.on('initialise', function(film_list) {
+         document.getElementById('image').src = film_list[0].poster_path;
+         document.getElementById('title').innerHTML = film_list[index].title;
+      });
+
+      socket.on('new_films', function(film_list, decision) {
+         if (index < film_list.length) {
+           $('#chat').append('Changing image! (Index at: ' + index + ') <br>');
+           socket.emit('send_message', 'said ' + decision + ' to movie: ' + film_list[index].title);
+           if (decision === 'yes') {
+//              ++film_list[index].yes_count;
+              socket.emit('increment_yes', index);
+//              socket.emit('check_if_done', film_list[index].yes_count, film_list[index]);
+           }
+           index++;
+           document.getElementById('image').src = film_list[index].poster_path;
+           document.getElementById('title').innerHTML = film_list[index].title;
+         } 
+          // TODO: What happens if finish list? (get next page of results)
+          // TODO: randomise list order
+      });
+
+ $(function(){
+        $('#yes').click( function() {
+          socket.emit('choice', "yes");
+        });
+        $('#no').click(function() {
+          socket.emit('choice', "no");
+        });
+      });
+</script>
+<div class="container" align="center">
+      <h1>Test</h1>
+      <img id="image" src="http://image.tmdb.org/t/p/w500/j6NCjU6Zh7SkfIeN5zDaoTmBn4m.jpg" class = "img-rounded" width="20%" height="20%">
+    </div>
+    <h3 id="title" align="center"></h3>
+    <div class= "container" align="center">
+    <button type="button" id="yes" class="btn btn-default">YES</button>
+    <button type="button" id="no" class="btn btn-default">NO</button>
+    </div>
+    <div style="padding:10px;" align="center">
+      <input id="out" value = ""/>  
+      <input id="out2" value = ""/>  
+    </div>
+<div style="float:left;width:100px;border-right:1px solid black;height:300px;padding:10px;overflow:scroll-y;">
+        <b>USERS</b>
+        <div id="users"></div>
+</div>
+<div style="float:left;width:300px;height:250px;overflow:scroll-y;padding:10px;">
+        <div id="chat"></div>
+        <input id="data" style="width:200px;" />
+        <input type="button" id="datasend" value="send" />
+</div>
+
+
+   
+

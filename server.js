@@ -10,48 +10,54 @@ var api_param = 'api_key=a91369e1857e8c0cf2bd02b5daa38260';
 server.listen(port);
 
 var users = {};
-var guest = 0;
-
-app.get('/create/*', function(req, res) {
-  res.sendFile(__dirname + '/create.html');
-});
+var films = {};
+var num_users = 0;
 
 app.get('/room/*', function(req, res) {
-  res.sendFile(__dirname + '/page.html');
-});
-
-app.get('', function(req, res) {
-  res.sendFile(__dirname + '/login.html');
+   res.sendFile(__dirname + '/channel.html');
 });
 
 io.sockets.on('connection', function(socket) {
 
-  socket.on('room_join', function(channel) {
-    username = socket.username ;
-    socket.channel = channel;
-    socket.join(channel);
-  });
-
-  socket.on('user_join', function(username) {
-    if (username == 'guest') {
-      guest++; // TODO amount in total
-      username = username + guest;
-    }
+  getListOfPopularFilms();
+  socket.emit('initialise', films);
+   
+  socket.on('user_join', function(username, channel) {
     socket.username = username;
-    users[username] = username;
+	  socket.channel = channel;
+	  users[username] = username;
+	  socket.join(channel);
+    ++num_users;
+    socket.emit('update_chat', 'SERVER', 'Connected to channel ' + channel);
+	  socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', username + ' has joined the channel');
+    io.sockets.in(socket.channel).emit('update_user_list', users);
+   });
+  
+  socket.on('send_message', function(message) {
+	  socket.emit('update_chat', 'You', message);
+  	socket.broadcast.to(socket.channel).emit('update_chat', socket.username, message);
+//	io.sockets.in(socket.channel).emit('update_chat', socket.username, message);
   });
 
   socket.on('disconnect', function() {
-    delete users[socket.username];
-    socket.leave(socket.room);
+	delete users[socket.username];
+	socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', socket.username + ' has left the channel');
+	io.sockets.in(socket.channel).emit('update_user_list', users);
+	socket.leave(socket.room);
+  --num_users;
   });
-
-  socket.on('test', function(decision) {
-    socket.emit('testClient', socket.username, socket.channel);
-  });
-
   socket.on('choice', function(decision) {
-    getRandomFilmImageURL();
+    //getRandomFilmImageURL(decision);
+    socket.emit('new_films', films, decision);
+  });
+
+  socket.on('increment_yes', function(index) {
+    console.log('Check if done. Num: ' + index);
+    films[index].yes_count++;
+    console.log(films[index].yes_count + ' vs ' + num_users);
+    if (films[index].yes_count >= num_users) {
+        io.sockets.in(socket.channel).emit('film_found', films[index]);
+    }
   });
 
   // At the moment gets the user from the database 
@@ -89,7 +95,7 @@ io.sockets.on('connection', function(socket) {
 // Get random film from movie database API
 // Thriller genre: 'http://api.themoviedb.org/3/genre/53/movies'
 // Base image url: 'http://image.tmdb.org/t/p/w500'
-function getRandomFilmImageURL() {
+function getRandomFilmImageURL(decision) {
   request({
   method: 'GET',
   url: 'http://api.themoviedb.org/3/movie/popular' + '?' + api_param + '&page=1',
@@ -105,8 +111,10 @@ function getRandomFilmImageURL() {
       var img_url = 'http://image.tmdb.org/t/p/w500' + img_url_extension;
     }
     socket.emit('new_film', img_url);
+    socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', socket.username + ' next film to ' + response.results[rand_index].title);
   });
 }
+
 
 function getListOfPopularFilms() {
   request({
@@ -125,11 +133,12 @@ function getListOfPopularFilms() {
         delete film_list[i].video;
         delete film_list[i].vote_average;
         delete film_list[i].vote_count;
+        film_list[i].yes_count = 0;
       }
     }
-    socket.emit('new_film', film_list);
+    films = film_list;
+//    socket.emit('new_films', film_list);
   });
 }
-
 
 });
