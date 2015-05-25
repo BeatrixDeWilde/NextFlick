@@ -12,6 +12,7 @@ server.listen(port);
 var users = {};
 var films = [];
 var num_users = [];
+var queryDelayBuffer = 5;
 
 app.get('/room/*', function(req, res) {
    res.sendFile(__dirname + '/channel.html');
@@ -25,18 +26,17 @@ io.sockets.on('connection', function(socket) {
   socket.on('user_join', function(username, channel) {
     socket.username = username;
 	  socket.channel = channel;
-          console.log('AAAA:' + users[channel]);
-          if (typeof users[channel] === 'undefined') {
-               console.log('CAUGHT IT');
-               users[channel] = {};
-               num_users[channel] = 0;
-               films[channel] = [];
-               getNumPopularFilms(40, channel);
-               console.log(films[channel]);
-               //socket.emit('initialise', films[channel]);
-          } else {
-               console.log('Didn\' catch it..');
-          }
+    if (typeof users[channel] === 'undefined') {
+      users[channel] = {};
+      num_users[channel] = 0;
+      films[channel] = [];
+      // Initialise film list with results from page 1
+      add20PopularFilms(1, channel);
+      console.log(films[channel]);
+      //socket.emit('initialise', films[channel]);
+    } else {
+      socket.emit('initialise', films[channel][0]);
+    }
 	  users[channel][username] = username;
 	  socket.join(channel);
     ++num_users[channel];
@@ -52,16 +52,26 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('disconnect', function() {
-	//delete users[socket.channel][socket.username];
-	socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', socket.username + ' has left the channel');
-	io.sockets.in(socket.channel).emit('update_user_list', users);
-	socket.leave(socket.room);
-        --num_users[socket.channel];
-        console.log('DEBUG: ' + socket.username + ' has left randomly!');
+    if (typeof socket.username !== 'undefined') {
+	    delete users[socket.channel][socket.username];
+	    socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', socket.username + ' has left the channel');
+	    io.sockets.in(socket.channel).emit('update_user_list', users);
+	    socket.leave(socket.room);
+      --num_users[socket.channel];
+      console.log('DEBUG: ' + socket.username + ' has left randomly!');
+  }
   });
-  socket.on('choice', function(decision) {
-    //getRandomFilmImageURL(decision);
-    socket.emit('new_films', films[socket.channel], decision);
+  socket.on('choice', function(decision, index) {
+    var message = ' said ' + decision + ' to movie: ' + films[socket.channel][index - 1].title;
+	  socket.emit('update_chat', 'You', message);
+  	socket.broadcast.to(socket.channel).emit('update_chat', socket.username, message);
+    var curNumFilms = films[socket.channel].length;
+    if (index < curNumFilms - queryDelayBuffer) {
+      socket.emit('new_films', films[socket.channel][index]);
+    } else {
+      var nextPage = Math.floor(index / 20) + 2;
+      add20PopularFilms(nextPage, socket.channel);
+    }
   });
 
   socket.on('increment_yes', function(index) {
@@ -129,20 +139,9 @@ function getRandomFilmImageURL(decision) {
   });
 }
 
-// numFilms parameter to specify how many films to put in list
-// numFilms must be a multiple of 20
-function getNumPopularFilms(numFilms, channel) {
-  var numRequests = Math.floor(numFilms / 20);
-  if (numRequests > 0) {
-    for (var i = 1; i <= numRequests; i++) {
-      get20PopularFilms(i, channel);
-    }
-  }
-}
-
 /* Get 20 popular films from page number pageNum and append them to the list
    of films */
-function get20PopularFilms(pageNum, channel) {
+function add20PopularFilms(pageNum, channel) {
   // Only query within range 0 < n <= 1000, otherwise default query page 1
   if (pageNum == 0 || pageNum > 1000) {
     pageNum = 1;
@@ -169,15 +168,14 @@ function get20PopularFilms(pageNum, channel) {
     // append films to JSON films array
     if (films[channel].length == 0) {
       films[channel] = film_list;
+      socket.emit('initialise', films[channel][0]);
     } else {
       films[channel].push.apply(films[channel], film_list);
     }
-    //console.log(films); // print out films to see how often being queried
-    // TODO: films are being queried again each time a user joins the same room
-    // Need to make list of films local to room
-
-    console.log(films[channel]);
-    socket.emit('initialise', films[channel]);
+    /*for (var i = 0, len = films[channel].length; i < len; i++) {
+      console.log('Film ' + i + ': ');
+      console.log(films[channel][i].title);
+    }*/
 
 //    socket.emit('new_films', film_list);
   });

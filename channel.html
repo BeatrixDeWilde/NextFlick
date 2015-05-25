@@ -52,34 +52,34 @@
         confirm('Film found! Film: ' + film.title);
       });
 
-      socket.on('initialise', function(film_list) {
-         document.getElementById('image').src = film_list[0].poster_path;
-         document.getElementById('title').innerHTML = film_list[0].title;
+      socket.on('initialise', function(film) {
+         document.getElementById('image').src = film.poster_path;
+         document.getElementById('title').innerHTML = film.title;
       });
 
-      socket.on('new_films', function(film_list, decision) {
-         if (index < film_list.length) {
+      socket.on('new_films', function(film) {
+         //if (index < film_list.length) {
            $('#chat').append('Changing image! (Index at: ' + index + ') <br>');
-           socket.emit('send_message', 'said ' + decision + ' to movie: ' + film_list[index].title);
-           if (decision === 'yes') {
-//              ++film_list[index].yes_count;
+           //socket.emit('send_message', 'said ' + decision + ' to movie: ' + film_list[index].title);
+           /*if (decision === 'yes') {
               socket.emit('increment_yes', index);
-//              socket.emit('check_if_done', film_list[index].yes_count, film_list[index]);
-           }
-           index++;
-           document.getElementById('image').src = film_list[index].poster_path;
-           document.getElementById('title').innerHTML = film_list[index].title;
-         } 
+           }*/
+           //index++;
+           document.getElementById('image').src = film.poster_path;
+           document.getElementById('title').innerHTML = film.title;
+         //} 
           // TODO: What happens if finish list? (get next page of results)
-          // TODO: randomise list order
       });
 
- $(function(){
-        $('#yes').click( function() {
-          socket.emit('choice', "yes");
+      $(function(){
+        $('#yes').click(function() {
+          socket.emit('increment_yes', index);
+          index++;
+          socket.emit('choice', "yes", index);
         });
         $('#no').click(function() {
-          socket.emit('choice', "no");
+          index++;
+          socket.emit('choice', "no", index);
         });
       });
 </script>
