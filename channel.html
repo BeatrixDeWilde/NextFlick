@@ -82,6 +82,20 @@
           socket.emit('choice', "no", index);
         });
       });
+
+document.onkeydown = function(e) {
+    switch (e.keyCode) {
+        case 37:
+            socket.emit('increment_yes', index);
+            index++;
+            socket.emit('choice', "yes", index);
+            break;
+        case 39:
+            index++;
+            socket.emit('choice', "no", index);
+            break;
+    }
+};
 </script>
 <div class="container" align="center">
       <h1>Test</h1>
