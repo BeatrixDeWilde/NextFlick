@@ -10,7 +10,7 @@ var api_param = 'api_key=a91369e1857e8c0cf2bd02b5daa38260';
 server.listen(port);
 
 var users = {};
-var films = {};
+var films = [];
 var num_users = 0;
 
 app.get('/room/*', function(req, res) {
@@ -19,7 +19,7 @@ app.get('/room/*', function(req, res) {
 
 io.sockets.on('connection', function(socket) {
 
-  getListOfPopularFilms();
+  getNumPopularFilms(40);
   socket.emit('initialise', films);
    
   socket.on('user_join', function(username, channel) {
@@ -95,6 +95,7 @@ io.sockets.on('connection', function(socket) {
 // Get random film from movie database API
 // Thriller genre: 'http://api.themoviedb.org/3/genre/53/movies'
 // Base image url: 'http://image.tmdb.org/t/p/w500'
+// Image sizes: w185, w342, w500, w780 (smallest to largest)
 function getRandomFilmImageURL(decision) {
   request({
   method: 'GET',
@@ -115,11 +116,27 @@ function getRandomFilmImageURL(decision) {
   });
 }
 
+// numFilms parameter to specify how many films to put in list
+// numFilms must be a multiple of 20
+function getNumPopularFilms(numFilms) {
+  var numRequests = Math.floor(numFilms / 20);
+  if (numRequests > 0) {
+    for (var i = 1; i <= numRequests; i++) {
+      get20PopularFilms(i);
+    }
+  }
+}
 
-function getListOfPopularFilms() {
+/* Get 20 popular films from page number pageNum and append them to the list
+   of films */
+function get20PopularFilms(pageNum) {
+  // Only query within range 0 < n <= 1000, otherwise default query page 1
+  if (pageNum == 0 || pageNum > 1000) {
+    pageNum = 1;
+  }
   request({
   method: 'GET',
-  url: 'http://api.themoviedb.org/3/movie/popular' + '?' + api_param + '&page=1',
+  url: 'http://api.themoviedb.org/3/movie/popular' + '?' + api_param + '&page=' + pageNum,
   headers: {
     'Accept': 'application/json'
   }}, 
@@ -128,7 +145,7 @@ function getListOfPopularFilms() {
       var response = JSON.parse(body);
       var film_list = response.results;
       for (var i = 0, len = film_list.length; i < len; i++) {
-        film_list[i].poster_path = 'http://image.tmdb.org/t/p/w500' + film_list[i].poster_path;
+        film_list[i].poster_path = 'http://image.tmdb.org/t/p/w342' + film_list[i].poster_path;
         delete film_list[i].backdrop_path;
         delete film_list[i].video;
         delete film_list[i].vote_average;
@@ -136,7 +153,16 @@ function getListOfPopularFilms() {
         film_list[i].yes_count = 0;
       }
     }
-    films = film_list;
+    // append films to JSON films array
+    if (films.length == 0) {
+      films = film_list;
+    } else {
+      films.push.apply(films, film_list);
+    }
+    //console.log(films); // print out films to see how often being queried
+    // TODO: films are being queried again each time a user joins the same room
+    // Need to make list of films local to room
+
 //    socket.emit('new_films', film_list);
   });
 }
