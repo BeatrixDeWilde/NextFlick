@@ -54,7 +54,7 @@
 
       socket.on('initialise', function(film_list) {
          document.getElementById('image').src = film_list[0].poster_path;
-         document.getElementById('title').innerHTML = film_list[index].title;
+         document.getElementById('title').innerHTML = film_list[0].title;
       });
 
       socket.on('new_films', function(film_list, decision) {
