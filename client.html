@@ -87,6 +87,18 @@
           $('.room_page').fadeOut();
           $('.main_page').show();
         });
+        $('#create').click(function() {
+          $('.room_page').fadeOut();
+          $('.lobby_page').show();
+        });
+        $('#join').click(function() {
+          $('.room_page').fadeOut();
+          $('.lobby_page').show();
+        });
+        $('#go').click(function() {
+          $('.lobby_page').fadeOut();
+          $('.main_page').show();
+        });
       });
 
       document.onkeydown = function(e) {
@@ -114,6 +126,9 @@
         display:none;
      }
      .room_page{
+        display: none;
+     }
+     .lobby_page{
         display: none;
      }
     </style>
@@ -148,7 +163,19 @@
           <button type="button" id="click" class="btn btn-default" value="">Go to room page</button>
         </li>
         <li class="room_page">
-          <button type="button" id="click2" class="btn btn-default" value="">Go to main page</button>
+          <button type="button" id="create" class="btn btn-default">Create Room</button>
+          <form class="form-inline" role="form">
+            <button type="button" id="join" class="btn btn-default">Join Room</button>
+            <input class="form-control" id="RoomID" placeholder="RoomID">
+          </form>
+        </li>
+        <li class="lobby_page">
+           <div>
+            <b>USERS</b>
+            <!--this only works when you change the id of users on main page (which breaks that)-->
+            <div id="users"></div>
+          </div>
+          <button type="button" id="go" class="btn btn-default">Go</button>
         </li>
     </ul> 
   </body>
