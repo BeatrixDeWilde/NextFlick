@@ -13,20 +13,21 @@
       var socket = io.connect('http://localhost:8080');
       var username = 'NOTSET';
       var room = 'NOTSET';
+      var on_main_page = false;
 
       socket.on('set_room_id', function(channel) {
           room = channel;
           //alert('Channel is now: ' + room);
           socket.emit('user_join', username, room);
-          $('#myRoom').append('<b> Your Room:</b> ' + room + '<br>');
+          //$('#myRoom').append('<b> Your Room:</b> ' + room + '<br>');
       });
 
       socket.on("joined_room", function(channel){
         room = channel;
         $('#myRoom').append('<b> Your Room:</b> ' + room + '<br>');
-        $('.room_page').fadeOut();
-        $('.lobby_page').show();
-
+        $('.room_page').fadeOut('fast', function() {
+          $('.lobby_page').show();
+        });
       });
 
       socket.on('room_not_initialised', function(){
@@ -63,9 +64,12 @@
       });
 
       socket.on('film_found', function(film) {
-        alert('Film found! Film: ' + film.title);
-        $('#chat').append('Shoudl have disconnected');
-        window.location.replace(window.location.pathname.substring(0, 6));
+        alert('Film found! Film: ' + film.title + ' \nTODO: Work on this splash page. Will redirect to main page for now.');
+        on_main_page = false;
+        // TODO: Show winning page;
+        $('.main_page').hide("slow", function() {
+          $('.user_page').fadeIn();
+        });
       });
 
       socket.on('initialise', function(film) {
@@ -120,8 +124,9 @@
         $('#guest').click(function() {
           //socket.emit('user_join', 'guest', id);
           socket.emit('get_guest_id');
-          $('.user_page').fadeOut('fast');
-          $('.room_page').show();
+          $('.user_page').fadeOut('fast', function() {
+            $('.room_page').fadeIn('fast');
+          });
         });
         $('#login').click(function() {
           $('.user_page').fadeOut('fast');
@@ -147,8 +152,9 @@
 
         $('#create').click(function() {
           socket.emit('new_room');
-          $('.room_page').fadeOut();
-          $('.lobby_page').show();
+          $('.room_page').fadeOut('fast', function() {
+            $('.lobby_page').fadeIn('fast');
+          });
         });
 
         $('#join').click(function() {
@@ -159,13 +165,16 @@
         });
 
         $('#go').click(function() {
-          $('.lobby_page').fadeOut();
-          $('.main_page').show();
+          $('.lobby_page').hide('fast', function() {
+            $('.main_page').fadeIn('fast');
+          });
+          on_main_page = true;
           });
       });
 
 
       document.onkeydown = function(e) {
+       if (on_main_page) {
         switch (e.keyCode) {
           case 37:
             socket.emit('increment_yes', index);
@@ -177,6 +186,7 @@
             socket.emit('choice', "no", index);
             break;
         } 
+       }
       };
     </script>
     <style>
