@@ -15,6 +15,30 @@ var num_users = [];
 var queryDelayBuffer = 10;
 var guest = 0;
 
+// Genre IDs for movie queries
+var genreIdLookup = {
+  "Action" : 28,
+  "Adventure" : 12,
+  "Animation" : 16,
+  "Comedy" : 35,
+  "Crime" : 80,
+  "Documentary" : 99,
+  "Drama" : 18,
+  "Family" : 10751,
+  "Fantasy" : 14,
+  "Foreign" : 10769,
+  "History" : 36,
+  "Horror" : 27,
+  "Music" : 10402,
+  "Mystery" : 9648,
+  "Romance" : 10749,
+  "Science Fiction" : 878,
+  "TV Movie" : 10770,
+  "Thriller" : 53,
+  "War" : 10752,
+  "Western" : 37
+}
+
 app.get('/', function(req, res) {
    res.sendFile(__dirname + '/index.html');
 });
@@ -57,7 +81,9 @@ io.sockets.on('connection', function(socket) {
       num_users[channel] = 0;
       films[channel] = [];
       // Initialise film list with results from page 1
-      add20PopularFilms(1, channel);
+      //add20PopularFilms(1, channel);
+      var film_genres = ["Horror"];
+      add20FilmsByGenre(1, channel, film_genres);
       console.log(films[channel]);
       //socket.emit('initialise', films[channel]);
     } else {
@@ -84,7 +110,7 @@ io.sockets.on('connection', function(socket) {
 	    io.sockets.in(socket.channel).emit('update_user_list', users);
 	    socket.leave(socket.room);
       --num_users[socket.channel];
-      console.log('DEBUG: ' + socket.username + ' has left randomly!');
+      //console.log('DEBUG: ' + socket.username + ' has left randomly!');
       if (num_users[socket.channel] == 0) {
           console.log('Tear down room: ' + socket.channel);
           delete users[socket.channel];
@@ -99,7 +125,9 @@ io.sockets.on('connection', function(socket) {
     var curNumFilms = films[socket.channel].length;
     if (index == (curNumFilms - queryDelayBuffer)) {
       var nextPage = Math.floor(index / 20) + 2;
-      add20PopularFilms(nextPage, socket.channel);
+      //add20PopularFilms(nextPage, socket.channel);
+      var film_genres = ["Horror"];
+      add20FilmsByGenre(nextPage, socket.channel, film_genres);
     }
     socket.emit('new_films', films[socket.channel][index]);
   });
@@ -109,7 +137,7 @@ io.sockets.on('connection', function(socket) {
     films[socket.channel][index].yes_count++;
     console.log(films[socket.channel][index].yes_count + ' vs ' + num_users[socket.channel]);
     if (films[socket.channel][index].yes_count >= num_users[socket.channel]) {
-        io.sockets.in(socket.channel).emit('film_found', films[socket.channel][index]);
+      io.sockets.in(socket.channel).emit('film_found', films[socket.channel][index]);
     }
   });
 
@@ -206,7 +234,7 @@ function add20PopularFilms(pageNum, channel) {
   }
   request({
   method: 'GET',
-  url: 'http://api.themoviedb.org/3/movie/popular' + '?' + api_param + '&page=' + pageNum,
+  url: 'http://api.themoviedb.org/3/movie/popular?' + api_param + '&page=' + pageNum,
   headers: {
     'Accept': 'application/json'
   }}, 
@@ -222,20 +250,72 @@ function add20PopularFilms(pageNum, channel) {
         delete film_list[i].vote_count;
         film_list[i].yes_count = 0;
       }
-    }
-    // append films to JSON films array
-    if (films[channel].length == 0) {
-      films[channel] = film_list;
-      socket.emit('initialise', films[channel][0]);
-    } else {
-      films[channel].push.apply(films[channel], film_list);
-    }
-    for (var i = 0, len = films[channel].length; i < len; i++) {
-      console.log('Film ' + i + ':> ' + films[channel][i].title);
+    
+      // append films to JSON films array
+      if (films[channel].length == 0) {
+        films[channel] = film_list;
+        socket.emit('initialise', films[channel][0]);
+      } else {
+        films[channel].push.apply(films[channel], film_list);
+      }
+      /*for (var i = 0, len = films[channel].length; i < len; i++) {
+        console.log('Film ' + i + ':> ' + films[channel][i].title);
+      }*/
     }
 
-//    socket.emit('new_films', film_list);
   });
+}
+
+/* Get 20 films of all genres from the array parameter 'genres' 
+   from page number pageNum and append them to the list of films */
+function add20FilmsByGenre(pageNum, channel, genres) {
+  // Only query within range 0 < n <= 1000, otherwise default query page 1
+  if (pageNum == 0 || pageNum > 1000) {
+    pageNum = 1;
+  }
+  // Prepare genre IDs for query
+  var genreParams = '';
+  if (genres.length != 0) {
+    for (var i = 0, len = genres.length; i < len; i++) {
+      genreParams += genreIdLookup[genres[i]];
+      if (i != (len - 1)) {
+        genreParams += '|';
+      }
+    }
+  }
+  request({
+    method: 'GET',
+    url: 'http://api.themoviedb.org/3/discover/movie?' + api_param + 
+         '&page=' + pageNum + 
+         '&include_adult=false' + 
+         '&sort_by=popularity.desc' + 
+         '&with_genres=' + genreParams,
+    headers: {
+      'Accept': 'application/json'
+    }}, 
+    function (error, response, body) {
+      if (response.statusCode === 200) {
+        var response = JSON.parse(body);
+        var film_list = response.results;
+        for (var i = 0, len = film_list.length; i < len; i++) {
+          film_list[i].poster_path = 'http://image.tmdb.org/t/p/w342' + film_list[i].poster_path;
+          delete film_list[i].backdrop_path;
+          delete film_list[i].video;
+          delete film_list[i].vote_average;
+          delete film_list[i].vote_count;
+          film_list[i].yes_count = 0;
+        }
+    
+        // append films to JSON films array
+        if (films[channel].length == 0) {
+          films[channel] = film_list;
+          socket.emit('initialise', films[channel][0]);
+        } else {
+          films[channel].push.apply(films[channel], film_list);
+        }
+    }
+  
+  });  
 }
 
 });
