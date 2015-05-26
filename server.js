@@ -59,7 +59,12 @@ io.sockets.on('connection', function(socket) {
 	    socket.leave(socket.room);
       --num_users[socket.channel];
       console.log('DEBUG: ' + socket.username + ' has left randomly!');
-  }
+      if (num_users[socket.channel] == 0) {
+          console.log('Tear down room: ' + socket.channel);
+          delete users[socket.channel];
+      }
+
+  } 
   });
   socket.on('choice', function(decision, index) {
     var message = ' said ' + decision + ' to movie: ' + films[socket.channel][index - 1].title;
