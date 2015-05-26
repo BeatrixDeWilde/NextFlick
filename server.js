@@ -46,29 +46,21 @@ io.sockets.on('connection', function(socket) {
   });
    
   socket.on('user_join', function(username, channel) {
-    if (username == 'guest') {
-      guest++;
-      username += guest;
-    } 
     socket.username = username;
 	  socket.channel = channel;
+
     if (typeof users[channel] === 'undefined') {
-      users[channel] = {};
-      num_users[channel] = 0;
-      films[channel] = [];
-      // Initialise film list with results from page 1
-      add20PopularFilms(1, channel);
-      console.log(films[channel]);
-      //socket.emit('initialise', films[channel]);
+      socket.emit('room_not_initialised');
     } else {
+      socket.emit("joined_room", channel);
       socket.emit('initialise', films[channel][0]);
+  	  users[channel][username] = username;
+  	  socket.join(channel);
+      ++num_users[channel];
+      socket.emit('update_chat', 'SERVER', 'Connected to channel ' + channel);
+  	  socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', username + ' has joined the channel');
+      io.sockets.in(socket.channel).emit('update_user_list', users[channel]);
     }
-	  users[channel][username] = username;
-	  socket.join(channel);
-    ++num_users[channel];
-    socket.emit('update_chat', 'SERVER', 'Connected to channel ' + channel);
-	  socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', username + ' has joined the channel');
-    io.sockets.in(socket.channel).emit('update_user_list', users[channel]);
    });
   
   socket.on('send_message', function(message) {
