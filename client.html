@@ -13,7 +13,7 @@
       var socket = io.connect('http://localhost:8080');
 
       socket.on('connect', function(){
-                  socket.emit('user_join', prompt("What's your name?"), id);
+        //socket.emit('user_join', prompt("What's your name?"), id);
       });
 
       socket.on('update_chat', function(username, text) {
@@ -28,21 +28,6 @@
                   $('#users').append('<div>' + value+ '</div>');
           });
 
-      });
-
-      $(function(){
-        $('#datasend').click( function() {
-                var message = $('#data').val();
-                $('#data').val('');
-                socket.emit('send_message', message);
-        });
-
-        $('#data').keypress(function(e) {
-                if(e.which == 13) {
-                        $(this).blur();
-                        $('#datasend').focus().click();
-                }
-        });
       });
 
       socket.on('new_film', function(url){
@@ -68,6 +53,7 @@
         document.getElementById('title').innerHTML = film.title;
       });
 
+      // FILM PAGE
       $(function(){
         $('#yes').click(function() {
           socket.emit('increment_yes', index);
@@ -78,28 +64,61 @@
           index++;
           socket.emit('choice', "no", index);
         });
+        $('#datasend').click( function() {
+          var message = $('#data').val();
+          $('#data').val('');
+          socket.emit('send_message', message);
+        });
+
+        $('#data').keypress(function(e) {
+          if(e.which == 13) {
+            $(this).blur();
+            $('#datasend').focus().click();
+          }
+        });
+      });
+
+      // LOGIN PAGE
+      $(function(){
         // Fading out pages etc
-        $('#click').click(function() {
-          $('.login_page').fadeOut();
+        $('#guest').click(function() {
+          socket.emit('user_join', 'guest', id);
+          $('.user_page').fadeOut('fast');
           $('.room_page').show();
         });
-        $('#click2').click(function() {
-          $('.room_page').fadeOut();
-          $('.main_page').show();
+        $('#login').click(function() {
+          $('.user_page').fadeOut('fast');
+          $('.login_page').show();
         });
+        $('#sign_in').click(function() {
+          socket.emit('user_join', document.getElementById('username').value, id);
+          $('.login_page').fadeOut('fast');
+          $('.room_page').show();
+        });
+        $('#sign_up').click(function() {
+          $('.user_page').fadeOut('fast');
+          $('.sign_up_page').show();
+        });
+      });
+      //ROOM PAGE and LOBBY PAGE
+      $(function(){
+
         $('#create').click(function() {
           $('.room_page').fadeOut();
           $('.lobby_page').show();
         });
+
         $('#join').click(function() {
           $('.room_page').fadeOut();
           $('.lobby_page').show();
         });
+
         $('#go').click(function() {
           $('.lobby_page').fadeOut();
           $('.main_page').show();
-        });
+          });
       });
+
 
       document.onkeydown = function(e) {
         switch (e.keyCode) {
@@ -124,9 +143,22 @@
      }
      .main_page{
         display:none;
+        list-style-type: none;
      }
      .room_page{
         display: none;
+        list-style-type: none;
+     }
+     .user_page{
+        list-style-type: none;
+     }
+     .sign_up_page{
+        display: none;
+        list-style-type: none;
+     }
+     .login_page{
+        display: none;
+        list-style-type: none;
      }
      .lobby_page{
         display: none;
@@ -159,8 +191,46 @@
             <input type="button" id="datasend" value="send" />
           </div>
         </li>
+        <li class="user_page">
+          <div class="container" style="padding:10px;" align="center">
+            <button type="button" id="guest" class="btn btn-default" value="">Guest</button>  
+          </div>
+          <div class="container" style="padding:10px;" align="center">
+            <button type="button" id="login" class="btn btn-default" >Sign in</button>
+          </div>
+          <div class="container" style="padding:10px;" align="center">
+            <button type="button" id="sign_up" class="btn btn-default" >Sign Up</button>
+          </div>
+        </li>
+        <li class="sign_up_page">
+          <div class="container">
+            <form role="form">
+              <div class="form-group">
+                <label for="usr">Username:</label>
+                <input type="text" class="form-control" id="username_sign_up" placeholder="Enter username">
+              </div>
+              <div class="form-group">
+                <label for="pwd">Password:</label>
+                <input type="password" class="form-control" id="pwd_sign_up" placeholder="Enter password">
+              </div>
+              <button type="button" id="sign_up" class="btn btn-default">Sign up</button>
+            </form>
+          </div>
+        </li>
         <li class="login_page">
-          <button type="button" id="click" class="btn btn-default" value="">Go to room page</button>
+          <div class="container">
+            <form role="form">
+              <div class="form-group">
+                <label for="usr">Username:</label>
+                <input type="text" class="form-control" id="username" placeholder="Enter username">
+              </div>
+              <div class="form-group">
+                <label for="pwd">Password:</label>
+                <input type="password" class="form-control" id="pwd" placeholder="Enter password">
+              </div>
+              <button type="button" id="sign_in" class="btn btn-default">Sign in</button>
+            </form>
+          </div>
         </li>
         <li class="room_page">
           <button type="button" id="create" class="btn btn-default">Create Room</button>
