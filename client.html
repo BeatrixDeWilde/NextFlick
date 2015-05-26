@@ -13,7 +13,6 @@
       var socket = io.connect('http://localhost:8080');
 
       socket.on('connect', function(){
-        //socket.emit('user_join', prompt("What's your name?"), id);
       });
 
       socket.on('update_chat', function(username, text) {
@@ -105,6 +104,9 @@
           socket.emit('sign_in', username, password);
         });
         $('#sign_up').click(function() {
+          //var username = document.getElementById('username').value;
+          //var password = document.getElementById('pwd').value;
+          //socket.emit('sign_up', username, password);
           $('.user_page').fadeOut('fast');
           $('.sign_up_page').show();
         });
@@ -215,7 +217,7 @@
           <div class="container">
             <form role="form">
               <div class="form-group">
-                <label for="usr">Username:</label>
+                <label for="usr">Username: (not guest***)</label>
                 <input type="text" class="form-control" id="username_sign_up" placeholder="Enter username">
               </div>
               <div class="form-group">

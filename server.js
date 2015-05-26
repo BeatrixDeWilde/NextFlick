@@ -92,19 +92,15 @@ io.sockets.on('connection', function(socket) {
     }
   });
 
-  // At the moment gets the user from the database 
-  // and returns the password should be be somewhere else?
   socket.on('sign_in', function(username, password) {
     var pg = require("pg");
     var con = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
-    // This has the database password in it? 
     pg.connect(con, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
       client.query('SELECT * FROM users WHERE username = $1', [username], function(err, result) {
-        // SQL injection? 
-        done();
+        //done(); ??
         if(err) {
           return console.error('error running query', err);
         }
@@ -122,6 +118,38 @@ io.sockets.on('connection', function(socket) {
         client.end();
       });
     });
+  });
+
+
+  socket.on('sign_up', function(username, password) {
+    /*var pg = require("pg");
+    var con = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
+    var user_exists = true;
+    pg.connect(con, function(err, client, done) {
+      if(err) {
+        return console.error('error connecting', err);
+      }
+      client.query('SELECT * FROM users WHERE username = $1', [username], function(err, result) {
+        if(err) {
+          return console.error('error running select query', err);
+        }
+        if(result.rows.length != 0){
+          socket.emit('user_already_exists', username);
+        } 
+        else 
+        {
+          user_exists = false;
+        }
+      });
+      /*if(!user_exists){
+        client.query('INSERT INTO users(username, password) values($1,$2);', [username,password], function(err2, result2) {
+          if(err2) {
+            return console.error('error running insert query', err2);
+          }
+        });
+      }
+      client.end();
+    });*/
   });
 
 // Get random film from movie database API
