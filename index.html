@@ -123,6 +123,10 @@
           $('.user_page').fadeOut('fast');
           $('.sign_up_page').show();
         });
+        $('#user_sign_up').click(function() {
+          $('.sign_up_page').fadeOut('fast');
+          $('.room_page').show();
+        });
       });
       //ROOM PAGE and LOBBY PAGE
       $(function(){
@@ -238,7 +242,7 @@
                 <label for="pwd">Password:</label>
                 <input type="password" class="form-control" id="pwd_sign_up" placeholder="Enter password">
               </div>
-              <button type="button" id="sign_up" class="btn btn-default">Sign up</button>
+              <button type="button" id="user_sign_up" class="btn btn-default">Sign up</button>
             </form>
           </div>
         </li>
