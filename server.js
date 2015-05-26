@@ -94,7 +94,7 @@ io.sockets.on('connection', function(socket) {
 
   // At the moment gets the user from the database 
   // and returns the password should be be somewhere else?
-  socket.on('login', function(username, password) {
+  socket.on('sign_in', function(username, password) {
     var pg = require("pg");
     var con = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
     // This has the database password in it? 
