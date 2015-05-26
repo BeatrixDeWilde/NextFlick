@@ -95,8 +95,25 @@ io.sockets.on('connection', function(socket) {
 //	io.sockets.in(socket.channel).emit('update_chat', socket.username, message);
   });
 
+  socket.on('leave_room', function(username, room) {
+     if (typeof socket.username !== 'undefined') {
+            delete users[socket.channel][socket.username];
+            socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', socket.username + ' has left the channel');
+            io.sockets.in(socket.channel).emit('update_user_list', users);
+            socket.leave(socket.room);
+      --num_users[socket.channel];
+      //console.log('DEBUG: ' + socket.username + ' has left randomly!');
+      if (num_users[socket.channel] == 0) {
+          console.log('Tear down room: ' + socket.channel);
+          delete users[socket.channel];
+      }
+
+  }
+
+  });
+
   socket.on('disconnect', function() {
-    if (typeof socket.username !== 'undefined') {
+    if (typeof socket.username !== 'undefined' && typeof socket.channel !== 'undefined') {
 	    delete users[socket.channel][socket.username];
 	    socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', socket.username + ' has left the channel');
 	    io.sockets.in(socket.channel).emit('update_user_list', users);

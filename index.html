@@ -59,17 +59,19 @@
 
       socket.on('new_film', function(url){
           $('#chat').append('Changing image!<br>');
-        document.getElementById('image').src = url;
-        //TODO
+          document.getElementById('image').src = url;
       });
 
       socket.on('film_found', function(film) {
         alert('Film found! Film: ' + film.title + ' \nTODO: Work on this splash page. Will redirect to main page for now.');
         on_main_page = false;
+        socket.emit('leave_room', username, room);
         // TODO: Show winning page;
         $('.main_page').hide("slow", function() {
           $('.user_page').fadeIn();
         });
+        $('#chat').empty();
+        $('#myRoom').empty();
       });
 
       socket.on('initialise', function(film) {
