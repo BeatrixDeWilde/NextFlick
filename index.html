@@ -1,18 +1,283 @@
-<body onload="ChannelSelect()">
-<div style="float:left;width:100px;border-right:1px solid black;height:300px;padding:10px;overflow:scroll-y;">
-        <b>USERS</b>
-        <div id="users"></div>
-</div>
-<div style="float:left;width:300px;height:250px;overflow:scroll-y;padding:10px;">
-        <div id="chat"></div>
-        <input id="data" style="width:200px;" />
-        <input type="button" id="datasend" value="send" />
-</div>
-</body>
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"> 
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    <script> 
 
-<script>
-function ChannelSelect() {
-  var redirect = prompt("What room ID?");
-  window.location.href = window.location.href + '/room/' + redirect;
-</script>	 
+      var id = window.location.pathname.substring(6);
+      var index = 0;
+      var socket = io.connect('http://localhost:8080');
+      var username = 'NOTSET';
+      var room = 'NOTSET';
+
+      socket.on('set_room_id', function(channel) {
+           room = channel;
+           //alert('Channel is now: ' + room);
+           socket.emit('user_join', username, room);
+      });
+
+      socket.on('set_username', function(user) {
+           username = user;
+           //alert('Username is now: ' + username);
+      });
+
+
+      socket.on('connect', function(){
+        //socket.emit('user_join', prompt("What's your name?"), id);
+      });
+
+      socket.on('update_chat', function(username, text) {
+           $('#chat').append('<b>'+username + ':</b> ' + text + '<br>');
+           var elem = document.getElementById('chat');
+           elem.scrollTop = elem.scrollHeight;
+      });
+
+      socket.on('update_user_list', function(users) {
+      $('#users').empty();
+            $.each(users, function(key, value) {
+                  $('#users').append('<div>' + value+ '</div>');
+          });
+      });
+
+      socket.on('new_film', function(url){
+          $('#chat').append('Changing image!<br>');
+        document.getElementById('image').src = url;
+        //TODO
+      });
+
+      socket.on('film_found', function(film) {
+        alert('Film found! Film: ' + film.title);
+        $('#chat').append('Shoudl have disconnected');
+        window.location.replace(window.location.pathname.substring(0, 6));
+      });
+
+      socket.on('initialise', function(film) {
+         document.getElementById('image').src = film.poster_path;
+         document.getElementById('title').innerHTML = film.title;
+      });
+
+      socket.on('new_films', function(film) {
+        $('#chat').append('Changing image! (Index at: ' + index + ') <br>');
+        document.getElementById('image').src = film.poster_path;
+        document.getElementById('title').innerHTML = film.title;
+      });
+      
+      socket.on('incorrect_login', function(message) {
+        document.getElementById('error_message').value = message;
+      });
+
+      socket.on('correct_login',function(username){
+        socket.emit('user_join', username, id);
+        $('.login_page').fadeOut('fast');
+        $('.room_page').show();
+      }); 
+
+      // FILM PAGE
+      $(function(){
+        $('#yes').click(function() {
+          socket.emit('increment_yes', index);
+          index++;
+          socket.emit('choice', "yes", index);
+        });
+        $('#no').click(function() {
+          index++;
+          socket.emit('choice', "no", index);
+        });
+        $('#datasend').click( function() {
+          var message = $('#data').val();
+          $('#data').val('');
+          socket.emit('send_message', message);
+        });
+
+        $('#data').keypress(function(e) {
+          if(e.which == 13) {
+            $(this).blur();
+            $('#datasend').focus().click();
+          }
+        });
+      });
+
+      // LOGIN PAGE
+      $(function(){
+        // Fading out pages etc
+        $('#guest').click(function() {
+          //socket.emit('user_join', 'guest', id);
+          socket.emit('get_guest_id');
+          $('.user_page').fadeOut('fast');
+          $('.room_page').show();
+        });
+        $('#login').click(function() {
+          $('.user_page').fadeOut('fast');
+          $('.login_page').show();
+        });
+        $('#sign_in').click(function() {
+          var username = document.getElementById('username').value;
+          var password = document.getElementById('pwd').value;
+          socket.emit('sign_in', username, password);
+        });
+        $('#sign_up').click(function() {
+          $('.user_page').fadeOut('fast');
+          $('.sign_up_page').show();
+        });
+      });
+      //ROOM PAGE and LOBBY PAGE
+      $(function(){
+
+        $('#create').click(function() {
+          socket.emit('new_room');
+          $('.room_page').fadeOut();
+          $('.lobby_page').show();
+        });
+
+        $('#join').click(function() {
+          $('.room_page').fadeOut();
+          $('.lobby_page').show();
+        });
+
+        $('#go').click(function() {
+          $('.lobby_page').fadeOut();
+          $('.main_page').show();
+          });
+      });
+
+
+      document.onkeydown = function(e) {
+        switch (e.keyCode) {
+          case 37:
+            socket.emit('increment_yes', index);
+            index++;
+            socket.emit('choice', "yes", index);
+            break;
+          case 39:
+            index++;
+            socket.emit('choice', "no", index);
+            break;
+        } 
+      };
+    </script>
+    <style>
+      #chat {
+        overflow-y:scroll;
+        border: thin solid black;
+        height:250px;
+        width:100%;
+     }
+     .main_page{
+        display:none;
+        list-style-type: none;
+     }
+     .room_page{
+        display: none;
+        list-style-type: none;
+     }
+     .user_page{
+        list-style-type: none;
+     }
+     .sign_up_page{
+        display: none;
+        list-style-type: none;
+     }
+     .login_page{
+        display: none;
+        list-style-type: none;
+     }
+     .lobby_page{
+        display: none;
+     }
+    </style>
+  </head>
+  <body>
+    <ul class="pages">
+        <li class="main_page">
+          <div class="container" align="center">
+            <h1>Film Finder</h1>
+            <img id="image" src="http://image.tmdb.org/t/p/w500/j6NCjU6Zh7SkfIeN5zDaoTmBn4m.jpg" class = "img-rounded" width="20%" height="20%">
+          </div>
+            <h3 id="title" align="center"></h3>
+            <div class= "container" align="center">
+              <button type="button" id="yes" class="btn btn-default">YES</button>
+              <button type="button" id="no" class="btn btn-default">NO</button>
+            </div>
+            <div style="padding:10px;" align="center">
+              <input id="out" value = ""/>  
+              <input id="out2" value = ""/>  
+            </div>
+          <div style="float:left;width:100px;border-right:1px solid black;height:300px;padding:10px;overflow:scroll-y;">
+            <b>USERS</b>
+            <div id="users"></div>
+          </div>
+          <div style="float:left;width:500px;height:250px;overflow:scroll-y;padding:10px;">
+            <div id="chat"></div>
+            <input id="data" style="width:200px;" />
+            <input type="button" id="datasend" value="send" />
+          </div>
+        </li>
+        <li class="user_page">
+          <div class="container" style="padding:10px;" align="center">
+            <button type="button" id="guest" class="btn btn-default" value="">Guest</button>  
+          </div>
+          <div class="container" style="padding:10px;" align="center">
+            <button type="button" id="login" class="btn btn-default" >Sign in</button>
+          </div>
+          <div class="container" style="padding:10px;" align="center">
+            <button type="button" id="sign_up" class="btn btn-default" >Sign Up</button>
+          </div>
+        </li>
+        <li class="sign_up_page">
+          <div class="container">
+            <form role="form">
+              <div class="form-group">
+                <label for="usr">Username:</label>
+                <input type="text" class="form-control" id="username_sign_up" placeholder="Enter username">
+              </div>
+              <div class="form-group">
+                <label for="pwd">Password:</label>
+                <input type="password" class="form-control" id="pwd_sign_up" placeholder="Enter password">
+              </div>
+              <button type="button" id="sign_up" class="btn btn-default">Sign up</button>
+            </form>
+          </div>
+        </li>
+        <li class="login_page">
+          <div class="container">
+            <form role="form">
+              <div class="form-group">
+                <label for="usr">Username:</label>
+                <input type="text" class="form-control" id="username" placeholder="Enter username">
+              </div>
+              <div class="form-group">
+                <label for="pwd" value="">Password:</label>
+                <input type="password" class="form-control" id="pwd" placeholder="Enter password">
+              </div>
+              <div>
+                <button type="button" id="sign_in" class="btn btn-default" value="">Sign in</button>
+                <input type="text" id="error_message">
+              </div>
+            </form>
+          </div>
+        </li>
+        <li class="room_page">
+          <button type="button" id="create" class="btn btn-default">Create Room</button>
+          <form class="form-inline" role="form">
+            <button type="button" id="join" class="btn btn-default">Join Room</button>
+            <input class="form-control" id="RoomID" placeholder="RoomID">
+          </form>
+        </li>
+        <li class="lobby_page">
+           <div>
+            <b>USERS</b>
+            <!--this only works when you change the id of users on main page (which breaks that)-->
+            <div id="users"></div>
+          </div>
+          <button type="button" id="go" class="btn btn-default">Go</button>
+        </li>
+    </ul> 
+  </body>
+</html>
+
+   
 

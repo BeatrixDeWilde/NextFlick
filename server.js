@@ -15,14 +15,35 @@ var num_users = [];
 var queryDelayBuffer = 10;
 var guest = 0;
 
-app.get('/room/*', function(req, res) {
-   res.sendFile(__dirname + '/client.html');
+app.get('/', function(req, res) {
+   res.sendFile(__dirname + '/index.html');
 });
 
 io.sockets.on('connection', function(socket) {
 
 //  getNumPopularFilms(40);
 //  socket.emit('initialise', films);
+
+ socket.on('new_room', function() {
+     // TODO: Random Room ID Generator, just using guest for now
+     var channel = guest++;
+     socket.channel = channel;
+     users[channel] = {};
+     num_users[channel] = 0;
+     films[channel] = [];
+     // Initialise film list with results from page 1
+     add20PopularFilms(1, channel);
+     console.log(films[channel]);
+     //socket.emit('initialise', films[channel]);
+     socket.emit('set_room_id', channel);
+  });
+ 
+  socket.on('get_guest_id', function() {
+     var username = 'guest';
+     guest++;
+     username += guest;
+     socket.emit('set_username', username);
+  });
    
   socket.on('user_join', function(username, channel) {
     if (username == 'guest') {
