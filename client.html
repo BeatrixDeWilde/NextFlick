@@ -2,7 +2,6 @@
 <html lang="en">
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
     <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
@@ -18,6 +17,8 @@
 
     socket.on('update_chat', function(username, text) {
          $('#chat').append('<b>'+username + ':</b> ' + text + '<br>');
+         var elem = document.getElementById('chat');
+         elem.scrollTop = elem.scrollHeight;
     });
 
     socket.on('update_user_list', function(users) {
@@ -83,22 +84,33 @@
         });
       });
 
-document.onkeydown = function(e) {
-    switch (e.keyCode) {
-        case 37:
+     document.onkeydown = function(e) {
+       switch (e.keyCode) {
+         case 37:
             socket.emit('increment_yes', index);
             index++;
             socket.emit('choice', "yes", index);
             break;
-        case 39:
+          case 39:
             index++;
             socket.emit('choice', "no", index);
             break;
     }
+    
+    
 };
 </script>
+<style>
+  #chat {
+    overflow-y:scroll;
+    border: thin solid black;
+    height:250px;
+    width:100%;
+ }
+</style>
+</head>
 <div class="container" align="center">
-      <h1>Test</h1>
+      <h1>Film Finder</h1>
       <img id="image" src="http://image.tmdb.org/t/p/w500/j6NCjU6Zh7SkfIeN5zDaoTmBn4m.jpg" class = "img-rounded" width="20%" height="20%">
     </div>
     <h3 id="title" align="center"></h3>
@@ -114,12 +126,12 @@ document.onkeydown = function(e) {
         <b>USERS</b>
         <div id="users"></div>
 </div>
-<div style="float:left;width:300px;height:250px;overflow:scroll-y;padding:10px;">
+<div style="float:left;width:500px;height:250px;overflow:scroll-y;padding:10px;">
         <div id="chat"></div>
         <input id="data" style="width:200px;" />
         <input type="button" id="datasend" value="send" />
 </div>
-
+</html>
 
    
 

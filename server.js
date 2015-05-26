@@ -12,10 +12,10 @@ server.listen(port);
 var users = {};
 var films = [];
 var num_users = [];
-var queryDelayBuffer = 5;
+var queryDelayBuffer = 10;
 
 app.get('/room/*', function(req, res) {
-   res.sendFile(__dirname + '/channel.html');
+   res.sendFile(__dirname + '/client.html');
 });
 
 io.sockets.on('connection', function(socket) {
