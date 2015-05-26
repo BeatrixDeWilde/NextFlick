@@ -104,11 +104,12 @@
           socket.emit('sign_in', username, password);
         });
         $('#sign_up').click(function() {
-          //var username = document.getElementById('username').value;
-          //var password = document.getElementById('pwd').value;
-          //socket.emit('sign_up', username, password);
           $('.user_page').fadeOut('fast');
           $('.sign_up_page').show();
+        });
+        $('#sign_up_button').click(function() {
+          $('.sign_up_page').fadeOut('fast');
+          $('.room_page').show();
         });
       });
       //ROOM PAGE and LOBBY PAGE
@@ -178,6 +179,9 @@
   </head>
   <body>
     <ul class="pages">
+
+        <!-- LOGIN PAGE -->
+
         <li class="main_page">
           <div class="container" align="center">
             <h1>Film Finder</h1>
@@ -202,6 +206,9 @@
             <input type="button" id="datasend" value="send" />
           </div>
         </li>
+
+        <!-- START PAGE -->
+
         <li class="user_page">
           <div class="container" style="padding:10px;" align="center">
             <button type="button" id="guest" class="btn btn-default" value="">Guest</button>  
@@ -213,6 +220,9 @@
             <button type="button" id="sign_up" class="btn btn-default" >Sign Up</button>
           </div>
         </li>
+
+        <!-- SIGN UP PAGE -->
+
         <li class="sign_up_page">
           <div class="container">
             <form role="form">
@@ -224,10 +234,13 @@
                 <label for="pwd">Password:</label>
                 <input type="password" class="form-control" id="pwd_sign_up" placeholder="Enter password">
               </div>
-              <button type="button" id="sign_up" class="btn btn-default">Sign up</button>
+              <button type="button" id="sign_up_button" class="btn btn-default">Sign up</button>
             </form>
           </div>
         </li>
+
+        <!-- LOGIN PAGE -->
+
         <li class="login_page">
           <div class="container">
             <form role="form">
@@ -246,6 +259,9 @@
             </form>
           </div>
         </li>
+
+        <!-- ROOM PAGE -->
+
         <li class="room_page">
           <button type="button" id="create" class="btn btn-default">Create Room</button>
           <form class="form-inline" role="form">
@@ -264,6 +280,3 @@
     </ul> 
   </body>
 </html>
-
-   
-
