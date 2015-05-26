@@ -13,6 +13,7 @@ var users = {};
 var films = [];
 var num_users = [];
 var queryDelayBuffer = 10;
+var guest = 0;
 
 app.get('/room/*', function(req, res) {
    res.sendFile(__dirname + '/client.html');
@@ -24,6 +25,10 @@ io.sockets.on('connection', function(socket) {
 //  socket.emit('initialise', films);
    
   socket.on('user_join', function(username, channel) {
+    if (username == 'guest') {
+      guest++;
+      username += guest;
+    } 
     socket.username = username;
 	  socket.channel = channel;
     if (typeof users[channel] === 'undefined') {
