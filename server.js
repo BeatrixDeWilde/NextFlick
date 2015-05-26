@@ -171,35 +171,43 @@ io.sockets.on('connection', function(socket) {
 
 
   socket.on('sign_up', function(username, password) {
-    /*var pg = require("pg");
+    var pg = require("pg");
     var con = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
-    var user_exists = true;
     pg.connect(con, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
       client.query('SELECT * FROM users WHERE username = $1', [username], function(err, result) {
         if(err) {
-          return console.error('error running select query', err);
+          return console.error('error running query', err);
         }
         if(result.rows.length != 0){
-          socket.emit('user_already_exists', username);
+          //TODO
         } 
-        else 
+        else
         {
-          user_exists = false;
+          insert_user(username, password);
         }
+        client.end();
       });
-      /*if(!user_exists){
-        client.query('INSERT INTO users(username, password) values($1,$2);', [username,password], function(err2, result2) {
-          if(err2) {
-            return console.error('error running insert query', err2);
-          }
-        });
+    });
+  });
+
+function insert_user (username, password) {
+  var pg = require("pg");
+  var con = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
+  pg.connect(con, function(err, client, done) {
+    if(err) {
+      return console.error('error connecting', err);
+    }
+    client.query('INSERT INTO users(username, password) values($1,$2);', [username, password], function(err, result) {
+      if(err) {
+        return console.error('error running query', err);
       }
       client.end();
-    });*/
+    });
   });
+}
 
 // Get random film from movie database API
 // Thriller genre: 'http://api.themoviedb.org/3/genre/53/movies'

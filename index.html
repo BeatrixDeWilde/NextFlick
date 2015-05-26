@@ -124,8 +124,9 @@
           $('.sign_up_page').show();
         });
         $('#user_sign_up').click(function() {
-          $('.sign_up_page').fadeOut('fast');
-          $('.room_page').show();
+          var username = document.getElementById('username_sign_up').value;
+          var password = document.getElementById('pwd_sign_up').value;
+          socket.emit('sign_up', username, password);
         });
       });
       //ROOM PAGE and LOBBY PAGE
