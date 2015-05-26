@@ -51,7 +51,9 @@
       });
 
       socket.on('film_found', function(film) {
-        confirm('Film found! Film: ' + film.title);
+        alert('Film found! Film: ' + film.title);
+        $('#chat').append('Shoudl have disconnected');
+        window.location.replace(window.location.pathname.substring(0, 6));
       });
 
       socket.on('initialise', function(film) {
