@@ -66,12 +66,11 @@ io.sockets.on('connection', function(socket) {
 	  socket.emit('update_chat', 'You', message);
   	socket.broadcast.to(socket.channel).emit('update_chat', socket.username, message);
     var curNumFilms = films[socket.channel].length;
-    if (index < curNumFilms - queryDelayBuffer) {
-      socket.emit('new_films', films[socket.channel][index]);
-    } else {
+    if (index == (curNumFilms - queryDelayBuffer)) {
       var nextPage = Math.floor(index / 20) + 2;
       add20PopularFilms(nextPage, socket.channel);
     }
+    socket.emit('new_films', films[socket.channel][index]);
   });
 
   socket.on('increment_yes', function(index) {
@@ -172,10 +171,9 @@ function add20PopularFilms(pageNum, channel) {
     } else {
       films[channel].push.apply(films[channel], film_list);
     }
-    /*for (var i = 0, len = films[channel].length; i < len; i++) {
-      console.log('Film ' + i + ': ');
-      console.log(films[channel][i].title);
-    }*/
+    for (var i = 0, len = films[channel].length; i < len; i++) {
+      console.log('Film ' + i + ':> ' + films[channel][i].title);
+    }
 
 //    socket.emit('new_films', film_list);
   });
