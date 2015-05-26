@@ -13,7 +13,6 @@
       var socket = io.connect('http://localhost:8080');
 
       socket.on('connect', function(){
-        //socket.emit('user_join', prompt("What's your name?"), id);
       });
 
       socket.on('update_chat', function(username, text) {
@@ -27,7 +26,6 @@
             $.each(users, function(key, value) {
                   $('#users').append('<div>' + value+ '</div>');
           });
-
       });
 
       socket.on('new_film', function(url){
@@ -52,6 +50,16 @@
         document.getElementById('image').src = film.poster_path;
         document.getElementById('title').innerHTML = film.title;
       });
+      
+      socket.on('incorrect_login', function(message) {
+        document.getElementById('error_message').value = message;
+      });
+
+      socket.on('correct_login',function(username){
+        socket.emit('user_join', username, id);
+        $('.login_page').fadeOut('fast');
+        $('.room_page').show();
+      }); 
 
       // FILM PAGE
       $(function(){
@@ -63,6 +71,18 @@
         $('#no').click(function() {
           index++;
           socket.emit('choice', "no", index);
+        });
+        $('#datasend').click( function() {
+          var message = $('#data').val();
+          $('#data').val('');
+          socket.emit('send_message', message);
+        });
+
+        $('#data').keypress(function(e) {
+          if(e.which == 13) {
+            $(this).blur();
+            $('#datasend').focus().click();
+          }
         });
       });
 
@@ -79,33 +99,37 @@
           $('.login_page').show();
         });
         $('#sign_in').click(function() {
-          socket.emit('user_join', document.getElementById('username').value, id);
-          $('.login_page').fadeOut('fast');
-          $('.room_page').show();
+          var username = document.getElementById('username').value;
+          var password = document.getElementById('pwd').value;
+          socket.emit('sign_in', username, password);
         });
         $('#sign_up').click(function() {
+          //var username = document.getElementById('username').value;
+          //var password = document.getElementById('pwd').value;
+          //socket.emit('sign_up', username, password);
           $('.user_page').fadeOut('fast');
           $('.sign_up_page').show();
         });
       });
-
+      //ROOM PAGE and LOBBY PAGE
       $(function(){
-        $('#click2').click(function() {
+
+        $('#create').click(function() {
           $('.room_page').fadeOut();
+          $('.lobby_page').show();
+        });
+
+        $('#join').click(function() {
+          $('.room_page').fadeOut();
+          $('.lobby_page').show();
+        });
+
+        $('#go').click(function() {
+          $('.lobby_page').fadeOut();
           $('.main_page').show();
-        });
-        $('#datasend').click( function() {
-          var message = $('#data').val();
-          $('#data').val('');
-          socket.emit('send_message', message);
-        });
-        $('#data').keypress(function(e) {
-          if(e.which == 13) {
-            $(this).blur();
-            $('#datasend').focus().click();
-          }
-        });
+          });
       });
+
 
       document.onkeydown = function(e) {
         switch (e.keyCode) {
@@ -146,6 +170,9 @@
      .login_page{
         display: none;
         list-style-type: none;
+     }
+     .lobby_page{
+        display: none;
      }
     </style>
   </head>
@@ -190,7 +217,7 @@
           <div class="container">
             <form role="form">
               <div class="form-group">
-                <label for="usr">Username:</label>
+                <label for="usr">Username: (not guest***)</label>
                 <input type="text" class="form-control" id="username_sign_up" placeholder="Enter username">
               </div>
               <div class="form-group">
@@ -209,15 +236,30 @@
                 <input type="text" class="form-control" id="username" placeholder="Enter username">
               </div>
               <div class="form-group">
-                <label for="pwd">Password:</label>
+                <label for="pwd" value="">Password:</label>
                 <input type="password" class="form-control" id="pwd" placeholder="Enter password">
               </div>
-              <button type="button" id="sign_in" class="btn btn-default">Sign in</button>
+              <div>
+                <button type="button" id="sign_in" class="btn btn-default" value="">Sign in</button>
+                <input type="text" id="error_message">
+              </div>
             </form>
           </div>
         </li>
         <li class="room_page">
-          <button type="button" id="click2" class="btn btn-default" >Go to main page</button>
+          <button type="button" id="create" class="btn btn-default">Create Room</button>
+          <form class="form-inline" role="form">
+            <button type="button" id="join" class="btn btn-default">Join Room</button>
+            <input class="form-control" id="RoomID" placeholder="RoomID">
+          </form>
+        </li>
+        <li class="lobby_page">
+           <div>
+            <b>USERS</b>
+            <!--this only works when you change the id of users on main page (which breaks that)-->
+            <div id="users"></div>
+          </div>
+          <button type="button" id="go" class="btn btn-default">Go</button>
         </li>
     </ul> 
   </body>
