@@ -173,12 +173,13 @@ io.sockets.on('connection', function(socket) {
         if(err) {
           return console.error('error running query', err);
         }
-        if(result.rows.length != 0){
-          //TODO
+        if(result.rows.length != 0 || /^(guest)/.test(username)){
+          socket.emit('user_already_exists', username);
         } 
         else
         {
           insert_user(username, password);
+          socket.emit('signed_in', username);
         }
         client.end();
       });

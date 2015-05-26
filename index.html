@@ -79,15 +79,33 @@
         document.getElementById('title').innerHTML = film.title;
       });
       
+      // LOGIN PAGE 
+
+      socket.on('correct_login',function(user){
+        // User has enetered correct login 
+        // and password redirects to room page
+        username = user;
+        socket.emit('user_join', user, id);
+        $('.login_page').fadeOut('fast');
+        $('.room_page').show();
+      }); 
+
       socket.on('incorrect_login', function(message) {
         document.getElementById('error_message').value = message;
       });
 
-      socket.on('correct_login',function(username){
-        socket.emit('user_join', username, id);
-        $('.login_page').fadeOut('fast');
+      // SIGN UP PAGE 
+
+      socket.on('signed_in', function(user){
+        username = user;
+        socket.emit('user_join', user, id);
+        $('.sign_up_page').fadeOut('fast');
         $('.room_page').show();
-      }); 
+      });
+
+      socket.on('user_already_exists', function(username){
+        document.getElementById('error_message_sign_up').value = "The username " + username + " already exists";
+      });
 
       // FILM PAGE
       $(function(){
@@ -131,6 +149,8 @@
           var username = document.getElementById('username').value;
           var password = document.getElementById('pwd').value;
           socket.emit('sign_in', username, password);
+          document.getElementById('username_sign_up').value = "";
+          document.getElementById('pwd_sign_up').value = "";
         });
         $('#sign_up').click(function() {
           $('.user_page').fadeOut('fast');
@@ -142,6 +162,7 @@
           socket.emit('sign_up', username, password);
         });
       });
+
       //ROOM PAGE and LOBBY PAGE
       $(function(){
 
@@ -213,6 +234,9 @@
   </head>
   <body>
     <ul class="pages">
+
+        <!-- MAIN PAGE (film selection page)-->
+
         <li class="main_page">
           <div class="container" align="center">
             <h1>Film Finder</h1>
@@ -237,6 +261,9 @@
             <input type="button" id="datasend" value="send" />
           </div>
         </li>
+
+        <!-- USER PAGE (first page)-->
+
         <li class="user_page">
           <div class="container" style="padding:10px;" align="center">
             <button type="button" id="guest" class="btn btn-default" value="">Guest</button>  
@@ -248,6 +275,9 @@
             <button type="button" id="sign_up" class="btn btn-default" >Sign Up</button>
           </div>
         </li>
+
+        <!-- SIGN UP PAGE (create new username and password) -->
+
         <li class="sign_up_page">
           <div class="container">
             <form role="form">
@@ -260,9 +290,13 @@
                 <input type="password" class="form-control" id="pwd_sign_up" placeholder="Enter password">
               </div>
               <button type="button" id="user_sign_up" class="btn btn-default">Sign up</button>
+              <input type="text" id="error_message_sign_up">
             </form>
           </div>
         </li>
+
+        <!-- LOGIN PAGE (enter known username and password) -->
+
         <li class="login_page">
           <div class="container">
             <form role="form">
@@ -281,6 +315,9 @@
             </form>
           </div>
         </li>
+
+        <!-- ROOM PAGE (creation and join) -->
+
         <li class="room_page">
           <button type="button" id="create" class="btn btn-default">Create Room</button>
           <form class="form-inline" role="form">
