@@ -15,9 +15,22 @@
       var room = 'NOTSET';
 
       socket.on('set_room_id', function(channel) {
-           room = channel;
-           //alert('Channel is now: ' + room);
-           socket.emit('user_join', username, room);
+          room = channel;
+          //alert('Channel is now: ' + room);
+          socket.emit('user_join', username, room);
+          $('#myRoom').append('<b> Your Room:</b> ' + room + '<br>');
+      });
+
+      socket.on("joined_room", function(channel){
+        room = channel;
+        $('#myRoom').append('<b> Your Room:</b> ' + room + '<br>');
+        $('.room_page').fadeOut();
+        $('.lobby_page').show();
+
+      });
+
+      socket.on('room_not_initialised', function(){
+        $('#room_message').append('<b> That room does not exist please enter an existing room or create a new room.</b>');
       });
 
       socket.on('set_username', function(user) {
@@ -139,8 +152,10 @@
         });
 
         $('#join').click(function() {
-          $('.room_page').fadeOut();
-          $('.lobby_page').show();
+          var RoomID = document.getElementById('RoomID').value;
+          if (RoomID.length > 0){
+            socket.emit("user_join", username, RoomID);
+          }
         });
 
         $('#go').click(function() {
@@ -192,6 +207,7 @@
      }
      .lobby_page{
         display: none;
+        list-style-type: none;
      }
     </style>
   </head>
@@ -213,7 +229,7 @@
             </div>
           <div style="float:left;width:100px;border-right:1px solid black;height:300px;padding:10px;overflow:scroll-y;">
             <b>USERS</b>
-            <div id="users"></div>
+            <div id="users1"></div>
           </div>
           <div style="float:left;width:500px;height:250px;overflow:scroll-y;padding:10px;">
             <div id="chat"></div>
@@ -271,8 +287,10 @@
             <button type="button" id="join" class="btn btn-default">Join Room</button>
             <input class="form-control" id="RoomID" placeholder="RoomID">
           </form>
+          <div id="room_message"></div>
         </li>
         <li class="lobby_page">
+          <div id="myRoom"></div>
            <div>
             <b>USERS</b>
             <!--this only works when you change the id of users on main page (which breaks that)-->
