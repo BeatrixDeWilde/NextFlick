@@ -18,12 +18,15 @@ $('#users').empty();
 socket.on('connect', function(){
 });
 
+socket.on('set_username', function(user) {
+     username = user;
+});
+
 // ******* FIRST PAGE ******* //
 
 $(function(){
   // Fading out pages etc
   $('#guest').click(function() {
-    //socket.emit('user_join', 'guest', id);
     socket.emit('get_guest_id');
     $('.first_page').fadeOut('fast', function() {
       $('.room_page').fadeIn('fast');
@@ -47,24 +50,33 @@ socket.on('correct_login',function(user){
   // User has enetered correct login 
   // and password redirects to room page
   username = user;
-  socket.emit('user_join', user, id);
   $('.login_page').fadeOut('fast', function() {
     $('.room_page').fadeIn('fast');
   });
 }); 
 
-socket.on('incorrect_login', function(message) {
-  $('username_error_message').show();
-  document.getElementById('username_error_message').innerHTML = message;
+socket.on('incorrect_login', function(message, password) {
+  if (password) {
+    document.getElementById('password_error_message').innerHTML = message;
+  } else {
+    document.getElementById('username_error_message').innerHTML = message;
+  }
 });
 
 $(function(){
   $('#sign_in').click(function() {
     var username = document.getElementById('username').value;
     var password = document.getElementById('pwd').value;
-    socket.emit('sign_in', username, password);
-    document.getElementById('username_sign_up').value = "";
-    document.getElementById('pwd_sign_up').value = "";
+    document.getElementById('username_error_message').innerHTML = '';
+    document.getElementById('password_error_message').innerHTML = '';
+    if (username.length < 1) {
+      document.getElementById('username_error_message').innerHTML = 'Please enter a username';
+    } else if (password.length < 1)
+    {
+      document.getElementById('password_error_message').innerHTML = 'Please enter a password';
+    } else {
+      socket.emit('sign_in', username, password);
+    }
   });
 });
 
@@ -72,7 +84,6 @@ $(function(){
 
 socket.on('signed_in', function(user){
   username = user;
-  socket.emit('user_join', user, id);
   $('.sign_up_page').fadeOut('fast', function() {
     $('.room_page').fadeIn('fast');
   });
@@ -134,10 +145,6 @@ socket.on('set_room_id', function(channel) {
     //alert('Channel is now: ' + room);
     socket.emit('user_join', username, room);
     //$('#myRoom').append('<b> Your Room:</b> ' + room + '<br>');
-});
-
-socket.on('set_username', function(user) {
-     username = user;
 });
 
 // ******* LOBBY PAGE ******* //

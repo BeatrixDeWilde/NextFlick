@@ -129,8 +129,7 @@ io.sockets.on('connection', function(socket) {
           console.log('Tear down room: ' + socket.channel);
           delete users[socket.channel];
       }
-
-  } 
+    } 
   });
   socket.on('choice', function(decision, index) {
     var message = ' said ' + decision + ' to movie: ' + films[socket.channel][index - 1].title;
@@ -172,11 +171,11 @@ io.sockets.on('connection', function(socket) {
           return console.error('error running query', err);
         }
         if(result.rows.length != 1){
-          socket.emit('incorrect_login',"No such user");
+          socket.emit('incorrect_login',"No such user", false);
         } 
         else if(result.rows[0].password != password)
         {
-          socket.emit('incorrect_login',"Incorrect password");
+          socket.emit('incorrect_login',"Incorrect password", true);
         }
         else
         {
