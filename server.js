@@ -39,6 +39,7 @@ var genreIdLookup = {
   "War" : 10752,
   "Western" : 37
 }
+var query_genres = ["Horror","Romance","Thriller"];
 
 app.get('/', function(req, res) {
    res.sendFile(__dirname + '/index.html');
@@ -58,8 +59,7 @@ io.sockets.on('connection', function(socket) {
      films[channel] = [];
      // Initialise film list with results from page 1
      //add20PopularFilms(1, channel);
-     var film_genres = ["Horror"];
-     add20FilmsByGenre(1, channel, film_genres);
+     add20FilmsByGenre(1, channel, query_genres);
      console.log(films[channel]);
      //socket.emit('initialise', films[channel]);
      socket.emit('set_room_id', channel);
@@ -138,8 +138,7 @@ io.sockets.on('connection', function(socket) {
     if (index == (curNumFilms - queryDelayBuffer)) {
       var nextPage = Math.floor(index / 20) + 2;
       //add20PopularFilms(nextPage, socket.channel);
-      var film_genres = ["Horror"];
-      add20FilmsByGenre(nextPage, socket.channel, film_genres);
+      add20FilmsByGenre(nextPage, socket.channel, query_genres);
     }
     socket.emit('new_films', films[socket.channel][index]);
   });
