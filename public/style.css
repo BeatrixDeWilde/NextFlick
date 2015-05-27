@@ -1,0 +1,39 @@
+#chat {
+  overflow-y:scroll;
+  border: thin solid black;
+  height:250px;
+  width:100%;
+}
+.film_page{
+  display:none;
+  list-style-type: none;
+}
+.room_page{
+  display: none;
+  list-style-type: none;
+}
+.first_page{
+  list-style-type: none;
+}
+.sign_up_page{
+  display: none;
+  list-style-type: none;
+}
+.login_page{
+  display: none;
+  list-style-type: none;
+}
+.lobby_page{
+  display: none;
+  list-style-type: none;
+}
+.found_page{
+  display: none;
+  list-style-type: none;
+}
+#room_message1{
+  display:none;
+}
+#room_message2{
+  display:none;
+}

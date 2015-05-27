@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <script src="/socket.io/socket.io.js"></script>
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/js/bootstrap.min.js"></script>
+    <script src="script.js"></script>
+    
+  </head>
+  <body>
+    <ul class="pages">
+
+        <!-- FIRST PAGE-->
+
+        <li class="first_page">
+          <div class="container" style="padding:10px;" align="center">
+            <button type="button" id="guest" class="btn btn-default" value="">Guest</button>  
+          </div>
+          <div class="container" style="padding:10px;" align="center">
+            <button type="button" id="login" class="btn btn-default" >Sign in</button>
+          </div>
+          <div class="container" style="padding:10px;" align="center">
+            <button type="button" id="sign_up" class="btn btn-default" >Sign Up</button>
+          </div>
+        </li>
+
+        <!-- FILM PAGE -->
+
+        <li class="film_page">
+          <div class="container" align="center">
+            <h1>Film Finder</h1>
+            <img id="image" src="http://image.tmdb.org/t/p/w500/j6NCjU6Zh7SkfIeN5zDaoTmBn4m.jpg" class = "img-rounded" width="20%" height="20%">
+          </div>
+            <h3 id="title" align="center"></h3>
+            <div class= "container" align="center">
+              <button type="button" id="yes" class="btn btn-default">YES</button>
+              <button type="button" id="no" class="btn btn-default">NO</button>
+            </div>
+            <div style="padding:10px;" align="center">
+              <input id="out" value = ""/>  
+              <input id="out2" value = ""/>  
+            </div>
+          <div style="float:left;width:100px;border-right:1px solid black;height:300px;padding:10px;overflow:scroll-y;">
+            <b>USERS</b>
+            <div id="users1"></div>
+          </div>
+          <div style="float:left;width:500px;height:250px;overflow:scroll-y;padding:10px;">
+            <div id="chat"></div>
+            <input id="data" style="width:200px;" />
+            <input type="button" id="datasend" value="send" />
+          </div>
+        </li>
+
+        <!-- SIGN UP PAGE (create new username and password) -->
+
+        <li class="sign_up_page">
+          <div class="container">
+            <form role="form">
+              <div class="form-group">
+                <label for="usr">Username:</label>
+                <input type="text" class="form-control" id="username_sign_up" placeholder="Enter username">
+              </div>
+              <div class="form-group">
+                <label for="pwd">Password:</label>
+                <input type="password" class="form-control" id="pwd_sign_up" placeholder="Enter password">
+              </div>
+              <div class="form-group">
+                <button type="button" id="user_sign_up" class="btn btn-default">Sign up</button>
+              </div>
+              <div class="form-group">
+                <input type="text" class="bg-danger" id="error_message_sign_up">
+                <!--<p id="error_message_sign_up" class="bg-danger" value=""></p>-->
+              </div>
+            </form>
+          </div>
+        </li>
+
+        <!-- LOGIN PAGE (enter known username and password) -->
+
+        <li class="login_page">
+          <div class="container">
+            <form role="form">
+              <div class="form-group">
+                <label for="usr">Username:</label>
+                <input type="text" class="form-control" id="username" placeholder="Enter username">
+              </div>
+              <div class="form-group">
+                <label for="pwd" value="">Password:</label>
+                <input type="password" class="form-control" id="pwd" placeholder="Enter password">
+              </div>
+              <div>
+                <button type="button" id="sign_in" class="btn btn-default" value="">Sign in</button>
+                <input type="text" id="error_message">
+              </div>
+            </form>
+          </div>
+        </li>
+
+        <!-- ROOM PAGE (creation and join) -->
+
+        <li class="room_page">
+          <button type="button" id="create" class="btn btn-default">Create Room</button>
+          <form class="form-inline" role="form">
+            <button type="button" id="join" class="btn btn-default">Join Room</button>
+            <input class="form-control" id="RoomID" placeholder="RoomID">
+          </form>
+          <div id="room_message1"><b> That room does not exist please enter an existing room or create a new room.</b></div>
+          <div id="room_message2"><b> Room is already in session.</b></div>
+        </li>
+
+        <!-- LOBBY PAGE -->
+
+        <li class="lobby_page">
+          <div id="myRoom"></div>
+           <div>
+            <b>USERS</b>
+            <!--this only works when you change the id of users on main page (which breaks that)-->
+            <div id="users"></div>
+          </div>
+          <button type="button" id="go" class="btn btn-default">Go</button>
+        </li>
+
+        <!-- FOUND PAGE (film found here it is) -->
+        <li class="found_page">
+          <div>
+            <p>Your chosen film is...</p>
+          </div> 
+        </li>
+
+    </ul> 
+  </body>
+</html>
+
+   
+
