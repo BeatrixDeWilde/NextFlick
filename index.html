@@ -32,11 +32,11 @@
       });
 
       socket.on('room_not_initialised', function(){
-        $('#room_message').append('<b> That room does not exist please enter an existing room or create a new room.</b>');
+       $('#room_message1').show();
       });
 
       socket.on('room_is_locked', function() {
-        $('#room_message').append('<b> Room is already in session.</b>');
+         $('#room_message2').show();
 
       });
 
@@ -191,6 +191,8 @@
         });
 
         $('#join').click(function() {
+          $('#room_message1').hide();
+          $('#room_message2').hide();
           var RoomID = document.getElementById('RoomID').value;
           if (RoomID.length > 0){
             socket.emit("user_join", username, RoomID);
@@ -263,6 +265,12 @@
         display: none;
         list-style-type: none;
      }
+     #room_message1{
+      display:none;
+     }
+    #room_message2{
+      display:none;
+    }
     </style>
   </head>
   <body>
@@ -357,8 +365,11 @@
             <button type="button" id="join" class="btn btn-default">Join Room</button>
             <input class="form-control" id="RoomID" placeholder="RoomID">
           </form>
-          <div id="room_message"></div>
+          <div id="room_message1"><b> That room does not exist please enter an existing room or create a new room.</b></div>
+          <div id="room_message2"><b> Room is already in session.</b></div>
         </li>
+
+
         <li class="lobby_page">
           <div id="myRoom"></div>
            <div>
