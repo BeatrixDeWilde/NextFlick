@@ -4,7 +4,8 @@
   "version": "0.1.0",
   "dependencies": {
     "express": "",
-    "socket.io": ""
+    "socket.io": "",
+    "pg": ""
   },
   "scripts": {
     "start": "node server.js"
