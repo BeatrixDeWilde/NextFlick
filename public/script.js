@@ -226,12 +226,14 @@ socket.on('update_chat', function(username, text) {
 });
 
 socket.on('film_found', function(film) {
-  alert('Film found! Film: ' + film.title + ' \nTODO: Work on this splash page. Will redirect to main page for now.');
+  //alert('Film found! Film: ' + film.title + ' \nTODO: Work on this splash page. Will redirect to main page for now.');
   on_main_page = false;
   socket.emit('leave_room', username, room);
+  document.getElementById('found_film_title').innerHTML = film.title;
+  document.getElementById('found_film_image').src = film.poster_path;
   // TODO: Show winning page;
   $('.film_page').hide("slow", function() {
-    $('.first_page').fadeIn();
+    $('.found_page').fadeIn();
   });
   $('#chat').empty();
   $('#myRoom').empty();
@@ -258,3 +260,12 @@ document.onkeydown = function(e) {
 };
 
 // ******* FOUND PAGE ******* //
+
+$(function(){
+  $('#film_found_confirm').click(function() {
+     $('.found_page').hide("slow", function() {
+       $('.first_page').fadeIn("slow");
+     });
+  });
+});
+
