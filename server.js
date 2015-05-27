@@ -112,13 +112,12 @@ io.sockets.on('connection', function(socket) {
           delete users[socket.channel];
           locks[socket.channel] = false;
       }
-
-  }
-
+    }
   });
 
   socket.on('disconnect', function() {
-    if (typeof socket.username !== 'undefined' && typeof socket.channel !== 'undefined') {
+    if (typeof socket.username !== 'undefined' && typeof socket.channel !== 'undefined' 
+        && typeof users[socket.channel] !== 'undefined') {
 	    delete users[socket.channel][socket.username];
 	    socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', socket.username + ' has left the channel');
 	    io.sockets.in(socket.channel).emit('update_user_list', users);

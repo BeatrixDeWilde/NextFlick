@@ -90,14 +90,24 @@ socket.on('signed_in', function(user){
 });
 
 socket.on('user_already_exists', function(username){
-  document.getElementById('error_message_sign_up').value = "The username " + username + " already exists";
+  document.getElementById('username_error_message_sign_up').innerHTML 
+      = "The username " + username + " already exists or starts with the word 'guest'";
 });
 
 $(function(){
-  $('#user_sign_up').click(function() {
+  $('#sign_up_button').click(function() {
     var username = document.getElementById('username_sign_up').value;
     var password = document.getElementById('pwd_sign_up').value;
-    socket.emit('sign_up', username, password);
+    document.getElementById('username_error_message_sign_up').innerHTML = '';
+    document.getElementById('password_error_message_sign_up').innerHTML = '';
+    if (username.length < 1) {
+      document.getElementById('username_error_message_sign_up').innerHTML = 'Please enter a username';
+    } else if (password.length < 1)
+    {
+      document.getElementById('password_error_message_sign_up').innerHTML = 'Please enter a password';
+    } else {
+      socket.emit('sign_up', username, password);
+    }
   });
 });
 
