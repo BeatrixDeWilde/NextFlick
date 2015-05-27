@@ -149,6 +149,10 @@ io.sockets.on('connection', function(socket) {
       io.sockets.in(socket.channel).emit('film_found', films[socket.channel][index]);
     }
   });
+ 
+  socket.on('force_go_signal', function(room) {
+    socket.broadcast.to(room).emit('force_go');
+  });
 
   socket.on('sign_in', function(username, password) {
     var pg = require("pg");

@@ -1,9 +1,23 @@
-{ 
-	"name": "filmfinder",
-	"description": "Find your film!",
-	"version": "0.1.0",
-	"dependencies": {
-		"express": "",
-		"socket.io": ""
-	}
+{
+  "name": "filmfinder",
+  "description": "Find your film!",
+  "version": "0.1.0",
+  "dependencies": {
+    "express": "",
+    "socket.io": ""
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "main": "server.js",
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BeatrixDeWilde/WebApps.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/BeatrixDeWilde/WebApps/issues"
+  }
 }

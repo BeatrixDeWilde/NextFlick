@@ -14,6 +14,7 @@
       var username = 'NOTSET';
       var room = 'NOTSET';
       var on_main_page = false;
+      var is_admin = false;
 
       socket.on('set_room_id', function(channel) {
           room = channel;
@@ -72,6 +73,7 @@
         });
         $('#chat').empty();
         $('#myRoom').empty();
+        is_admin = false;
       });
 
       socket.on('initialise', function(film) {
@@ -178,6 +180,8 @@
           $('.room_page').fadeOut('fast', function() {
             $('.lobby_page').fadeIn('fast');
           });
+          is_admin = true;
+          $('#go').show();
         });
 
         $('#join').click(function() {
@@ -185,14 +189,25 @@
           if (RoomID.length > 0){
             socket.emit("user_join", username, RoomID);
           }
+          $('#go').hide();
         });
 
         $('#go').click(function() {
           $('.lobby_page').hide('fast', function() {
-            $('.main_page').fadeIn('fast');
+            $('.main_page').fadeTo('slow', 1);
           });
           on_main_page = true;
+          if (is_admin) {
+             socket.emit('force_go_signal', room);
+          }
           });
+      });
+ 
+      socket.on('force_go', function() {
+         $('.lobby_page').hide('fast', function() {
+            $('.main_page').fadeTo('slow', 1);
+          });
+          on_main_page = true;
       });
 
 
