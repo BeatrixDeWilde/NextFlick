@@ -14,6 +14,7 @@ var films = [];
 var num_users = [];
 var queryDelayBuffer = 10;
 var guest = 0;
+var locks = {};
 
 // Genre IDs for movie queries
 var genreIdLookup = {
@@ -74,8 +75,9 @@ io.sockets.on('connection', function(socket) {
   socket.on('user_join', function(username, channel) {
     socket.username = username;
 	  socket.channel = channel;
-
-    if (typeof users[channel] === 'undefined') {
+    if (locks[channel] == true) {
+      socket.emit('room_is_locked');
+    } else if (typeof users[channel] === 'undefined') {
       socket.emit('room_not_initialised');
     } else {
       socket.emit("joined_room", channel);
@@ -106,6 +108,7 @@ io.sockets.on('connection', function(socket) {
       if (num_users[socket.channel] == 0) {
           console.log('Tear down room: ' + socket.channel);
           delete users[socket.channel];
+          locks[socket.channel] = false;
       }
 
   }
@@ -151,6 +154,7 @@ io.sockets.on('connection', function(socket) {
   });
  
   socket.on('force_go_signal', function(room) {
+    locks[room] = true;
     socket.broadcast.to(room).emit('force_go');
   });
 

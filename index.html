@@ -35,6 +35,11 @@
         $('#room_message').append('<b> That room does not exist please enter an existing room or create a new room.</b>');
       });
 
+      socket.on('room_is_locked', function() {
+        $('#room_message').append('<b> Room is already in session.</b>');
+
+      });
+
       socket.on('set_username', function(user) {
            username = user;
            //alert('Username is now: ' + username);
