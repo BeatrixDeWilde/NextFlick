@@ -156,9 +156,7 @@ socket.on("joined_room", function(channel){
 
 socket.on('set_room_id', function(channel) {
     room = channel;
-    //alert('Channel is now: ' + room);
     socket.emit('user_join', username, room);
-    //$('#myRoom').append('<b> Your Room:</b> ' + room + '<br>');
 });
 
 // ******* LOBBY PAGE ******* //
@@ -186,13 +184,10 @@ socket.on('force_go', function() {
 
 $(function(){
   $('#yes').click(function() {
-    socket.emit('increment_yes', index);
-    index++;
-    socket.emit('choice', "yes", index);
+    socket.emit('choice', "yes", index, true);
   });
   $('#no').click(function() {
-    index++;
-    socket.emit('choice', "no", index);
+    socket.emit('choice', "no", index, false);
   });
   $('#datasend').click( function() {
     var message = $('#data').val();
@@ -212,16 +207,17 @@ socket.on('initialise', function(film) {
    document.getElementById('title').innerHTML = film.title;
 });
 
-socket.on('new_films', function(film) {
+socket.on('new_films', function(film, new_index) {
+  index = new_index;
   $('#chat').append('Changing image! (Index at: ' + index + ') <br>');
   document.getElementById('image').src = film.poster_path;
   document.getElementById('title').innerHTML = film.title;
 });
 
-socket.on('new_film', function(url){
+/*socket.on('new_film', function(url){
     $('#chat').append('Changing image!<br>');
     document.getElementById('image').src = url;
-});
+}); */
 
 socket.on('update_chat', function(username, text) {
      $('#chat').append('<b>'+username + ':</b> ' + text + '<br>');
@@ -251,13 +247,10 @@ document.onkeydown = function(e) {
  if (on_main_page) {
   switch (e.keyCode) {
     case 37:
-      socket.emit('increment_yes', index);
-      index++;
-      socket.emit('choice', "yes", index);
+      socket.emit('choice', "yes", index, true);
       break;
     case 39:
-      index++;
-      socket.emit('choice', "no", index);
+      socket.emit('choice', "no", index, false);
       break;
   } 
  }

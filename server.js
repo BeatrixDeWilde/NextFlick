@@ -134,25 +134,28 @@ io.sockets.on('connection', function(socket) {
       }
     } 
   });
-  socket.on('choice', function(decision, index) {
-    var message = ' said ' + decision + ' to movie: ' + films[socket.channel][index - 1].title;
-	  socket.emit('update_chat', 'You', message);
-  	socket.broadcast.to(socket.channel).emit('update_chat', socket.username, message);
-    var curNumFilms = films[socket.channel].length;
-    if (index == (curNumFilms - queryDelayBuffer)) {
-      var nextPage = Math.floor(index / 20) + 2;
-      //add20PopularFilms(nextPage, socket.channel);
-      add20FilmsByGenre(nextPage, socket.channel, query_genres);
-    }
-    socket.emit('new_films', films[socket.channel][index]);
-  });
-
-  socket.on('increment_yes', function(index) {
-    console.log('Check if done. Num: ' + index);
-    films[socket.channel][index].yes_count++;
-    console.log(films[socket.channel][index].yes_count + ' vs ' + num_users[socket.channel]);
-    if (films[socket.channel][index].yes_count >= num_users[socket.channel]) {
-      io.sockets.in(socket.channel).emit('film_found', films[socket.channel][index]);
+  
+  socket.on('choice', function(decision, index, inc) {
+    if (typeof films[socket.channel][index+1] !== 'undefined') {
+      if(inc){
+        films[socket.channel][index].yes_count++;
+        console.log(films[socket.channel][index].yes_count + ' vs ' + num_users[socket.channel]);
+      }
+      if (films[socket.channel][index].yes_count >= num_users[socket.channel]) {
+        io.sockets.in(socket.channel).emit('film_found', films[socket.channel][index]);
+      } else {
+        index++;
+        var message = ' said ' + decision + ' to movie: ' + films[socket.channel][index].title;
+    	  socket.emit('update_chat', 'You', message);
+      	socket.broadcast.to(socket.channel).emit('update_chat', socket.username, message);
+        var curNumFilms = films[socket.channel].length;
+        if (index == (curNumFilms - queryDelayBuffer)) {
+          var nextPage = Math.floor(index / 20) + 2;
+          //add20PopularFilms(nextPage, socket.channel);
+          add20FilmsByGenre(nextPage, socket.channel, query_genres);
+        }
+        socket.emit('new_films', films[socket.channel][index], index);
+      }
     }
   });
  
