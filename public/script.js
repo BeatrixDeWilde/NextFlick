@@ -49,6 +49,8 @@ $(function(){
 socket.on('correct_login',function(user){
   // User has enetered correct login 
   // and password redirects to room page
+  document.getElementById('username').value = '';
+  document.getElementById('pwd').value = '';
   username = user;
   $('.login_page').fadeOut('fast', function() {
     $('.room_page').fadeIn('fast');
@@ -83,6 +85,8 @@ $(function(){
 // ******* SIGN UP PAGE ******* //
 
 socket.on('signed_in', function(user){
+  document.getElementById('username_sign_up').value = '';
+  document.getElementById('pwd_sign_up').value = '';
   username = user;
   $('.sign_up_page').fadeOut('fast', function() {
     $('.room_page').fadeIn('fast');

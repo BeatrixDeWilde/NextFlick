@@ -6,6 +6,10 @@ var server  = http.createServer(app);
 var io      = require('socket.io').listen(server);
 var request = require('request');
 var api_param = 'api_key=a91369e1857e8c0cf2bd02b5daa38260';
+var bcrypt = require('bcrypt-nodejs');
+var pg = require("pg");
+var post_database = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
+
 
 server.listen(port);
 
@@ -158,23 +162,21 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('sign_in', function(username, password) {
-    var pg = require("pg");
-    var con = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
-    pg.connect(con, function(err, client, done) {
+    pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
       client.query('SELECT * FROM users WHERE username = $1', [username], function(err, result) {
-        //done(); ??
         if(err) {
           return console.error('error running query', err);
         }
         if(result.rows.length != 1){
           socket.emit('incorrect_login',"No such user", false);
-        } 
-        else if(result.rows[0].password != password)
+          return;
+        }
+        if(!bcrypt.compareSync(password,result.rows[0].password))
         {
-          socket.emit('incorrect_login',"Incorrect password", true);
+          socket.emit('incorrect_login', "Incorrect password",true);
         }
         else
         {
@@ -187,9 +189,7 @@ io.sockets.on('connection', function(socket) {
 
 
   socket.on('sign_up', function(username, password) {
-    var pg = require("pg");
-    var con = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
-    pg.connect(con, function(err, client, done) {
+    pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
@@ -202,7 +202,9 @@ io.sockets.on('connection', function(socket) {
         } 
         else
         {
-          insert_user(username, password);
+          var salt = bcrypt.genSaltSync();
+          var hash = bcrypt.hashSync(password, salt);
+          insert_user(username, hash);
           socket.emit('signed_in', username);
         }
         client.end();
@@ -211,9 +213,7 @@ io.sockets.on('connection', function(socket) {
   });
 
 function insert_user (username, password) {
-  var pg = require("pg");
-  var con = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
-  pg.connect(con, function(err, client, done) {
+  pg.connect(post_database, function(err, client, done) {
     if(err) {
       return console.error('error connecting', err);
     }

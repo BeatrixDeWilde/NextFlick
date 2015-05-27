@@ -5,7 +5,8 @@
   "dependencies": {
     "express": "",
     "socket.io": "",
-    "pg": ""
+    "pg": "",
+    "bcrypt-nodejs":""
   },
   "scripts": {
     "start": "node server.js"
