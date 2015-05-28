@@ -43,7 +43,9 @@ var genreIdLookup = {
   "War" : 10752,
   "Western" : 37
 }
-var query_genres = ["Horror","Romance","Thriller"];
+// Debug list until preferences has been implemented 
+var TEST_LIST = ["Horror","Romance","Thriller"];
+var query_genres = {};
 
 app.use(express.static(__dirname + '/public'));
 
@@ -63,6 +65,7 @@ io.sockets.on('connection', function(socket) {
      users[channel] = {};
      num_users[channel] = 0;
      films[channel] = [];
+     query_genres[channel] = [];
      // Initialise film list with results from page 1
      //add20PopularFilms(1, channel);
      //add20FilmsByGenre(1, channel, query_genres);
@@ -71,9 +74,10 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('generate_films', function(room) {
+     query_genres[room] = TEST_LIST;
      console.log('Generating films for room ' + room);
-     add20FilmsByGenre(1, room, query_genres);
-  });
+     add20FilmsByGenre(1, room, query_genres[room]);
+ });
  
   socket.on('get_guest_id', function() {
      var username = 'guest';
