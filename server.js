@@ -16,7 +16,8 @@ server.listen(port);
 var users = {};
 var films = [];
 var num_users = [];
-var queryDelayBuffer = 10;
+// Has to be greater than 0 and less than the number of films in each batch
+var queryDelayBuffer = 10; 
 var guest = 0;
 var locks = {};
 
@@ -46,6 +47,7 @@ var genreIdLookup = {
 // Debug list until preferences has been implemented 
 var TEST_LIST = ["Horror","Romance","Thriller"];
 var query_genres = {};
+var dateToday = (new Date()).toISOString().substring(0,10);
 
 app.use(express.static(__dirname + '/public'));
 
@@ -75,7 +77,7 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('generate_films', function(room) {
      query_genres[room] = TEST_LIST;
-     console.log('Generating films for room ' + room);
+     console.log('Generating films for room ' + room + ' of genres: ' + query_genres[room]);
      add20FilmsByGenre(1, room, query_genres[room]);
  });
  
@@ -325,6 +327,7 @@ function add20FilmsByGenre(pageNum, channel, genres) {
          '&page=' + pageNum + 
          '&include_adult=false' + 
          '&sort_by=popularity.desc' + 
+         '&release_date.lte=' + dateToday +
          '&with_genres=' + genreParams,
     headers: {
       'Accept': 'application/json'
