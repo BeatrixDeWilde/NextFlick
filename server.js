@@ -16,7 +16,8 @@ server.listen(port);
 var users = {};
 var films = [];
 var num_users = [];
-var queryDelayBuffer = 10;
+// Has to be greater than 0 and less than the number of films in each batch
+var queryDelayBuffer = 10; 
 var guest = 0;
 var locks = {};
 
