@@ -328,7 +328,7 @@ function add20FilmsByGenre(pageNum, channel, genres) {
       'Accept': 'application/json'
     }}, 
     function (error, response, body) {
-      if (response.statusCode === 200) {
+      if (!error && response.statusCode == 200) {
         var response = JSON.parse(body);
         var film_list = response.results;
         for (var i = 0, len = film_list.length; i < len; i++) {
