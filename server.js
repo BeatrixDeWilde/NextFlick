@@ -125,7 +125,7 @@ io.sockets.on('connection', function(socket) {
         && typeof users[socket.channel] !== 'undefined') {
 	    delete users[socket.channel][socket.username];
 	    socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', socket.username + ' has left the channel');
-	    io.sockets.in(socket.channel).emit('update_user_list', users);
+	    io.sockets.in(socket.channel).emit('update_user_list', users[socket.channel]);
 	    socket.leave(socket.room);
       --num_users[socket.channel];
       //console.log('DEBUG: ' + socket.username + ' has left randomly!');
