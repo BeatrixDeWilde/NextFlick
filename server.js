@@ -44,8 +44,9 @@ var genreIdLookup = {
   "War" : 10752,
   "Western" : 37
 }
-
-var query_genres = []; // TODO needs to be per room
+// Debug list until preferences has been implemented 
+var TEST_LIST = ["Horror","Romance","Thriller"];
+var query_genres = {};
 var dateToday = (new Date()).toISOString().substring(0,10);
 
 app.use(express.static(__dirname + '/public'));
@@ -67,12 +68,12 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('generate_films', function(room, genres) {
-    query_genres = genres; 
-    console.log('Generating films for room ' + room + ' of genres: ' + query_genres);
+    query_genres[room] = TEST_LIST;
+    console.log('Generating films for room ' + room + ' of genres: ' + query_genres[room]);
     // Initialise film list with results from page 1
-    add20FilmsByGenre(1, room, query_genres);
+    add20FilmsByGenre(1, room, query_genres[room]);
   });
- 
+
   socket.on('get_guest_id', function() {
      var username = 'guest';
      guest++;
@@ -105,16 +106,18 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('leave_room', function(username, room) {
-     if (typeof socket.username !== 'undefined') {
+   console.log(username + ' is trying to leave room ' + room);
+   if (typeof socket.username !== 'undefined' && typeof socket.channel !== 'undefined'
+        && typeof users[socket.channel] !== 'undefined') {
       delete users[socket.channel][socket.username];
+      socket.leave(room);
       socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', socket.username + ' has left the channel');
-      io.sockets.in(socket.channel).emit('update_user_list', users);
+      io.sockets.in(socket.channel).emit('update_user_list', users[socket.channel]);
       socket.leave(socket.room);
       --num_users[socket.channel];
       if (num_users[socket.channel] == 0) {
-        console.log('Tear down room: ' + socket.channel);
-        delete users[socket.channel];
-        locks[socket.channel] = false;
+          console.log('Tear down room: ' + socket.channel);
+          delete users[socket.channel];
       }
     }
   });
@@ -160,6 +163,11 @@ io.sockets.on('connection', function(socket) {
   socket.on('force_go_signal', function(room) {
     locks[room] = true;
     socket.broadcast.to(room).emit('force_go');
+  });
+ 
+  socket.on('force_leave_signal', function(room) {
+    console.log('Admin has left room ' + room);
+    socket.broadcast.to(room).emit('force_leave');
   });
 
   socket.on('sign_in', function(username, password) {

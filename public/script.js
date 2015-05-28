@@ -238,6 +238,16 @@ $(function(){
       socket.emit('force_go_signal', room);
     }
   });
+ $('#lobby_page_back').click(function() {
+   socket.emit('leave_room', username, room);
+   $('.lobby_page').hide('fast', function() {
+     $('.room_page').fadeIn('slow');
+   });
+   if (is_admin) {
+     socket.emit('force_leave_signal', room);
+     is_admin = false;
+   }
+ });
 });
 
 socket.on('force_go', function() {
@@ -246,6 +256,14 @@ socket.on('force_go', function() {
     });
     $('#chat').empty();
     on_main_page = true;
+});
+
+socket.on('force_leave', function() {
+   socket.emit('leave_room', username, room);
+   $('.lobby_page').hide('fast', function() {
+       $('.room_page').fadeIn('fast'); 
+       alert('Admin has left the room');
+   });
 });
 
 // ******* FILM PAGE ******* //
