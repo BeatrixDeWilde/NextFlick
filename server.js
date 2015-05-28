@@ -114,17 +114,19 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('leave_room', function(username, room) {
-     if (typeof socket.username !== 'undefined') {
+   console.log(username + ' is trying to leave room ' + room);
+   if (typeof socket.username !== 'undefined' && typeof socket.channel !== 'undefined'
+        && typeof users[socket.channel] !== 'undefined') {
             delete users[socket.channel][socket.username];
+            socket.leave(room);
             socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', socket.username + ' has left the channel');
-            io.sockets.in(socket.channel).emit('update_user_list', users);
+            io.sockets.in(socket.channel).emit('update_user_list', users[socket.channel]);
             socket.leave(socket.room);
       --num_users[socket.channel];
       //console.log('DEBUG: ' + socket.username + ' has left randomly!');
       if (num_users[socket.channel] == 0) {
           console.log('Tear down room: ' + socket.channel);
           delete users[socket.channel];
-          locks[socket.channel] = false;
       }
     }
   });
@@ -172,6 +174,11 @@ io.sockets.on('connection', function(socket) {
   socket.on('force_go_signal', function(room) {
     locks[room] = true;
     socket.broadcast.to(room).emit('force_go');
+  });
+ 
+  socket.on('force_leave_signal', function(room) {
+    console.log('Admin has left room ' + room);
+    socket.broadcast.to(room).emit('force_leave');
   });
 
   socket.on('sign_in', function(username, password) {
