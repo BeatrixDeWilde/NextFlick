@@ -169,6 +169,8 @@ io.sockets.on('connection', function(socket) {
     socket.broadcast.to(room).emit('force_leave');
   });
 
+/**** Deleting a user: DELETE FROM users WHERE username = 'user9';****/
+
   socket.on('sign_in', function(username, password) {
     pg.connect(post_database, function(err, client, done) {
       if(err) {

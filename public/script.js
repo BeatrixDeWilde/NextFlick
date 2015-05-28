@@ -160,11 +160,14 @@ $(function(){
     var genres = [];
     $('.genre_settings input[type=checkbox]').each(function() {
       if ($(this).is(":checked")) {
-        genres.push($(this).html());
+        genres.push($(this).attr('id').replace("_settings", ""));
         $(this).attr("checked", false);
       }
     }); 
     socket.emit('change_settings', username, genres);
+    $.each(genres, function(index,genre){
+      document.getElementById(genre).checked = true;
+    });
     $('.settings_page').fadeOut('fast', function() {
       $('.room_page').fadeIn('fast');
     });
