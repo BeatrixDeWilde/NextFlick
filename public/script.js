@@ -6,18 +6,49 @@ var room = 'NOTSET';
 var on_main_page = false;
 var is_admin = false;
 
+var genreList = [
+  "Action",
+  "Adventure",
+  "Animation",
+  "Comedy",
+  "Crime",
+  "Documentary",
+  "Drama",
+  "Family",
+  "Fantasy",
+  "Foreign",
+  "History",
+  "Horror",
+  "Music",
+  "Mystery",
+  "Romance",
+  "Science Fiction",
+  "TV Movie",
+  "Thriller",
+  "War",
+  "Western"
+]
+
 // ******* GENERAL ******* //
 
 socket.on('update_user_list', function(users) {
-$('#users').empty();
-$('#main_page_users').empty();
+  $('#users').empty();
+  $('#main_page_users').empty();
   $.each(users, function(key, value) {
     $('#users').append('<div>' + value+ '</div>');
     $('#main_page_users').append('<div>' + value + '</div>');
   });
 });
 
+function add_genre_checkboxes(genre_div, id_extension){
+  $.each(genreList, function(index, genre){
+    $(genre_div).append("<div class='checkbox'><label><input type='checkbox' id=" + genre + id_extension + ">" + genre + "</label></div>");
+  });
+}
+
 socket.on('connect', function(){
+  add_genre_checkboxes('.genres','');
+  add_genre_checkboxes('.genre_settings','_settings');
 });
 
 socket.on('set_username', function(user) {
@@ -50,12 +81,15 @@ $(function(){
 
 // ******* LOGIN PAGE ******* //
 
-socket.on('correct_login',function(user){
+socket.on('correct_login',function(user, genres){
   // User has enetered correct login 
   // and password redirects to room page
   document.getElementById('username').value = '';
   document.getElementById('pwd').value = '';
   username = user;
+  $.each(genres, function(index,genre){
+    document.getElementById(genre).checked = true;
+  });
   $('.login_page').fadeOut('fast', function() {
     $('.room_page').fadeIn('fast');
   });
@@ -93,7 +127,7 @@ socket.on('signed_in', function(user){
   document.getElementById('pwd_sign_up').value = '';
   username = user;
   $('.sign_up_page').fadeOut('fast', function() {
-    $('.room_page').fadeIn('fast');
+    $('.settings_page').fadeIn('fast');
   });
 });
 
@@ -118,6 +152,28 @@ $(function(){
     }
   });
 });
+
+// ******* SETTINGS PAGE ******* //
+
+$(function(){
+  $('#apply').click(function() {
+    var genres = [];
+    $('.genre_settings input[type=checkbox]').each(function() {
+      if ($(this).is(":checked")) {
+        genres.push($(this).attr('id').replace("_settings", ""));
+        $(this).attr("checked", false);
+      }
+    }); 
+    socket.emit('change_settings', username, genres);
+    $.each(genres, function(index,genre){
+      document.getElementById(genre).checked = true;
+    });
+    $('.settings_page').fadeOut('fast', function() {
+      $('.room_page').fadeIn('fast');
+    });
+  });
+});
+
 
 // ******* ROOM PAGE ******* //
 
@@ -152,7 +208,6 @@ socket.on('room_is_locked', function() {
 
 socket.on("joined_room", function(channel){
   room = channel;
-  //$('#myRoom').append('<b> Your Room:</b> ' + room + '<br>');
   document.getElementById('myRoom').innerHTML = '<b> Your Room:</b> ' + room + '<br>';
   $('.room_page').fadeOut('fast', function() {
     $('.lobby_page').show();
@@ -177,13 +232,24 @@ $(function(){
       var genres = [];
       $('.genres input[type=checkbox]').each(function() {
         if ($(this).is(":checked")) {
-          genres.push($(this).attr('name'));
+          genres.push($(this).attr('id'));
+          $(this).attr("checked", false);
         }
       }); 
       socket.emit('generate_films', room, genres);
       socket.emit('force_go_signal', room);
     }
   });
+ $('#lobby_page_back').click(function() {
+   socket.emit('leave_room', username, room);
+   $('.lobby_page').hide('fast', function() {
+     $('.room_page').fadeIn('slow');
+   });
+   if (is_admin) {
+     socket.emit('force_leave_signal', room);
+     is_admin = false;
+   }
+ });
 });
 
 socket.on('force_go', function() {
@@ -192,6 +258,14 @@ socket.on('force_go', function() {
     });
     $('#chat').empty();
     on_main_page = true;
+});
+
+socket.on('force_leave', function() {
+   socket.emit('leave_room', username, room);
+   $('.lobby_page').hide('fast', function() {
+       $('.room_page').fadeIn('fast'); 
+       alert('Admin has left the room');
+   });
 });
 
 // ******* FILM PAGE ******* //
@@ -228,11 +302,6 @@ socket.on('new_films', function(film, new_index) {
   document.getElementById('title').innerHTML = film.title;
 });
 
-/*socket.on('new_film', function(url){
-    $('#chat').append('Changing image!<br>');
-    document.getElementById('image').src = url;
-}); */
-
 socket.on('update_chat', function(username, text) {
      $('#chat').append('<b>'+username + ':</b> ' + text + '<br>');
      var elem = document.getElementById('chat');
@@ -240,7 +309,6 @@ socket.on('update_chat', function(username, text) {
 });
 
 socket.on('film_found', function(film) {
-  //alert('Film found! Film: ' + film.title + ' \nTODO: Work on this splash page. Will redirect to main page for now.');
   on_main_page = false;
   socket.emit('leave_room', username, room);
   document.getElementById('found_film_title').innerHTML = film.title;

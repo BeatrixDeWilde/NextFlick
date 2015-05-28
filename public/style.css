@@ -31,6 +31,10 @@
   display: none;
   list-style-type: none;
 }
+.settings_page{
+  display: none;
+  list-style-type: none;
+}
 #room_message1{
   display:none;
 }

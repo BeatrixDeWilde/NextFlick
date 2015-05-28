@@ -45,7 +45,7 @@ var genreIdLookup = {
   "Western" : 37
 }
 
-var query_genres = []; // TODO needs to be per room
+var query_genres = {};
 var dateToday = (new Date()).toISOString().substring(0,10);
 
 app.use(express.static(__dirname + '/public'));
@@ -56,29 +56,23 @@ app.get('/', function(req, res) {
 
 io.sockets.on('connection', function(socket) {
 
-//  getNumPopularFilms(40);
-//  socket.emit('initialise', films);
-
- socket.on('new_room', function() {
+  socket.on('new_room', function() {
      // TODO: Random Room ID Generator, just using guest for now
      var channel = guest++;
      socket.channel = channel;
      users[channel] = {};
      num_users[channel] = 0;
      films[channel] = [];
-     // Initialise film list with results from page 1
-     //add20PopularFilms(1, channel);
-     //add20FilmsByGenre(1, channel, query_genres);
-     //socket.emit('initialise', films[channel]);
      socket.emit('set_room_id', channel);
   });
 
   socket.on('generate_films', function(room, genres) {
-    query_genres = genres; 
-    console.log('Generating films for room ' + room + ' of genres: ' + query_genres);
-    add20FilmsByGenre(1, room, query_genres);
+    query_genres[room] = genres;
+    console.log('Generating films for room ' + room + ' of genres: ' + query_genres[room]);
+    // Initialise film list with results from page 1
+    add20FilmsByGenre(1, room, query_genres[room]);
   });
- 
+
   socket.on('get_guest_id', function() {
      var username = 'guest';
      guest++;
@@ -108,21 +102,21 @@ io.sockets.on('connection', function(socket) {
   socket.on('send_message', function(message) {
 	  socket.emit('update_chat', 'You', message);
   	socket.broadcast.to(socket.channel).emit('update_chat', socket.username, message);
-//	io.sockets.in(socket.channel).emit('update_chat', socket.username, message);
   });
 
   socket.on('leave_room', function(username, room) {
-     if (typeof socket.username !== 'undefined') {
-            delete users[socket.channel][socket.username];
-            socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', socket.username + ' has left the channel');
-            io.sockets.in(socket.channel).emit('update_user_list', users);
-            socket.leave(socket.room);
+   console.log(username + ' is trying to leave room ' + room);
+   if (typeof socket.username !== 'undefined' && typeof socket.channel !== 'undefined'
+        && typeof users[socket.channel] !== 'undefined') {
+      delete users[socket.channel][socket.username];
+      socket.leave(room);
+      socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', socket.username + ' has left the channel');
+      io.sockets.in(socket.channel).emit('update_user_list', users[socket.channel]);
+      socket.leave(socket.room);
       --num_users[socket.channel];
-      //console.log('DEBUG: ' + socket.username + ' has left randomly!');
       if (num_users[socket.channel] == 0) {
           console.log('Tear down room: ' + socket.channel);
           delete users[socket.channel];
-          locks[socket.channel] = false;
       }
     }
   });
@@ -135,7 +129,6 @@ io.sockets.on('connection', function(socket) {
 	    io.sockets.in(socket.channel).emit('update_user_list', users[socket.channel]);
 	    socket.leave(socket.room);
       --num_users[socket.channel];
-      //console.log('DEBUG: ' + socket.username + ' has left randomly!');
       if (num_users[socket.channel] == 0) {
           console.log('Tear down room: ' + socket.channel);
           delete users[socket.channel];
@@ -159,7 +152,6 @@ io.sockets.on('connection', function(socket) {
         var curNumFilms = films[socket.channel].length;
         if (index == (curNumFilms - queryDelayBuffer)) {
           var nextPage = Math.floor(index / 20) + 2;
-          //add20PopularFilms(nextPage, socket.channel);
           add20FilmsByGenre(nextPage, socket.channel, query_genres);
         }
         socket.emit('new_films', films[socket.channel][index], index);
@@ -171,6 +163,13 @@ io.sockets.on('connection', function(socket) {
     locks[room] = true;
     socket.broadcast.to(room).emit('force_go');
   });
+ 
+  socket.on('force_leave_signal', function(room) {
+    console.log('Admin has left room ' + room);
+    socket.broadcast.to(room).emit('force_leave');
+  });
+
+/**** Deleting a user: DELETE FROM users WHERE username = 'user9';****/
 
   socket.on('sign_in', function(username, password) {
     pg.connect(post_database, function(err, client, done) {
@@ -181,23 +180,35 @@ io.sockets.on('connection', function(socket) {
         if(err) {
           return console.error('error running query', err);
         }
-        if(result.rows.length != 1){
+        if(result.rows.length != 1) {
           socket.emit('incorrect_login',"No such user", false);
           return;
         }
-        if(!bcrypt.compareSync(password,result.rows[0].password))
-        {
+        if(!bcrypt.compareSync(password,result.rows[0].password)) {
           socket.emit('incorrect_login', "Incorrect password",true);
         }
-        else
-        {
-          socket.emit('correct_login',username);
+        else {
+          console.log(result.rows[0].genres);
+          socket.emit('correct_login',username, result.rows[0].genres);
         }
         client.end();
       });
     });
   });
 
+  socket.on('change_settings', function(username, genres) {
+    pg.connect(post_database, function(err, client, done) {
+      if(err) {
+        return console.error('error connecting', err);
+      }
+      client.query('UPDATE users SET genres=$2 WHERE username=$1;', [username,genres], function(err, result) {
+        if(err) {
+          return console.error('error running query', err);
+        }
+        client.end();
+      });
+    });
+  });
 
   socket.on('sign_up', function(username, password) {
     pg.connect(post_database, function(err, client, done) {
@@ -228,7 +239,7 @@ function insert_user (username, password) {
     if(err) {
       return console.error('error connecting', err);
     }
-    client.query('INSERT INTO users(username, password) values($1,$2);', [username, password], function(err, result) {
+    client.query('INSERT INTO users(username, password, genres) values($1,$2,$3);', [username, password, "{}"], function(err, result) {
       if(err) {
         return console.error('error running query', err);
       }
@@ -237,71 +248,9 @@ function insert_user (username, password) {
   });
 }
 
-// Get random film from movie database API
 // Thriller genre: 'http://api.themoviedb.org/3/genre/53/movies'
 // Base image url: 'http://image.tmdb.org/t/p/w500'
 // Image sizes: w185, w342, w500, w780 (smallest to largest)
-function getRandomFilmImageURL(decision) {
-  request({
-  method: 'GET',
-  url: 'http://api.themoviedb.org/3/movie/popular' + '?' + api_param + '&page=1',
-  headers: {
-    'Accept': 'application/json'
-  }}, 
-  function (error, response, body) {
-    if (response.statusCode === 200) {
-      var response = JSON.parse(body);
-      var res_len = response.results.length;
-      var rand_index = Math.floor(Math.random() * res_len);
-      var img_url_extension = response.results[rand_index].poster_path;
-      var img_url = 'http://image.tmdb.org/t/p/w500' + img_url_extension;
-    }
-    socket.emit('new_film', img_url);
-    socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', socket.username + ' next film to ' + response.results[rand_index].title);
-  });
-}
-
-/* Get 20 popular films from page number pageNum and append them to the list
-   of films */
-function add20PopularFilms(pageNum, channel) {
-  // Only query within range 0 < n <= 1000, otherwise default query page 1
-  if (pageNum == 0 || pageNum > 1000) {
-    pageNum = 1;
-  }
-  request({
-  method: 'GET',
-  url: 'http://api.themoviedb.org/3/movie/popular?' + api_param + '&page=' + pageNum,
-  headers: {
-    'Accept': 'application/json'
-  }}, 
-  function (error, response, body) {
-    if (response.statusCode === 200) {
-      var response = JSON.parse(body);
-      var film_list = response.results;
-      for (var i = 0, len = film_list.length; i < len; i++) {
-        film_list[i].poster_path = 'http://image.tmdb.org/t/p/w342' + film_list[i].poster_path;
-        delete film_list[i].backdrop_path;
-        delete film_list[i].video;
-        delete film_list[i].vote_average;
-        delete film_list[i].vote_count;
-        film_list[i].yes_count = 0;
-      }
-    
-      // append films to JSON films array
-      if (films[channel].length == 0) {
-        films[channel] = film_list;
-        socket.emit('initialise', films[channel][0]);
-      } else {
-        films[channel].push.apply(films[channel], film_list);
-      }
-      /*for (var i = 0, len = films[channel].length; i < len; i++) {
-        console.log('Film ' + i + ':> ' + films[channel][i].title);
-      }*/
-    }
-
-  });
-}
-
 /* Get 20 films of all genres from the array parameter 'genres' 
    from page number pageNum and append them to the list of films */
 function add20FilmsByGenre(pageNum, channel, genres) {
