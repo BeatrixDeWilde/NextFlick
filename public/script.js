@@ -31,6 +31,8 @@ $(function(){
   $('#guest').click(function() {
     socket.emit('get_guest_id');
     $('.first_page').fadeOut('fast', function() {
+      document.getElementById('room_page_username').innerHTML 
+        = '<b> Username</b>: ' + username;
       $('.room_page').fadeIn('fast');
     });
   });
