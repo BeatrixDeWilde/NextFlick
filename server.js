@@ -16,7 +16,8 @@ server.listen(port);
 var users = {};
 var films = [];
 var num_users = [];
-var queryDelayBuffer = 10;
+// Has to be greater than 0 and less than the number of films in each batch
+var queryDelayBuffer = 10; 
 var guest = 0;
 var locks = {};
 
@@ -43,7 +44,8 @@ var genreIdLookup = {
   "War" : 10752,
   "Western" : 37
 }
-var query_genres = ["Horror","Romance","Thriller"];
+
+var query_genres = []; // TODO needs to be per room
 var dateToday = (new Date()).toISOString().substring(0,10);
 
 app.use(express.static(__dirname + '/public'));
@@ -71,9 +73,10 @@ io.sockets.on('connection', function(socket) {
      socket.emit('set_room_id', channel);
   });
 
-  socket.on('generate_films', function(room) {
-     console.log('Generating films for room ' + room);
-     add20FilmsByGenre(1, room, query_genres);
+  socket.on('generate_films', function(room, genres) {
+    query_genres = genres; 
+    console.log('Generating films for room ' + room + ' of genres: ' + query_genres);
+    add20FilmsByGenre(1, room, query_genres);
   });
  
   socket.on('get_guest_id', function() {

@@ -169,15 +169,21 @@ socket.on('set_room_id', function(channel) {
 $(function(){
   $('#go').click(function() {
     $('#chat').empty();
-    socket.emit('generate_films', room);
     $('.lobby_page').hide('fast', function() {
       $('.film_page').fadeTo('slow', 1);
     });
     on_main_page = true;
     if (is_admin) {
-       socket.emit('force_go_signal', room);
+      var genres = [];
+      $('.genres input[type=checkbox]').each(function() {
+        if ($(this).is(":checked")) {
+          genres.push($(this).attr('name'));
+        }
+      }); 
+      socket.emit('generate_films', room, genres);
+      socket.emit('force_go_signal', room);
     }
-    });
+  });
 });
 
 socket.on('force_go', function() {
