@@ -334,25 +334,59 @@ function add20FilmsByGenre(pageNum, channel, genres) {
       if (!error && response.statusCode == 200) {
         var response = JSON.parse(body);
         var film_list = response.results;
-        for (var i = 0, len = film_list.length; i < len; i++) {
-          film_list[i].poster_path = 'http://image.tmdb.org/t/p/w342' + film_list[i].poster_path;
-          delete film_list[i].backdrop_path;
-          delete film_list[i].video;
-          delete film_list[i].vote_average;
-          delete film_list[i].vote_count;
-          film_list[i].yes_count = 0;
-        }
-    
+
         // append films to JSON films array
-        if (films[channel].length == 0) {
+        var oldLength = films[channel].length;
+        if (oldLength == 0) {
           films[channel] = film_list;
-          socket.emit('initialise', films[channel][0]);
+          //socket.emit('initialise', films[channel][0]);
         } else {
           films[channel].push.apply(films[channel], film_list);
+        }
+        
+        for (var i = oldLength, len = oldLength + film_list.length; i < len; i++) {
+          films[channel][i].poster_path = 'http://image.tmdb.org/t/p/w342' + films[channel][i].poster_path;
+          delete films[channel][i].overview;
+          delete films[channel][i].backdrop_path;
+          delete films[channel][i].video;
+          delete films[channel][i].vote_average;
+          delete films[channel][i].vote_count;
+          films[channel][i].yes_count = 0;
+          addExtraFilmInfo(i, channel);
         }
     }
   
   });  
+}
+
+// Query OMDb API for extra film information (plot, runtime, rating etc.)
+function addExtraFilmInfo(film_index, channel) {
+  var encTitle = encodeURIComponent(films[channel][film_index].title);
+  request({
+    method: 'GET',
+    url: 'http://www.omdbapi.com/?' +
+         't=' + encTitle +
+         '&plot=short' +
+         '&r=json' +
+         '&tomatoes=true', 
+    headers: {
+      'Accept': 'application/json'
+    }}, 
+    function (error, response, body) {
+      if (!error && response.statusCode == 200) {
+        var infoResponse = JSON.parse(body);
+        films[channel][film_index].shortPlot = infoResponse["Plot"];
+        films[channel][film_index].rated = infoResponse["Rated"];
+        films[channel][film_index].imdbRating = infoResponse["imdbRating"];
+        films[channel][film_index].metascore = infoResponse["Metascore"];
+        films[channel][film_index].tomatoRating = infoResponse["tomatoMeter"];
+        films[channel][film_index].runtime = infoResponse["Runtime"];
+      }
+      if (film_index == 0) {
+        socket.emit('initialise', films[channel][0]);
+      }
+  });
+
 }
 
 });
