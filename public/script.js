@@ -40,15 +40,15 @@ socket.on('update_user_list', function(users) {
   });
 });
 
-function add_genre_checkboxes(genre_div){
+function add_genre_checkboxes(genre_div, id_extension){
   $.each(genreList, function(index, genre){
-    $(genre_div).append("<div class='checkbox'><label><input type='checkbox' id=" + genre + ">" + genre + "</label></div>");
+    $(genre_div).append("<div class='checkbox'><label><input type='checkbox' id=" + genre + id_extension + ">" + genre + "</label></div>");
   });
 }
 
 socket.on('connect', function(){
-  add_genre_checkboxes('.genres');
-  add_genre_checkboxes('.genre_settings');
+  add_genre_checkboxes('.genres','');
+  add_genre_checkboxes('.genre_settings','_settings');
 });
 
 socket.on('set_username', function(user) {
@@ -88,7 +88,6 @@ socket.on('correct_login',function(user, genres){
   document.getElementById('pwd').value = '';
   username = user;
   $.each(genres, function(index,genre){
-    alert(genre);
     document.getElementById(genre).checked = true;
   });
   $('.login_page').fadeOut('fast', function() {
@@ -161,7 +160,7 @@ $(function(){
     var genres = [];
     $('.genre_settings input[type=checkbox]').each(function() {
       if ($(this).is(":checked")) {
-        genres.push($(this).attr('id'));
+        genres.push($(this).html());
         $(this).attr("checked", false);
       }
     }); 

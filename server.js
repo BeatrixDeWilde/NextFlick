@@ -44,8 +44,7 @@ var genreIdLookup = {
   "War" : 10752,
   "Western" : 37
 }
-// Debug list until preferences has been implemented 
-var TEST_LIST = ["Horror","Romance","Thriller"];
+
 var query_genres = {};
 var dateToday = (new Date()).toISOString().substring(0,10);
 
@@ -68,7 +67,7 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('generate_films', function(room, genres) {
-    query_genres[room] = TEST_LIST;
+    query_genres[room] = genres;
     console.log('Generating films for room ' + room + ' of genres: ' + query_genres[room]);
     // Initialise film list with results from page 1
     add20FilmsByGenre(1, room, query_genres[room]);
