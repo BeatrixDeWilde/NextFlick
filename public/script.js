@@ -169,7 +169,6 @@ socket.on('set_room_id', function(channel) {
 $(function(){
   $('#go').click(function() {
     $('#chat').empty();
-    socket.emit('generate_films', room);
     $('.lobby_page').hide('fast', function() {
       $('.film_page').fadeTo('slow', 1);
     });
@@ -181,9 +180,10 @@ $(function(){
           genres.push($(this).attr('name'));
         }
       }); 
-      socket.emit('force_go_signal', room, genres);
+      socket.emit('generate_films', room, genres);
+      socket.emit('force_go_signal', room);
     }
-    });
+  });
 });
 
 socket.on('force_go', function() {

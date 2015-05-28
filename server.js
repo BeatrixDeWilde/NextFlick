@@ -71,9 +71,10 @@ io.sockets.on('connection', function(socket) {
      socket.emit('set_room_id', channel);
   });
 
-  socket.on('generate_films', function(room) {
-     console.log('Generating films for room ' + room);
-     add20FilmsByGenre(1, room, query_genres);
+  socket.on('generate_films', function(room, genres) {
+    query_genres = genres; 
+    console.log('Generating films for room ' + room + ' of genres: ' + query_genres);
+    add20FilmsByGenre(1, room, query_genres);
   });
  
   socket.on('get_guest_id', function() {
@@ -164,8 +165,7 @@ io.sockets.on('connection', function(socket) {
     }
   });
  
-  socket.on('force_go_signal', function(room, genres) {
-    query_genres = genres; 
+  socket.on('force_go_signal', function(room) {
     locks[room] = true;
     socket.broadcast.to(room).emit('force_go');
   });
