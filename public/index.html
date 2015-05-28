@@ -122,10 +122,25 @@
 
         <li class="lobby_page">
           <div id="myRoom"></div>
-           <div>
-            <b>USERS</b>
-            <!--this only works when you change the id of users on main page (which breaks that)-->
-            <div id="users"></div>
+          <div class="row">
+            <div class="column-sm-6">
+              <b>USERS</b>
+              <!--this only works when you change the id of users on main page (which breaks that)-->
+              <div id="users"></div>
+            </div>
+            <div class="column-sm-6">
+              <form role="form">
+                <div class="checkbox">
+                  <label><input type="checkbox" value="">genre1</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value="">genre2</label>
+                </div>
+                <div class="checkbox">
+                  <label><input type="checkbox" value="">genre3</label>
+                </div>
+              </form>
+            </div>
           </div>
           <button type="button" id="go" class="btn btn-default">Go</button>
         </li>
