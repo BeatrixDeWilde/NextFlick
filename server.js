@@ -65,10 +65,14 @@ io.sockets.on('connection', function(socket) {
      films[channel] = [];
      // Initialise film list with results from page 1
      //add20PopularFilms(1, channel);
-     add20FilmsByGenre(1, channel, query_genres);
-     console.log(films[channel]);
+     //add20FilmsByGenre(1, channel, query_genres);
      //socket.emit('initialise', films[channel]);
      socket.emit('set_room_id', channel);
+  });
+
+  socket.on('generate_films', function(room) {
+     console.log('Generating films for room ' + room);
+     add20FilmsByGenre(1, room, query_genres);
   });
  
   socket.on('get_guest_id', function() {
