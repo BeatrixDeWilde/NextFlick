@@ -44,7 +44,7 @@ var genreIdLookup = {
   "War" : 10752,
   "Western" : 37
 }
-var query_genres = ["Horror","Romance","Thriller"];
+var query_genres = []; // TODO needs to be per room
 
 app.use(express.static(__dirname + '/public'));
 
@@ -160,7 +160,8 @@ io.sockets.on('connection', function(socket) {
     }
   });
  
-  socket.on('force_go_signal', function(room) {
+  socket.on('force_go_signal', function(room, genres) {
+    query_genres = genres; 
     locks[room] = true;
     socket.broadcast.to(room).emit('force_go');
   });

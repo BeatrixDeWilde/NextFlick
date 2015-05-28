@@ -174,7 +174,13 @@ $(function(){
     });
     on_main_page = true;
     if (is_admin) {
-       socket.emit('force_go_signal', room);
+      var genres = [];
+      $('.genres input[type=checkbox]').each(function() {
+        if ($(this).is(":checked")) {
+          genres.push($(this).attr('name'));
+        }
+      }); 
+      socket.emit('force_go_signal', room, genres);
     }
     });
 });
