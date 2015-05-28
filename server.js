@@ -44,6 +44,7 @@ var genreIdLookup = {
   "Western" : 37
 }
 var query_genres = ["Horror","Romance","Thriller"];
+var dateToday = (new Date()).toISOString().substring(0,10);
 
 app.use(express.static(__dirname + '/public'));
 
@@ -317,6 +318,7 @@ function add20FilmsByGenre(pageNum, channel, genres) {
          '&page=' + pageNum + 
          '&include_adult=false' + 
          '&sort_by=popularity.desc' + 
+         '&release_date.lte=' + dateToday +
          '&with_genres=' + genreParams,
     headers: {
       'Accept': 'application/json'
