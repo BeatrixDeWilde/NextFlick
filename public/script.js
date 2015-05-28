@@ -10,8 +10,10 @@ var is_admin = false;
 
 socket.on('update_user_list', function(users) {
 $('#users').empty();
+$('#main_page_users').empty();
   $.each(users, function(key, value) {
     $('#users').append('<div>' + value+ '</div>');
+    $('#main_page_users').append('<div>' + value + '</div>');
   });
 });
 
@@ -29,6 +31,8 @@ $(function(){
   $('#guest').click(function() {
     socket.emit('get_guest_id');
     $('.first_page').fadeOut('fast', function() {
+      document.getElementById('room_page_username').innerHTML 
+        = '<b> Username</b>: ' + username;
       $('.room_page').fadeIn('fast');
     });
   });
@@ -148,7 +152,8 @@ socket.on('room_is_locked', function() {
 
 socket.on("joined_room", function(channel){
   room = channel;
-  $('#myRoom').append('<b> Your Room:</b> ' + room + '<br>');
+  //$('#myRoom').append('<b> Your Room:</b> ' + room + '<br>');
+  document.getElementById('myRoom').innerHTML = '<b> Your Room:</b> ' + room + '<br>';
   $('.room_page').fadeOut('fast', function() {
     $('.lobby_page').show();
   });
@@ -163,6 +168,7 @@ socket.on('set_room_id', function(channel) {
 
 $(function(){
   $('#go').click(function() {
+    $('#chat').empty();
     $('.lobby_page').hide('fast', function() {
       $('.film_page').fadeTo('slow', 1);
     });
@@ -177,6 +183,7 @@ socket.on('force_go', function() {
    $('.lobby_page').hide('fast', function() {
       $('.film_page').fadeTo('slow', 1);
     });
+    $('#chat').empty();
     on_main_page = true;
 });
 
@@ -261,7 +268,7 @@ document.onkeydown = function(e) {
 $(function(){
   $('#film_found_confirm').click(function() {
      $('.found_page').hide("slow", function() {
-       $('.first_page').fadeIn("slow");
+       $('.room_page').fadeIn("slow");
      });
   });
 });
