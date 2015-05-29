@@ -71,7 +71,9 @@ io.sockets.on('connection', function(socket) {
     query_genres[room] = genres;
     console.log('Generating films for room ' + room + ' of genres: ' + query_genres[room]);
     // Initialise film list with results from page 1
+    // This function now calls back to show the film pages once done
     add20FilmsByGenre(1, room, query_genres[room]);
+    //io.sockets.in(room).emit('initialise', films[room][0]);
   });
 
   socket.on('get_guest_id', function() {
@@ -90,7 +92,7 @@ io.sockets.on('connection', function(socket) {
       socket.emit('room_not_initialised');
     } else {
       socket.emit("joined_room", channel);
-      socket.emit('initialise', films[channel][0]);
+      //socket.emit('initialise', films[channel][0]);
   	  users[channel][username] = username;
   	  socket.join(channel);
       ++num_users[channel];
@@ -160,9 +162,9 @@ io.sockets.on('connection', function(socket) {
     }
   });
  
-  socket.on('force_go_signal', function(room) {
+  socket.on('go_signal', function(room) {
     locks[room] = true;
-    socket.broadcast.to(room).emit('force_go');
+    io.sockets.in(room).emit('waiting_signal');
   });
  
   socket.on('force_leave_signal', function(room) {
@@ -288,10 +290,9 @@ function add20FilmsByGenre(pageNum, channel, genres) {
         // append films to JSON films array
         var oldLength = films[channel].length;
         if (oldLength == 0) {
-          films[channel] = film_list;
-          //socket.emit('initialise', films[channel][0]);
+          films[channel] = shuffle(film_list);
         } else {
-          films[channel].push.apply(films[channel], film_list);
+          films[channel].push.apply(films[channel], shuffle(film_list));
         }
         
         for (var i = oldLength, len = oldLength + film_list.length; i < len; i++) {
@@ -308,6 +309,14 @@ function add20FilmsByGenre(pageNum, channel, genres) {
   
   });  
 }
+
+// Shuffling algorithm
+
+function shuffle(o) {
+	for(var j, x, i = o.length; i; j = parseInt(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
+	return o;
+}
+
 
 // Query OMDb API for extra film information (plot, runtime, rating etc.)
 function addExtraFilmInfo(film_index, channel) {
@@ -333,7 +342,8 @@ function addExtraFilmInfo(film_index, channel) {
         films[channel][film_index].runtime = infoResponse["Runtime"];
       }
       if (film_index == 0) {
-        socket.emit('initialise', films[channel][0]);
+        //socket.emit('initialise', films[channel][0]);
+        io.sockets.in(channel).emit('show_film_page', films[channel][0]);
       }
   });
 

@@ -228,13 +228,26 @@ socket.on('set_room_id', function(channel) {
 
 // ******* LOBBY PAGE ******* //
 
+function initialise_film_page(film) {
+  document.getElementById('image').src = film.poster_path;
+  document.getElementById('title').innerHTML = film.title;
+  document.getElementById('plot').innerHTML = film.shortPlot;
+  document.getElementById('runtime').innerHTML = film.runtime;
+  document.getElementById('imdbRating').innerHTML = film.imdbRating;
+}
+
+
+socket.on('show_film_page', function(film) {
+  on_main_page = true;
+  $('#chat').empty();
+  initialise_film_page(film);
+  $('.lobby_page').hide('fast', function() {
+    $('.film_page').fadeIn('slow');
+  });
+});
+
 $(function(){
   $('#go').click(function() {
-    $('#chat').empty();
-    $('.lobby_page').hide('fast', function() {
-      $('.film_page').fadeTo('slow', 1);
-    });
-    on_main_page = true;
     if (is_admin) {
       var genres = [];
       $('.genres input[type=checkbox]').each(function() {
@@ -244,9 +257,10 @@ $(function(){
         }
       }); 
       socket.emit('generate_films', room, genres);
-      socket.emit('force_go_signal', room);
+      socket.emit('go_signal', room);
     }
   });
+
  $('#lobby_page_back').click(function() {
    socket.emit('leave_room', username, room);
    $('.lobby_page').hide('fast', function() {
@@ -259,12 +273,8 @@ $(function(){
  });
 });
 
-socket.on('force_go', function() {
-   $('.lobby_page').hide('fast', function() {
-      $('.film_page').fadeTo('slow', 1);
-    });
-    $('#chat').empty();
-    on_main_page = true;
+socket.on('waiting_signal', function() {
+     document.getElementById('myRoom').innerHTML = '<b> Your Room:</b> ' + room + ' (BUILDING)<br>';
 });
 
 socket.on('force_leave', function() {
