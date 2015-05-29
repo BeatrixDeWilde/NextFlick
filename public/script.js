@@ -35,7 +35,11 @@ socket.on('update_user_list', function(users) {
   $('#users').empty();
   $('#main_page_users').empty();
   $.each(users, function(key, value) {
-    $('#users').append('<div>' + value+ '</div>');
+    if(value == username){
+      $('#users').append('<div><b>' + value+ '</b></div>');
+    }else{
+      $('#users').append('<div>' + value+ '</div>');
+    }
     $('#main_page_users').append('<div>' + value + '</div>');
   });
 });
@@ -219,9 +223,12 @@ socket.on('room_is_locked', function() {
 socket.on("joined_room", function(channel){
   room = channel;
   document.getElementById('myRoom').innerHTML = '<b> Your Room:</b> ' + room + '<br>';
-  $('.room_page').fadeOut('fast', function() {
-    $('.lobby_page').show();
-  });
+  document.getElementById('lobby_page_username').innerHTML 
+        = '<b> Username</b>: ' + username;
+  $('.room_page').fadeOut('fast', function() {  
+  $('.lobby_page').show();
+});
+
 });
 
 socket.on('set_room_id', function(channel) {
