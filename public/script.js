@@ -187,6 +187,13 @@ $(function(){
     $('#go').show();
   });
 
+  $('#RoomID').keydown(function(event){
+    if(event.keyCode==13){
+      event.preventDefault();
+      $('#join').click();
+    }
+  });
+
   $('#join').click(function() {
     $('#room_message1').hide();
     $('#room_message2').hide();
