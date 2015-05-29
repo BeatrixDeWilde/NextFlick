@@ -197,6 +197,7 @@ $(function(){
   $('#join').click(function() {
     $('#room_message1').hide();
     $('#room_message2').hide();
+    $('#gap').show();
     var RoomID = document.getElementById('RoomID').value;
     if (RoomID.length > 0){
       socket.emit("user_join", username, RoomID);
@@ -206,11 +207,13 @@ $(function(){
 });
 
 socket.on('room_not_initialised', function(){
- $('#room_message1').show();
+  $('#gap').hide();
+  $('#room_message1').show();
 });
 
 socket.on('room_is_locked', function() {
-   $('#room_message2').show();
+  $('#gap').hide();
+  $('#room_message2').show();
 });
 
 socket.on("joined_room", function(channel){
