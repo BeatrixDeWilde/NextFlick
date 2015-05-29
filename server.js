@@ -153,7 +153,7 @@ io.sockets.on('connection', function(socket) {
         var curNumFilms = films[socket.channel].length;
         if (index == (curNumFilms - queryDelayBuffer)) {
           var nextPage = Math.floor(index / queryBatchSize) + 2;
-          add20FilmsByGenre(nextPage, socket.channel, query_genres);
+          add20FilmsByGenre(nextPage, socket.channel, query_genres[socket.channel]);
         }
         socket.emit('new_films', films[socket.channel][index], index);
       }
