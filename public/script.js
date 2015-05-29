@@ -35,7 +35,11 @@ socket.on('update_user_list', function(users) {
   $('#users').empty();
   $('#main_page_users').empty();
   $.each(users, function(key, value) {
-    $('#users').append('<div>' + value+ '</div>');
+    if(value == username){
+      $('#users').append('<div><b>' + value+ '</b></div>');
+    }else{
+      $('#users').append('<div>' + value+ '</div>');
+    }
     $('#main_page_users').append('<div>' + value + '</div>');
   });
 });
@@ -197,6 +201,7 @@ $(function(){
   $('#join').click(function() {
     $('#room_message1').hide();
     $('#room_message2').hide();
+    $('#gap').show();
     var RoomID = document.getElementById('RoomID').value;
     if (RoomID.length > 0){
       socket.emit("user_join", username, RoomID);
@@ -206,19 +211,24 @@ $(function(){
 });
 
 socket.on('room_not_initialised', function(){
- $('#room_message1').show();
+  $('#gap').hide();
+  $('#room_message1').show();
 });
 
 socket.on('room_is_locked', function() {
-   $('#room_message2').show();
+  $('#gap').hide();
+  $('#room_message2').show();
 });
 
 socket.on("joined_room", function(channel){
   room = channel;
   document.getElementById('myRoom').innerHTML = '<b> Your Room:</b> ' + room + '<br>';
-  $('.room_page').fadeOut('fast', function() {
-    $('.lobby_page').show();
-  });
+  document.getElementById('lobby_page_username').innerHTML 
+        = '<b> Username</b>: ' + username;
+  $('.room_page').fadeOut('fast', function() {  
+  $('.lobby_page').show();
+});
+
 });
 
 socket.on('set_room_id', function(channel) {
