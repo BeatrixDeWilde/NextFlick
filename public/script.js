@@ -291,8 +291,11 @@ $(function(){
 });
 
 socket.on('initialise', function(film) {
-   document.getElementById('image').src = film.poster_path;
-   document.getElementById('title').innerHTML = film.title;
+  document.getElementById('image').src = film.poster_path;
+  document.getElementById('title').innerHTML = film.title;
+  document.getElementById('plot').innerHTML = film.shortPlot;
+  document.getElementById('runtime').innerHTML = film.runtime;
+  document.getElementById('imdbRating').innerHTML = film.imdbRating;
 });
 
 socket.on('new_films', function(film, new_index) {
@@ -300,12 +303,15 @@ socket.on('new_films', function(film, new_index) {
   $('#chat').append('Changing image! (Index at: ' + index + ') <br>');
   document.getElementById('image').src = film.poster_path;
   document.getElementById('title').innerHTML = film.title;
+  document.getElementById('plot').innerHTML = film.shortPlot;
+  document.getElementById('runtime').innerHTML = film.runtime;
+  document.getElementById('imdbRating').innerHTML = film.imdbRating;
 });
 
 socket.on('update_chat', function(username, text) {
-     $('#chat').append('<b>'+username + ':</b> ' + text + '<br>');
-     var elem = document.getElementById('chat');
-     elem.scrollTop = elem.scrollHeight;
+  $('#chat').append('<b>'+username + ':</b> ' + text + '<br>');
+  var elem = document.getElementById('chat');
+  elem.scrollTop = elem.scrollHeight;
 });
 
 socket.on('film_found', function(film) {

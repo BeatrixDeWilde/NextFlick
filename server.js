@@ -17,7 +17,8 @@ var users = {};
 var films = [];
 var num_users = [];
 // Has to be greater than 0 and less than the number of films in each batch
-var queryDelayBuffer = 10; 
+var queryDelayBuffer = 10;
+var queryBatchSize = 20; 
 var guest = 0;
 var locks = {};
 
@@ -146,12 +147,12 @@ io.sockets.on('connection', function(socket) {
         io.sockets.in(socket.channel).emit('film_found', films[socket.channel][index]);
       } else {
         index++;
-        var message = ' said ' + decision + ' to movie: ' + films[socket.channel][index].title;
+        var message = ' said ' + decision + ' to movie: ' + films[socket.channel][index-1].title;
     	  socket.emit('update_chat', 'You', message);
       	socket.broadcast.to(socket.channel).emit('update_chat', socket.username, message);
         var curNumFilms = films[socket.channel].length;
         if (index == (curNumFilms - queryDelayBuffer)) {
-          var nextPage = Math.floor(index / 20) + 2;
+          var nextPage = Math.floor(index / queryBatchSize) + 2;
           add20FilmsByGenre(nextPage, socket.channel, query_genres);
         }
         socket.emit('new_films', films[socket.channel][index], index);

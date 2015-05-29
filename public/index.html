@@ -33,11 +33,23 @@
           <div class="container" align="center">
             <h1>Film Finder</h1>
             <img id="image" src="http://image.tmdb.org/t/p/w500/j6NCjU6Zh7SkfIeN5zDaoTmBn4m.jpg" class = "img-rounded" width="20%" height="20%">
-          </div>
             <h3 id="title" align="center"></h3>
+            <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#filmInfo" aria-expanded="false" aria-controls="filmInfo">
+              <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span> Film Information
+            </button>
+            <div class="collapse" id="filmInfo" width="20%" height="20%">
+              <h4>Plot:</h4>
+              <p id="plot"></p>
+              <h4>Runtime:</h4>
+              <p id="runtime"></p>
+              <h4>IMDb Rating:</h4>
+              <p id="imdbRating"></p>
+            </div>
+          </div>
             <div class= "container" align="center">
-              <button type="button" id="yes" class="btn btn-default">YES</button>
-              <button type="button" id="no" class="btn btn-default">NO</button>
+              <br>
+              <button type="button" id="yes" class="btn btn-success">YES</button>
+              <button type="button" id="no" class="btn btn-danger">NO</button>
             </div>
             <div style="padding:10px;" align="center">
               <input id="out" value = ""/>  
