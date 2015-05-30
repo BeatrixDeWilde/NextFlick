@@ -271,6 +271,9 @@ function initialise_film_page(film) {
 
 
 socket.on('show_film_page', function(film) {
+  $('.overlay_message').fadeOut('fast', function(){
+    $('.overlay').fadeOut();
+  });
   on_main_page = true;
   $('#chat').empty();
   initialise_film_page(film);
@@ -307,7 +310,9 @@ $(function(){
 });
 
 socket.on('waiting_signal', function() {
-     document.getElementById('myRoom').innerHTML = '<b> Your Room:</b> ' + room + ' (BUILDING)<br>';
+//     document.getElementById('myRoom').innerHTML = '<b> Your Room:</b> ' + room + ' (BUILDING)<br>';
+   $('.overlay').fadeIn();
+   $('.overlay_message').show();
 });
 
 socket.on('force_leave', function() {
