@@ -122,6 +122,11 @@ $(function(){
       socket.emit('sign_in', username, password);
     }
   });
+ $('#login_page_back').click(function() {
+   $('.login_page').fadeOut('fast', function() {
+     $('.first_page').fadeIn('fast');
+  });
+ });
 });
 
 // ******* SIGN UP PAGE ******* //
@@ -155,6 +160,11 @@ $(function(){
       socket.emit('sign_up', username, password);
     }
   });
+  $('#sign_up_back').click(function() {
+    $('.sign_up_page').fadeOut('fast', function() {
+       $('.first_page').fadeIn('fast');
+  });
+ });
 });
 
 // ******* SETTINGS PAGE ******* //
@@ -208,6 +218,11 @@ $(function(){
     }
     $('#go').hide();
   });
+ $('#room_page_back').click(function() {
+   $('.room_page').fadeOut('fast', function() {
+     $('.first_page').fadeIn('fast');
+   });
+ });
 });
 
 socket.on('room_not_initialised', function(){
