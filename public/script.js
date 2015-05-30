@@ -22,8 +22,8 @@ var genreList = [
   "Music",
   "Mystery",
   "Romance",
-  "Science Fiction",
-  "TV Movie",
+  "Science_Fiction",
+  "TV_Movie",
   "Thriller",
   "War",
   "Western"
@@ -275,7 +275,7 @@ socket.on('show_film_page', function(film) {
     $('.overlay').fadeOut();
   });
   on_main_page = true;
-  $('#chat').empty();
+  //$('#chat').empty();
   initialise_film_page(film);
   $('.lobby_page').hide('fast', function() {
     $('.film_page').fadeIn('slow');
@@ -285,15 +285,8 @@ socket.on('show_film_page', function(film) {
 $(function(){
   $('#go').click(function() {
     if (is_admin) {
-      var genres = [];
-      $('.genres input[type=checkbox]').each(function() {
-        if ($(this).is(":checked")) {
-          genres.push($(this).attr('id'));
-          $(this).attr("checked", false);
-        }
-      }); 
-      socket.emit('generate_films', room, genres);
       socket.emit('go_signal', room);
+      //socket.emit('generate_films', room, genres);
     }
   });
 
@@ -310,7 +303,15 @@ $(function(){
 });
 
 socket.on('waiting_signal', function() {
-//     document.getElementById('myRoom').innerHTML = '<b> Your Room:</b> ' + room + ' (BUILDING)<br>';
+    var genres = [];
+      $('.genres input[type=checkbox]').each(function() {
+        if ($(this).is(":checked")) {
+          genres.push($(this).attr('id'));
+          $(this).attr("checked", false);
+        }
+      });
+   socket.emit('user_add_genres', genres);
+
    $('.overlay').fadeIn();
    $('.overlay_message').show();
 });

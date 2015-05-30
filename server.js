@@ -16,6 +16,7 @@ server.listen(port);
 var users = {};
 var films = [];
 var num_users = [];
+var query_collection_count = {};
 // Has to be greater than 0 and less than the number of films in each batch
 var queryDelayBuffer = 10;
 var queryBatchSize = 20; 
@@ -39,14 +40,14 @@ var genreIdLookup = {
   "Music" : 10402,
   "Mystery" : 9648,
   "Romance" : 10749,
-  "Science Fiction" : 878,
-  "TV Movie" : 10770,
+  "Science_Fiction" : 878,
+  "TV_Movie" : 10770,
   "Thriller" : 53,
   "War" : 10752,
   "Western" : 37
 }
 
-var query_genres = {};
+var query_genres = [];
 var dateToday = (new Date()).toISOString().substring(0,10);
 
 app.use(express.static(__dirname + '/public'));
@@ -64,10 +65,31 @@ io.sockets.on('connection', function(socket) {
      users[channel] = {};
      num_users[channel] = 0;
      films[channel] = [];
+     query_genres[channel] = [];
+     query_collection_count[channel] = [];
      socket.emit('set_room_id', channel);
   });
+ 
+  socket.on('user_add_genres', function(genres) {
+     query_genres[socket.channel] = query_genres[socket.channel].concat(genres);
+     ++query_collection_count[socket.channel];
+     if (query_collection_count[socket.channel] >= num_users[socket.channel]) {
+        console.log('All users have voted. Should fire off only once!');
+        generate_films(socket.channel);
+     } 
+  });
+
+  function generate_films(room) {
+    console.log('Generating films for room ' + room + ' of genres: ' + query_genres[room]);
+    // Initialise film list with results from page 1
+    // This function now calls back to show the film pages once done
+    add20FilmsByGenre(1, room, query_genres[room]);
+    //io.sockets.in(room).emit('initialise', films[room][0]);
+
+  }
 
   socket.on('generate_films', function(room, genres) {
+    console.log('DEPRECIATED: socket on generate_films');
     query_genres[room] = genres;
     console.log('Generating films for room ' + room + ' of genres: ' + query_genres[room]);
     // Initialise film list with results from page 1
@@ -258,6 +280,7 @@ function insert_user (username, password) {
 /* Get 20 films of all genres from the array parameter 'genres' 
    from page number pageNum and append them to the list of films */
 function add20FilmsByGenre(pageNum, channel, genres) {
+  console.log('add20Films: Adding 20 films of genres: ' + genres);
   // Only query within range 0 < n <= 1000, otherwise default query page 1
   if (pageNum == 0 || pageNum > 1000) {
     pageNum = 1;
@@ -272,6 +295,7 @@ function add20FilmsByGenre(pageNum, channel, genres) {
       }
     }
   }
+  console.log('Sending request: ' + genreParams);
   request({
     method: 'GET',
     url: 'http://api.themoviedb.org/3/discover/movie?' + api_param + 
@@ -295,7 +319,7 @@ function add20FilmsByGenre(pageNum, channel, genres) {
         } else {
           films[channel].push.apply(films[channel], shuffle(film_list));
         }
-        
+
         for (var i = oldLength, len = oldLength + film_list.length; i < len; i++) {
           films[channel][i].poster_path = 'http://image.tmdb.org/t/p/w342' + films[channel][i].poster_path;
           delete films[channel][i].overview;
@@ -344,6 +368,8 @@ function addExtraFilmInfo(film_index, channel) {
       }
       if (film_index == 0) {
         //socket.emit('initialise', films[channel][0]);
+        console.log('Should be showing film page');
+        io.sockets.in(channel).emit('update_chat', 'SERVER', 'Showing films from genres: ' + query_genres[channel]);
         io.sockets.in(channel).emit('show_film_page', films[channel][0]);
       }
   });
