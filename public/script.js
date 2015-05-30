@@ -217,7 +217,7 @@ $(function(){
       socket.emit("user_join", username, RoomID);
     }
     $('#go').hide();
-  });
+  })
  $('#room_page_back').click(function() {
    $('.room_page').fadeOut('fast', function() {
      $('.first_page').fadeIn('fast');
@@ -225,14 +225,22 @@ $(function(){
  });
 });
 
+function message_fade_out(element, time) {
+  setTimeout(function() {
+     element.fadeOut('slow');
+  }, time);
+}
+
 socket.on('room_not_initialised', function(){
   $('#gap').hide();
-  $('#room_message1').show();
+  $('#room_message1').show(
+    message_fade_out($('#room_message1'), 5000));
 });
 
 socket.on('room_is_locked', function() {
   $('#gap').hide();
-  $('#room_message2').show();
+  $('#room_message2').show(
+    message_fade_out($('#room_message2'), 5000));
 });
 
 socket.on("joined_room", function(channel){

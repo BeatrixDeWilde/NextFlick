@@ -147,6 +147,7 @@ io.sockets.on('connection', function(socket) {
       }
       if (films[socket.channel][index].yes_count >= num_users[socket.channel]) {
         io.sockets.in(socket.channel).emit('film_found', films[socket.channel][index]);
+        locks[socket.channel] = false;
       } else {
         index++;
         var message = ' said ' + decision + ' to movie: ' + films[socket.channel][index-1].title;
