@@ -168,9 +168,13 @@ $(function(){
     document.getElementById('password_error_message_sign_up').innerHTML = '';
     if (username.length < 1) {
       document.getElementById('username_error_message_sign_up').innerHTML = 'Please enter a username';
+      $("#username_error_message_sign_up").show();
+      message_fade_out($('#username_error_message_sign_up'), 5000);
     } else if (password.length < 1)
     {
       document.getElementById('password_error_message_sign_up').innerHTML = 'Please enter a password';
+      $("#password_error_message_sign_up").show();
+      message_fade_out($('#password_error_message_sign_up'), 5000);
     } else {
       socket.emit('sign_up', username, password);
     }
