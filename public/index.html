@@ -82,27 +82,29 @@
         <!-- SIGN UP PAGE (create new username and password) -->
 
         <li class="sign_up_page">
-          <div class="container">
-            <form role="form">
-              <div class="form-group">
-                <label for="usr">Username: (not guest***)</label>
-                <input type="text" class="form-control" id="username_sign_up" placeholder="Enter username">
-              </div>
-              <div class="form-group">
-                <p class="alert alert-danger" id="username_error_message_sign_up"></p>
-              </div>
-              <div class="form-group">
-                <label for="pwd" value="">Password:</label>
-                <input type="password" class="form-control" id="pwd_sign_up" placeholder="Enter password">
-              </div>
-              <div class="form-group">
-                <p class="alert alert-danger" id="password_error_message_sign_up"></p>
-              </div>
-              <div class="form-group">
-                <button type="button" id="sign_up_button" class="btn btn-default" value="">Sign up</button>
-              </div>
-                <button type="button" id="sign_up_back" class="btn btn-default" value="">Back</button>
-            </form>
+          <div class="container" align="center">
+            <div class="my_block" align="left">
+              <form role="form">
+                <div class="form-group">
+                  <label for="usr" class="message">Username: (not guest***)</label>
+                  <input type="text" class="form-control" id="username_sign_up" placeholder="Enter username">
+                </div>
+                <div class="form-group">
+                  <p class="alert alert-danger init_hidden" id="username_error_message_sign_up"></p>
+                </div>
+                <div class="form-group">
+                  <label for="pwd" value="" class="message">Password:</label>
+                  <input type="password" class="form-control" id="pwd_sign_up" placeholder="Enter password">
+                </div>
+                <div class="form-group">
+                  <p class="alert alert-danger init_hidden" id="password_error_message_sign_up"></p>
+                </div>
+                <div class="form-group">
+                  <button type="button" id="sign_up_button" class="btn btn-default" value="">Sign up</button>
+                </div>
+                  <button type="button" id="sign_up_back" class="btn btn-default" value="">Back</button>
+              </form>
+            </div>
           </div>
         </li>
 
@@ -125,27 +127,29 @@
         <!-- LOGIN PAGE (enter known username and password) -->
 
         <li class="login_page">
-          <div class="container">
-            <form role="form">
-              <div class="form-group">
-                <label for="usr">Username:</label>
-                <input type="text" class="form-control" id="username" placeholder="Enter username">
-              </div>
-              <div class="form-group">
-                <p class="alert alert-danger" id="username_error_message"></p>
-              </div>
-              <div class="form-group">
-                <label for="pwd" value="">Password:</label>
-                <input type="password" class="form-control" id="pwd" placeholder="Enter password">
-              </div>
-              <div class="form-group">
-                <p class="alert alert-danger" id="password_error_message"></p>
-              </div>
-              <div class="form-group">
-                <button type="button" id="sign_in" class="btn btn-default" value="">Sign in</button>
-              </div>
-                <button type="button" id="login_page_back" class="btn btn-default" value="">Back</button>
-            </form>
+          <div class="container" align="center">
+            <div class="my_block" align="left">
+              <form role="form">
+                <div class="form-group">
+                  <label for="usr" class="message">Username:</label>
+                  <input type="text" class="form-control" id="username" placeholder="Enter username">
+                </div>
+                <div class="form-group">
+                  <p class="alert alert-danger init_hidden" id="username_error_message"></p> 
+                </div>
+                <div class="form-group">
+                  <label for="pwd" value="" class="message">Password:</label>
+                  <input type="password" class="form-control" id="pwd" placeholder="Enter password">
+                </div>
+                <div class="form-group">
+                  <p class="alert alert-danger init_hidden" id="password_error_message"></p>
+                </div>
+                <div class="form-group">
+                  <button type="button" id="sign_in" class="btn btn-default" value="">Sign in</button>
+                </div>
+                  <button type="button" id="login_page_back" class="btn btn-default" value="">Back</button>
+              </form>
+            </div>
           </div>
         </li>
 

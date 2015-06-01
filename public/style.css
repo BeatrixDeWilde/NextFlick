@@ -48,6 +48,10 @@
   color: #FFFFFF;
 }
 
+.init_hidden{
+  display:none;
+}
+
 .message{
   color: #FFFFFF;
 }
