@@ -23,7 +23,6 @@ var genreList = [
   "Mystery",
   "Romance",
   "Science_Fiction",
-  "TV_Movie",
   "Thriller",
   "War",
   "Western"

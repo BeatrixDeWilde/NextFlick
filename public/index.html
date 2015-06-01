@@ -173,7 +173,7 @@
               <br>
               <br>
               <br>
-              <br><!--I know this is really hacky...but currently I don't know a better wayd-->
+              <br><!--I know this is really hacky...but currently I don't know a better way-->
               <button type="button" id="room_page_back" class="btn btn-default" value="">Back</button>
             </div>
           </div>
@@ -183,23 +183,24 @@
 
         <li class="lobby_page">
           <div class="container" align="center">
-            <div id="lobby_page_username"></div>
-            <div id="myRoom"></div>
-            <div class="row">
-              <div class="column-sm-6">
-                <b>USERS</b>
+            <div class= "my_block" align ="left">
+              <div id="lobby_page_username" class="message"></div>
+              <div id="myRoom" class="message"></div>
+              <br>
+              <div id = "userblock">
+                <b class="message">USERS</b>
                 <!--this only works when you change the id of users on main page (which breaks that)-->
-                <div id="users"></div>
+                <div id="users" class="message"></div>
               </div>
-              <div class="column-sm-6">
-                <form role="form">
-                  <div class="genres"> 
-                  </div>
-                </form>
-              </div>
+              <br>
+              <form role="form">
+                <div class="genres"> 
+                </div>
+              </form>
+              <br>
+              <button type="button" id="go" class="btn btn-default">Go</button>
+              <button type="button" id="lobby_page_back" class="btn btn-default">Leave Room</button>
             </div>
-            <button type="button" id="go" class="btn btn-default">Go</button>
-            <button type="button" id="lobby_page_back" class="btn btn-default">Leave Room</button>
           </div>
         </li>
 
