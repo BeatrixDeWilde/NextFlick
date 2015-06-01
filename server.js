@@ -17,6 +17,9 @@ var users = {};
 var films = [];
 var num_users = [];
 var query_collection_count = {};
+/* Stores a boolean for each channel to indicate if there is already a 
+   request in progress for the next batch of films (prevents race conditions) */
+var request_in_progress = {};
 // Has to be greater than 0 and less than the number of films in each batch
 var queryDelayBuffer = 10;
 var queryBatchSize = 20; 
@@ -67,6 +70,7 @@ io.sockets.on('connection', function(socket) {
      films[channel] = [];
      query_genres[channel] = [];
      query_collection_count[channel] = [];
+     request_in_progress[channel] = false;
      socket.emit('set_room_id', channel);
   });
  
@@ -89,7 +93,7 @@ io.sockets.on('connection', function(socket) {
   }
 
   socket.on('generate_films', function(room, genres) {
-    console.log('DEPRECIATED: socket on generate_films');
+    console.log('DEPRECATED: socket on generate_films');
     query_genres[room] = genres;
     console.log('Generating films for room ' + room + ' of genres: ' + query_genres[room]);
     // Initialise film list with results from page 1
@@ -175,8 +179,9 @@ io.sockets.on('connection', function(socket) {
         var message = ' said ' + decision + ' to movie: ' + films[socket.channel][index-1].title;
     	  socket.emit('update_chat', 'You', message);
       	socket.broadcast.to(socket.channel).emit('update_chat', socket.username, message);
-        var curNumFilms = films[socket.channel].length;
-        if (index == (curNumFilms - queryDelayBuffer)) {
+        if (index == (films[socket.channel].length - queryDelayBuffer) 
+            && !request_in_progress[socket.channel]) {
+          request_in_progress[socket.channel] = true;
           var nextPage = Math.floor(index / queryBatchSize) + 2;
           add20FilmsByGenre(nextPage, socket.channel, query_genres[socket.channel]);
         }
@@ -319,8 +324,10 @@ function add20FilmsByGenre(pageNum, channel, genres) {
         } else {
           films[channel].push.apply(films[channel], shuffle(film_list));
         }
+        request_in_progress[channel] = false;
 
         for (var i = oldLength, len = oldLength + film_list.length; i < len; i++) {
+          addExtraFilmInfo(i, channel);
           films[channel][i].poster_path = 'http://image.tmdb.org/t/p/w342' + films[channel][i].poster_path;
           delete films[channel][i].overview;
           delete films[channel][i].backdrop_path;
@@ -328,7 +335,6 @@ function add20FilmsByGenre(pageNum, channel, genres) {
           delete films[channel][i].vote_average;
           delete films[channel][i].vote_count;
           films[channel][i].yes_count = 0;
-          addExtraFilmInfo(i, channel);
         }
     }
   

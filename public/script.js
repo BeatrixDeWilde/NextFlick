@@ -56,7 +56,7 @@ socket.on('connect', function(){
 });
 
 socket.on('set_username', function(user) {
-     username = user;
+  username = user;
 });
 
 // ******* FIRST PAGE ******* //
