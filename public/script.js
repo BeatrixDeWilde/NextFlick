@@ -1,10 +1,11 @@
 var id = window.location.pathname.substring(6);
 var index = 0;
-var socket = io.connect('http://localhost:8080');
+var socket = io.connect();
 var username = 'NOTSET';
 var room = 'NOTSET';
 var on_main_page = false;
 var is_admin = false;
+var user_genres = [];
 
 var genreList = [
   "Action",
@@ -23,7 +24,6 @@ var genreList = [
   "Mystery",
   "Romance",
   "Science_Fiction",
-  "TV_Movie",
   "Thriller",
   "War",
   "Western"
@@ -83,6 +83,12 @@ $(function(){
   });
 });
 
+function set_username(user){
+  username = user;
+  document.getElementById('room_page_username').innerHTML 
+    = '<b> Username</b>: ' + username;
+}
+
 // ******* LOGIN PAGE ******* //
 
 socket.on('correct_login',function(user, genres){
@@ -90,14 +96,19 @@ socket.on('correct_login',function(user, genres){
   // and password redirects to room page
   document.getElementById('username').value = '';
   document.getElementById('pwd').value = '';
-  username = user;
-  $.each(genres, function(index,genre){
-    document.getElementById(genre).checked = true;
-  });
+  set_username(user);
+  user_genres = genres;
+  set_genre_checkboxes();
   $('.login_page').fadeOut('fast', function() {
     $('.room_page').fadeIn('fast');
   });
 }); 
+
+function set_genre_checkboxes(){
+  $.each(user_genres, function(index,genre){
+    document.getElementById(genre).checked = true;
+  });
+}
 
 socket.on('incorrect_login', function(message, password) {
   if (password) {
@@ -134,7 +145,7 @@ $(function(){
 socket.on('signed_in', function(user){
   document.getElementById('username_sign_up').value = '';
   document.getElementById('pwd_sign_up').value = '';
-  username = user;
+  set_username(user);
   $('.sign_up_page').fadeOut('fast', function() {
     $('.settings_page').fadeIn('fast');
   });

@@ -2,7 +2,8 @@ var port = 8080;
 var express = require('express');
 var app     = express();
 var http    = require('http');
-var server  = http.createServer(app);
+var server  = app.listen(port);
+//var server  = http.createServer(app);
 var io      = require('socket.io').listen(server);
 var request = require('request');
 var api_param = 'api_key=a91369e1857e8c0cf2bd02b5daa38260';
@@ -60,6 +61,8 @@ app.get('/', function(req, res) {
 });
 
 io.sockets.on('connection', function(socket) {
+ 
+  console.log('Obtained connection');
 
   socket.on('new_room', function() {
      // TODO: Random Room ID Generator, just using guest for now
@@ -219,7 +222,7 @@ io.sockets.on('connection', function(socket) {
           socket.emit('incorrect_login', "Incorrect password",true);
         }
         else {
-          console.log(result.rows[0].genres);
+          console.log("User " + username + " chosen genres " + result.rows[0].genres);
           socket.emit('correct_login',username, result.rows[0].genres);
         }
         client.end();
