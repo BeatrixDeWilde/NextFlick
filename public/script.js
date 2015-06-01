@@ -1,6 +1,6 @@
 var id = window.location.pathname.substring(6);
 var index = 0;
-var socket = io.connect('http://localhost:8080');
+var socket = io.connect();
 var username = 'NOTSET';
 var room = 'NOTSET';
 var on_main_page = false;
