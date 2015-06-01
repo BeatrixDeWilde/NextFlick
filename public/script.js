@@ -113,8 +113,12 @@ function set_genre_checkboxes(){
 socket.on('incorrect_login', function(message, password) {
   if (password) {
     document.getElementById('password_error_message').innerHTML = message;
+    $("#password_error_message").show();
+    message_fade_out($('#password_error_message'), 5000);
   } else {
     document.getElementById('username_error_message').innerHTML = message;
+    $("#username_error_message").show();
+    message_fade_out($('#username_error_message'), 5000);
   }
 });
 
