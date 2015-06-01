@@ -217,7 +217,7 @@ io.sockets.on('connection', function(socket) {
           socket.emit('incorrect_login', "Incorrect password",true);
         }
         else {
-          console.log(result.rows[0].genres);
+          console.log("User " + username + " chosen genres " + result.rows[0].genres);
           socket.emit('correct_login',username, result.rows[0].genres);
         }
         client.end();
