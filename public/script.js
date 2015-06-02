@@ -52,8 +52,8 @@ function add_genre_checkboxes(genre_div, id_extension){
 
 // Do this function when the webpage loads for the first time
 $(document).ready(function() {
- add_genre_checkboxes('.genres','');
-  add_genre_checkboxes('.genre_settings','_settings');
+ add_genre_checkboxes('#genres','');
+  add_genre_checkboxes('#genre_settings','_settings');
 });
 
 socket.on('connect', function(){
@@ -203,7 +203,7 @@ $(function(){
 $(function(){
   $('#apply').click(function() {
     var genres = [];
-    $('.genre_settings input[type=checkbox]').each(function() {
+    $('#genre_settings input[type=checkbox]').each(function() {
       if ($(this).is(":checked")) {
         genres.push($(this).attr('id').replace("_settings", ""));
         $(this).attr("checked", false);
@@ -338,7 +338,7 @@ $(function(){
 
 socket.on('waiting_signal', function() {
     var genres = [];
-      $('.genres input[type=checkbox]').each(function() {
+      $('#genres input[type=checkbox]').each(function() {
         if ($(this).is(":checked")) {
           genres.push($(this).attr('id'));
           $(this).attr("checked", false);
