@@ -6,7 +6,8 @@
     "express": "",
     "socket.io": "",
     "pg": "",
-    "bcrypt-nodejs":""
+    "bcrypt-nodejs": "",
+    "node-cache": ""
   },
   "scripts": {
     "start": "node server.js"
