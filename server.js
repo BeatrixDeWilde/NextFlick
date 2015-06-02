@@ -208,29 +208,38 @@ io.sockets.on('connection', function(socket) {
 /**** Deleting a user: DELETE FROM users WHERE username = 'user9';****/
 
   socket.on('sign_in', function(username, password) {
+    get_user_data(username, password, 'NOTSET', 'NOTSET', sign_in);
+  });
+
+  function sign_in(username, password, email, new_password, result){
+    if(result.rows.length != 1) {
+      socket.emit('incorrect_login',"No such user", false);
+      return;
+    }
+    if(!bcrypt.compareSync(password,result.rows[0].password)) {
+      socket.emit('incorrect_login', "Incorrect password",true);
+    }
+    else {
+      console.log("User " + username + " chosen genres " + result.rows[0].genres);
+      socket.emit('correct_login',username, result.rows[0].genres, result.rows[0].email);
+    }
+  }
+
+  function get_user_data(username, password, email, new_password, func){
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
+
       client.query('SELECT * FROM users WHERE username = $1', [username], function(err, result) {
         if(err) {
           return console.error('error running query', err);
         }
-        if(result.rows.length != 1) {
-          socket.emit('incorrect_login',"No such user", false);
-          return;
-        }
-        if(!bcrypt.compareSync(password,result.rows[0].password)) {
-          socket.emit('incorrect_login', "Incorrect password",true);
-        }
-        else {
-          console.log("User " + username + " chosen genres " + result.rows[0].genres);
-          socket.emit('correct_login',username, result.rows[0].genres);
-        }
+        func(username, password, email, new_password, result);
         client.end();
       });
     });
-  });
+  }
 
   socket.on('change_settings', function(username, genres) {
     pg.connect(post_database, function(err, client, done) {
@@ -246,28 +255,54 @@ io.sockets.on('connection', function(socket) {
     });
   });
 
-  socket.on('sign_up', function(username, password, email) {
+  function check_old_password(username, password, email, new_password, result){
+    if(result.rows.length != 1) {
+      socket.emit('incorrect_input',"No such user");
+    } else if(!bcrypt.compareSync(password,result.rows[0].password)) {
+      socket.emit('incorrect_input', "Incorrect password");
+    }
+    else {
+      insert_new_password(username, new_password);
+    }
+  }
+
+  function insert_new_password (username, new_password) {
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
-      client.query('SELECT * FROM users WHERE username = $1', [username], function(err, result) {
+      client.query('UPDATE users SET password=$2 WHERE username=$1;', [username,new_password], function(err, result) {
         if(err) {
           return console.error('error running query', err);
         }
-        if(result.rows.length != 0 || /^(guest)/.test(username)){
-          socket.emit('user_already_exists', username);
-        } 
-        else
-        {
-          var salt = bcrypt.genSaltSync();
-          var hash = bcrypt.hashSync(password, salt);
-          insert_user(username, hash, email);
-          socket.emit('signed_in', username);
-        }
+        socket.emit('changed_password');
         client.end();
       });
     });
+  }
+
+  socket.on('change_password', function(id, username, old_password, new_password) {
+    // TODO verify ID
+    var salt = bcrypt.genSaltSync();
+    var hash = bcrypt.hashSync(new_password, salt);
+    get_user_data(username, old_password, 'NOTSET', hash, check_old_password);
+  });
+
+  function sign_up(username, password, email, new_password, result){
+    if(result.rows.length != 0 || /^(guest)/.test(username)){
+      socket.emit('user_already_exists', username);
+    } 
+    else
+    {
+      var salt = bcrypt.genSaltSync();
+      var hash = bcrypt.hashSync(password, salt);
+      insert_user(username, hash, email);
+      socket.emit('signed_in', username, email);
+    }
+  }
+
+  socket.on('sign_up', function(username, password, email) {
+    get_user_data(username, password, email, 'NOTSET', sign_up);
   });
 
 function insert_user (username, password, email) {
