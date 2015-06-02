@@ -142,10 +142,15 @@ $(function(){
     document.getElementById('password_error_message').innerHTML = '';
     if (username.length < 1) {
       document.getElementById('username_error_message').innerHTML = 'Please enter a username';
+      $("#username_error_message").show();
+      message_fade_out($('#username_error_message'), 5000);
     } else if (password.length < 1)
     {
       document.getElementById('password_error_message').innerHTML = 'Please enter a password';
-    } else {
+      $("#password_error_message").show();
+      message_fade_out($('#password_error_message'), 5000); 
+    }
+    else {
       socket.emit('sign_in', username, password);
     }
   });
@@ -159,8 +164,6 @@ $(function(){
 // ******* SIGN UP PAGE ******* //
 
 socket.on('signed_in', function(user){
-  document.getElementById('username_sign_up').value = '';
-  document.getElementById('pwd_sign_up').value = '';
   set_username(user);
   $('.sign_up_page').fadeOut('fast', function() {
     $('.settings_page').fadeIn('fast');
@@ -168,16 +171,24 @@ socket.on('signed_in', function(user){
 });
 
 socket.on('user_already_exists', function(username){
-  document.getElementById('username_error_message_sign_up').innerHTML 
-      = "The username " + username + " already exists or starts with the word 'guest'";
+  document.getElementById('username_error_message_sign_up').innerHTML = 
+    'The username ' + username + ' already exists or starts with the word "guest"';
+  $("#username_error_message_sign_up").show();
+  message_fade_out($('#username_error_message_sign_up'), 5000);
 });
 
 $(function(){
   $('#sign_up_button').click(function() {
     var username = document.getElementById('username_sign_up').value;
     var password = document.getElementById('pwd_sign_up').value;
+    var email = document.getElementById('email_sign_up').value;
+    var regex_for_email = /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
     document.getElementById('username_error_message_sign_up').innerHTML = '';
     document.getElementById('password_error_message_sign_up').innerHTML = '';
+    document.getElementById('email_error_message_sign_up').innerHTML = '';
+    document.getElementById('username_sign_up').value = '';
+    document.getElementById('pwd_sign_up').value = '';
+    document.getElementById('email_sign_up').value = '';
     if (username.length < 1) {
       document.getElementById('username_error_message_sign_up').innerHTML = 'Please enter a username';
       $("#username_error_message_sign_up").show();
@@ -187,8 +198,13 @@ $(function(){
       document.getElementById('password_error_message_sign_up').innerHTML = 'Please enter a password';
       $("#password_error_message_sign_up").show();
       message_fade_out($('#password_error_message_sign_up'), 5000);
+    } else if (email.length < 1 || !regex_for_email.test(email))
+    {
+      document.getElementById('email_error_message_sign_up').innerHTML = 'Please enter a valid email';
+      $("#email_error_message_sign_up").show();
+      message_fade_out($('#email_error_message_sign_up'), 5000); 
     } else {
-      socket.emit('sign_up', username, password);
+      socket.emit('sign_up', username, password, email);
     }
   });
   $('#sign_up_back').click(function() {
@@ -211,9 +227,6 @@ $(function(){
     }); 
     user_genres = genres;
     socket.emit('change_settings', username, genres);
-    /* BOO $.each(genres, function(index,genre){
-      document.getElementById(genre).checked = true;
-    }); */
     $("#user_settings").show();
     $(".non_sign_up_settings").hide();
     reset_checkboxes('#genre_settings');
