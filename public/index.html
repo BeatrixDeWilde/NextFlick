@@ -26,49 +26,50 @@
         <!-- FIRST PAGE-->
 
         <li class="first_page">
-         <div class="container" align="center">
-         <div class="my_block" align="center">
-            <button type="button" id="guest" class="btn btn-default" value="">Guest</button>   
-            <br>
-            <br>
-            <button type="button" id="login" class="btn btn-default" >Sign in</button>
-            <br>
-            <br>
-            <button type="button" id="sign_up" class="btn btn-default" >Sign Up</button>
-            <br>
-         </div>
-         </div>
+          <div class="container" align="center">
+            <div class="my_block" align="center">
+              <h1>NextFlick</h1>
+              <br>
+              <button type="button" id="guest" class="btn btn-block my_btn" value="">Guest</button>
+              <br>
+              <br>
+              <button type="button" id="login" class="btn btn-block my_btn" >Log In</button>
+              <br>
+              <br>
+              <button type="button" id="sign_up" class="btn btn-block my_btn" >Sign Up</button>
+              <br>
+            </div>
+          </div>
         </li>
 
         <!-- FILM PAGE -->
 
         <li class="page film_page">
           <div class="container" align="center">
-            <h1>Film Finder</h1>
-            <img id="image" src="http://image.tmdb.org/t/p/w500/j6NCjU6Zh7SkfIeN5zDaoTmBn4m.jpg" class = "img-rounded" width="20%" height="20%">
-            <h3 id="title" align="center"></h3>
-            <button class="btn btn-primary" type="button" data-toggle="collapse" data-target="#filmInfo" aria-expanded="false" aria-controls="filmInfo">
-              <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span> Film Information
-            </button>
-            <div class="collapse" id="filmInfo" width="20%" height="20%">
-              <h4>Plot:</h4>
-              <p id="plot"></p>
-              <h4>Runtime:</h4>
-              <p id="runtime"></p>
-              <h4>IMDb Rating:</h4>
-              <p id="imdbRating"></p>
+            <div class="my_block" align="centre">
+              <h2 id="title">NextFlick</h2>
+              <img id="image" src="http://image.tmdb.org/t/p/w500/j6NCjU6Zh7SkfIeN5zDaoTmBn4m.jpg" class = "img-rounded" width="60%">
+              <h4 id="title" align="center"></h4>
+              <button class="btn my_btn" type="button" data-toggle="collapse" data-target="#filmInfo" aria-expanded="false" aria-controls="filmInfo">
+                <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span> Film Information
+              </button>
+              <div class="collapse" id="filmInfo" width="20%" height="20%">
+                <h4>Plot:</h4>
+                <p id="plot"></p>
+                <h4>Runtime:</h4>
+                <p id="runtime"></p>
+                <h4>IMDb Rating:</h4>
+                <p id="imdbRating"></p>
+              </div>
+              <br>
+              <br>
+              <div>
+                <button type="button" id="yes" class="btn my_btn">YES</button>
+                <button type="button" id="no" class="btn my_btn">NO</button>
+              </div>
             </div>
           </div>
-            <div class= "container" align="center">
-              <br>
-              <button type="button" id="yes" class="btn btn-success">YES</button>
-              <button type="button" id="no" class="btn btn-danger">NO</button>
-            </div>
-            <div style="padding:10px;" align="center">
-              <input id="out" value = ""/>  
-              <input id="out2" value = ""/>  
-            </div>
-          <div style="float:left;width:100px;border-right:1px solid black;height:300px;padding:10px;overflow:scroll-y;">
+      <!--    <div style="float:left;width:100px;border-right:1px solid black;height:300px;padding:10px;overflow:scroll-y;">
             <b>USERS</b>
             <div id="main_page_users"></div>
           </div>
@@ -76,7 +77,7 @@
             <div id="chat"></div>
             <input id="data" style="width:200px;" />
             <input type="button" id="datasend" value="send" />
-          </div>
+          </div>-->
         </li>
 
         <!-- SIGN UP PAGE (create new username and password) -->
@@ -100,9 +101,16 @@
                   <p class="alert alert-danger init_hidden" id="password_error_message_sign_up"></p>
                 </div>
                 <div class="form-group">
-                  <button type="button" id="sign_up_button" class="btn btn-default" value="">Sign up</button>
+                  <label for="email" class="message" >Email address:</label>
+                  <input type="email" class="form-control" id="email_sign_up" placeholder="Enter email">
                 </div>
-                  <button type="button" id="sign_up_back" class="btn btn-default" value="">Back</button>
+                <div class="form-group">
+                  <p class="alert alert-danger init_hidden" id="email_error_message_sign_up"></p>
+                </div>
+                <div class="form-group">
+                  <button type="button" id="sign_up_button" class="btn my_btn" value="">Sign up</button>
+                </div>
+                  <button type="button" id="sign_up_back" class="btn my_btn" value="">Back</button>
               </form>
             </div>
           </div>
@@ -117,9 +125,15 @@
                 <div class="form-group">
                   <div id="genre_settings" class="genres">
                   </div>
+                  <div class="non_sign_up_settings">
+                    <!-- Settings only avaible not straight after sign up for example cahnging password -->
+                  </div>
                 </div>
                 <div class="form-group">
-                  <button type="button" id="apply" class="btn btn-default" value="">Apply Settings</button>
+                  <button type="button" id="apply" class="btn my_btn" value="">Apply Settings</button>
+                  <div class="non_sign_up_settings">
+                    <button type="button" id="settings_back" class="btn my_btn" value="">Back</button>
+                  </div>
                 </div>
               </form>
             </div>
@@ -147,9 +161,9 @@
                   <p class="alert alert-danger init_hidden" id="password_error_message"></p>
                 </div>
                 <div class="form-group">
-                  <button type="button" id="sign_in" class="btn btn-default" value="">Sign in</button>
+                  <button type="button" id="sign_in" class="btn my_btn" value="">Sign in</button>
                 </div>
-                  <button type="button" id="login_page_back" class="btn btn-default" value="">Back</button>
+                  <button type="button" id="login_page_back" class="btn my_btn" value="">Back</button>
               </form>
             </div>
           </div>
@@ -164,13 +178,13 @@
               <br>
               <form class="form-horizontal" role="form">
                 <input class="form-control" id="RoomID" placeholder="RoomID">
-                <button type="button" id="join" class="btn btn-default btn-block">Join Room</button>
+                <button type="button" id="join" class="btn my_btn btn-block">Join Room</button>
               </form>
               <br>
               <div id="room_message1"><b> That room does not exist please enter an existing room or create a new room.</b></div>
               <div id="room_message2"><b> Room is already in session.</b><br><br><br></div>
               <br>
-              <button type="button" id="create" class="btn btn-default btn-block">Create Room</button>
+              <button type="button" id="create" class="btn my_btn btn-block">Create Room</button>
               <div id="gap">
                 <br>
                 <br>
@@ -180,8 +194,8 @@
               <br>
               <br>
               <br>
-              <button type="button" id="room_page_back" class="btn btn-default" value="">Back</button>
-              <button type="button" id="room_settings" class="btn btn-default" value="">Settings</button>
+              <button type="button" id="room_page_back" class="btn my_btn" value="">Back</button>
+              <button type="button" id="user_settings" class="btn my_btn" value="">Settings</button>
             </div>
           </div>
         </li>
@@ -205,8 +219,8 @@
                 </div>
               </form>
               <br>
-              <button type="button" id="go" class="btn btn-default">Go</button>
-              <button type="button" id="lobby_page_back" class="btn btn-default">Leave Room</button>
+              <button type="button" id="go" class="btn my_btn">Go</button>
+              <button type="button" id="lobby_page_back" class="btn my_btn">Leave Room</button>
             </div>
           </div>
         </li>
@@ -214,10 +228,12 @@
         <!-- FOUND PAGE (film found here it is) -->
         <li class="page found_page">
           <div class="container" align="center">
-            <h1>Your chosen film is...</h1>
-            <img id="found_film_image" src="http://image.tmdb.org/t/p/w500/j6NCjU6Zh7SkfIeN5zDaoTmBn4m.jpg" class="img-rounded" width="40%" height="40%">
-             <h1 id="found_film_title" align="center"></h1>
-             <button type="button" id="film_found_confirm" class="btn btn-default">OK</button>
+            <div class="my_block">
+              <h1>Your chosen film is...</h1>
+              <img id="found_film_image" src="http://image.tmdb.org/t/p/w500/j6NCjU6Zh7SkfIeN5zDaoTmBn4m.jpg" class="img-rounded" width="60%">
+               <h1 id="found_film_title" align="center"></h1>
+               <button type="button" id="film_found_confirm" class="btn my_btn">OK</button>
+             </div>
           </div> 
         </li>
 

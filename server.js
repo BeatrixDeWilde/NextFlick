@@ -250,7 +250,7 @@ io.sockets.on('connection', function(socket) {
     });
   });
 
-  socket.on('sign_up', function(username, password) {
+  socket.on('sign_up', function(username, password, email) {
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
@@ -266,7 +266,7 @@ io.sockets.on('connection', function(socket) {
         {
           var salt = bcrypt.genSaltSync();
           var hash = bcrypt.hashSync(password, salt);
-          insert_user(username, hash);
+          insert_user(username, hash, email);
           socket.emit('signed_in', username);
         }
         client.end();
@@ -274,12 +274,12 @@ io.sockets.on('connection', function(socket) {
     });
   });
 
-function insert_user (username, password) {
+function insert_user (username, password, email) {
   pg.connect(post_database, function(err, client, done) {
     if(err) {
       return console.error('error connecting', err);
     }
-    client.query('INSERT INTO users(username, password, genres) values($1,$2,$3);', [username, password, "{}"], function(err, result) {
+    client.query('INSERT INTO users(username, password, genres, email) values($1,$2,$3,$4);', [username, password, "{}",email], function(err, result) {
       if(err) {
         return console.error('error running query', err);
       }
