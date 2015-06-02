@@ -23,7 +23,7 @@ var genreList = [
   "Music",
   "Mystery",
   "Romance",
-  "Science_Fiction",
+  "Sci-Fi",
   "Thriller",
   "War",
   "Western"
@@ -50,9 +50,27 @@ function add_genre_checkboxes(genre_div, id_extension){
   });
 }
 
+function set_genre_checkboxes(){
+  $.each(user_genres, function(index,genre){
+    document.getElementById(genre).checked = true;
+  });
+}
+
+function reset_checkboxes(){
+  $('#genres input[type=checkbox]').each(function() {
+    if ($(this).is(":checked")) {
+      $(this).attr("checked", false);
+    }
+  }); 
+}
+
+// Do this function when the webpage loads for the first time
+$(document).ready(function() {
+ add_genre_checkboxes('#genres','');
+  add_genre_checkboxes('#genre_settings','_settings');
+});
+
 socket.on('connect', function(){
-  add_genre_checkboxes('.genres','');
-  add_genre_checkboxes('.genre_settings','_settings');
 });
 
 socket.on('set_username', function(user) {
@@ -98,17 +116,10 @@ socket.on('correct_login',function(user, genres){
   document.getElementById('pwd').value = '';
   set_username(user);
   user_genres = genres;
-  set_genre_checkboxes();
   $('.login_page').fadeOut('fast', function() {
     $('.room_page').fadeIn('fast');
   });
 }); 
-
-function set_genre_checkboxes(){
-  $.each(user_genres, function(index,genre){
-    document.getElementById(genre).checked = true;
-  });
-}
 
 socket.on('incorrect_login', function(message, password) {
   if (password) {
@@ -191,7 +202,7 @@ $(function(){
 $(function(){
   $('#apply').click(function() {
     var genres = [];
-    $('.genre_settings input[type=checkbox]').each(function() {
+    $('#genre_settings input[type=checkbox]').each(function() {
       if ($(this).is(":checked")) {
         genres.push($(this).attr('id').replace("_settings", ""));
         $(this).attr("checked", false);
@@ -213,6 +224,7 @@ $(function(){
 $(function(){
   $('#create').click(function() {
     socket.emit('new_room');
+    set_genre_checkboxes();
     $('.room_page').fadeOut('fast', function() {
       $('.lobby_page').fadeIn('fast');
     });
@@ -235,13 +247,14 @@ $(function(){
     if (RoomID.length > 0){
       socket.emit("user_join", username, RoomID);
     }
+    document.getElementById('RoomID').value = '';
     $('#go').hide();
-  })
- $('#room_page_back').click(function() {
-   $('.room_page').fadeOut('fast', function() {
-     $('.first_page').fadeIn('fast');
-   });
- });
+  });
+  $('#room_page_back').click(function() {
+    $('.room_page').fadeOut('fast', function() {
+      $('.first_page').fadeIn('fast');
+    });
+  });
 });
 
 function message_fade_out(element, time) {
@@ -266,10 +279,11 @@ socket.on("joined_room", function(channel){
   room = channel;
   document.getElementById('myRoom').innerHTML = '<b> Your Room:</b> ' + room + '<br>';
   document.getElementById('lobby_page_username').innerHTML 
-        = '<b> Username</b>: ' + username;
+    = '<b> Username</b>: ' + username;
+  set_genre_checkboxes();
   $('.room_page').fadeOut('fast', function() {  
-  $('.lobby_page').show();
-});
+    $('.lobby_page').show();
+  });
 
 });
 
@@ -296,6 +310,7 @@ socket.on('show_film_page', function(film) {
   on_main_page = true;
   //$('#chat').empty();
   initialise_film_page(film);
+  reset_checkboxes();
   $('.lobby_page').hide('fast', function() {
     $('.film_page').fadeIn('slow');
   });
@@ -311,8 +326,9 @@ $(function(){
 
  $('#lobby_page_back').click(function() {
    socket.emit('leave_room', username, room);
-   $('.lobby_page').hide('fast', function() {
-     $('.room_page').fadeIn('slow');
+   reset_checkboxes();
+   $('.lobby_page').fadeOut('fast', function() {
+     $('.room_page').fadeIn('fast');
    });
    if (is_admin) {
      socket.emit('force_leave_signal', room);
@@ -323,7 +339,7 @@ $(function(){
 
 socket.on('waiting_signal', function() {
     var genres = [];
-      $('.genres input[type=checkbox]').each(function() {
+      $('#genres input[type=checkbox]').each(function() {
         if ($(this).is(":checked")) {
           genres.push($(this).attr('id'));
           $(this).attr("checked", false);
@@ -337,6 +353,7 @@ socket.on('waiting_signal', function() {
 
 socket.on('force_leave', function() {
    socket.emit('leave_room', username, room);
+   reset_checkboxes();
    $('.lobby_page').hide('fast', function() {
        $('.room_page').fadeIn('fast'); 
        alert('Admin has left the room');

@@ -42,7 +42,7 @@
 
         <!-- FILM PAGE -->
 
-        <li class="film_page">
+        <li class="page film_page">
           <div class="container" align="center">
             <h1>Film Finder</h1>
             <img id="image" src="http://image.tmdb.org/t/p/w500/j6NCjU6Zh7SkfIeN5zDaoTmBn4m.jpg" class = "img-rounded" width="20%" height="20%">
@@ -81,7 +81,7 @@
 
         <!-- SIGN UP PAGE (create new username and password) -->
 
-        <li class="sign_up_page">
+        <li class=" page sign_up_page">
           <div class="container" align="center">
             <div class="my_block" align="left">
               <form role="form">
@@ -110,23 +110,25 @@
 
         <!-- SETTINGS -->
 
-        <li class="settings_page">
-          <div class="container">
-            <form role="form">
-              <div class="form-group">
-                <div class="genre_settings">
+        <li class=" page settings_page">
+          <div class="container" align="center">
+            <div class="my_block" align="left">
+              <form role="form">
+                <div class="form-group">
+                  <div id="genre_settings" class="genres">
+                  </div>
                 </div>
-              </div>
-              <div class="form-group">
-                <button type="button" id="apply" class="btn btn-default" value="">Apply Settings</button>
-              </div>
-            </form>
+                <div class="form-group">
+                  <button type="button" id="apply" class="btn btn-default" value="">Apply Settings</button>
+                </div>
+              </form>
+            </div>
           </div>
         </li>
 
         <!-- LOGIN PAGE (enter known username and password) -->
 
-        <li class="login_page">
+        <li class="page login_page">
           <div class="container" align="center">
             <div class="my_block" align="left">
               <form role="form">
@@ -155,7 +157,7 @@
 
         <!-- ROOM PAGE (creation and join) -->
 
-        <li class="room_page">
+        <li class="page room_page">
           <div class="container" align="center">
             <div class= "my_block" align ="left">
               <div id="room_page_username"><b>Username</b>: UNSET</div>
@@ -179,13 +181,14 @@
               <br>
               <br>
               <button type="button" id="room_page_back" class="btn btn-default" value="">Back</button>
+              <button type="button" id="room_settings" class="btn btn-default" value="">Settings</button>
             </div>
           </div>
         </li>
 
         <!-- LOBBY PAGE -->
 
-        <li class="lobby_page">
+        <li class="page lobby_page">
           <div class="container" align="center">
             <div class= "my_block" align ="left">
               <div id="lobby_page_username" class="message"></div>
@@ -198,7 +201,7 @@
               </div>
               <br>
               <form role="form">
-                <div class="genres"> 
+                <div id="genres" class="genres"> 
                 </div>
               </form>
               <br>
@@ -209,7 +212,7 @@
         </li>
 
         <!-- FOUND PAGE (film found here it is) -->
-        <li class="found_page">
+        <li class="page found_page">
           <div class="container" align="center">
             <h1>Your chosen film is...</h1>
             <img id="found_film_image" src="http://image.tmdb.org/t/p/w500/j6NCjU6Zh7SkfIeN5zDaoTmBn4m.jpg" class="img-rounded" width="40%" height="40%">
