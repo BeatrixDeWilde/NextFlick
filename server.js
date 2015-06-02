@@ -85,6 +85,7 @@ io.sockets.on('connection', function(socket) {
      ++query_collection_count[socket.channel];
      if (query_collection_count[socket.channel] >= num_users[socket.channel]) {
         console.log('All users have voted. Should fire off only once!');
+        //TODO:  request_in_progress[socket.channel] = true; // not sure if need
         generate_films(socket.channel);
      } 
   });
@@ -171,7 +172,10 @@ io.sockets.on('connection', function(socket) {
   }
   
   socket.on('choice', function(decision, index, inc) {
-    if (typeof films[socket.channel][index+1] !== 'undefined') {
+    // if statement checks that next film and extra information is ready 
+    if (typeof films[socket.channel][index+1] !== 'undefined'
+        && typeof films[socket.channel][index+1].shortPlot !== 'undefined'
+        && typeof films[socket.channel][index+1].runtime !== 'undefined') {
       if(inc){
         films[socket.channel][index].yes_count++;
         console.log(films[socket.channel][index].yes_count + ' vs ' + num_users[socket.channel]);
@@ -192,7 +196,7 @@ io.sockets.on('connection', function(socket) {
         }
         socket.emit('new_films', films[socket.channel][index], index);
       }
-    }
+    } 
   });
  
   socket.on('go_signal', function(room) {
@@ -371,20 +375,29 @@ function add20FilmsByGenre(pageNum, channel, genres) {
           filmInfoCache.get(filmId, function(err, filmInfo) {
             if (!err) {
               if (filmInfo == undefined) {
+                // Cache miss so bring film info into cache & update films
                 addExtraFilmInfo(i, channel); 
               } else {
                 //console.log("######### CACHE HIT #########");
                 //console.log('For film ' + films[channel][i].title);
-                //TODO: update films with extra info
+
+                // Cache hit so update film information with cached film info
                 films[channel][i].shortPlot = filmInfo.info["Plot"];
                 films[channel][i].rated = filmInfo.info["Rated"];
                 films[channel][i].imdbRating = filmInfo.info["imdbRating"];
                 films[channel][i].metascore = filmInfo.info["Metascore"];
                 films[channel][i].tomatoRating = filmInfo.info["tomatoMeter"];
                 films[channel][i].runtime = filmInfo.info["Runtime"];
+
+                if (i == 0) {
+                  initFilmPage(channel);
+                }
               }
             }  
           });
+
+          /* Update films information by modifying required properties
+             and deleting unnecessary ones */
           films[channel][i].poster_path = 'http://image.tmdb.org/t/p/w342' + films[channel][i].poster_path;
           delete films[channel][i].overview;
           delete films[channel][i].backdrop_path;
@@ -393,9 +406,6 @@ function add20FilmsByGenre(pageNum, channel, genres) {
           delete films[channel][i].vote_count;
           films[channel][i].yes_count = 0;
 
-          if (i == 0) {
-            initFilmPage(channel);
-          }
         }
     }
   
@@ -426,10 +436,12 @@ function addExtraFilmInfo(film_index, channel) {
     function (error, response, body) {
       if (!error && response.statusCode == 200) {
         var infoResponse = JSON.parse(body);
-        
-        // Add film info response to cache
+
+        // Create cache JSON object to store
         var filmId = films[channel][film_index].id;
-        var filmInfo = {"info": {
+        var filmInfo = {};
+        if (infoResponse.Response === 'True') {
+          filmInfo = {"info": {
                                 "Plot": infoResponse["Plot"],
                                 "Rated": infoResponse["Rated"],
                                 "imdbRating": infoResponse["imdbRating"],
@@ -437,21 +449,39 @@ function addExtraFilmInfo(film_index, channel) {
                                 "tomatoMeter": infoResponse["tomatoMeter"],
                                 "Runtime": infoResponse["Runtime"]
                               }
-                       };
+                     };
+          
+        } else {
+          filmInfo = {"info": {
+                                "Plot": "N/A",
+                                "Rated": "N/A",
+                                "imdbRating": "N/A",
+                                "Metascore": "N/A",
+                                "tomatoMeter": "N/A",
+                                "Runtime": "N/A"
+                              }
+                     };
+
+        }
+
+        // Add extra film info object to cache
         filmInfoCache.set(filmId, filmInfo, function(err, success) {
           if (!err && success) {
             //console.log('Film ' + films[channel][film_index].title + ' successfully added to cache');
           }
         });
-        films[channel][film_index].shortPlot = infoResponse["Plot"];
-        films[channel][film_index].rated = infoResponse["Rated"];
-        films[channel][film_index].imdbRating = infoResponse["imdbRating"];
-        films[channel][film_index].metascore = infoResponse["Metascore"];
-        films[channel][film_index].tomatoRating = infoResponse["tomatoMeter"];
-        films[channel][film_index].runtime = infoResponse["Runtime"];
-      }
-      if (film_index == 0) {
-        initFilmPage(channel);
+        
+        // Update films with extra film information
+        films[channel][film_index].shortPlot = filmInfo.info["Plot"];
+        films[channel][film_index].rated = filmInfo.info["Rated"];
+        films[channel][film_index].imdbRating = filmInfo.info["imdbRating"];
+        films[channel][film_index].metascore = filmInfo.info["Metascore"];
+        films[channel][film_index].tomatoRating = filmInfo.info["tomatoMeter"];
+        films[channel][film_index].runtime = filmInfo.info["Runtime"];
+        
+        if (film_index == 0) {
+          initFilmPage(channel);
+        }
       }
   });
 
