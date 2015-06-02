@@ -85,6 +85,7 @@ io.sockets.on('connection', function(socket) {
      ++query_collection_count[socket.channel];
      if (query_collection_count[socket.channel] >= num_users[socket.channel]) {
         console.log('All users have voted. Should fire off only once!');
+        //TODO:  request_in_progress[socket.channel] = true; // not sure if need
         generate_films(socket.channel);
      } 
   });
@@ -171,7 +172,10 @@ io.sockets.on('connection', function(socket) {
   }
   
   socket.on('choice', function(decision, index, inc) {
-    if (typeof films[socket.channel][index+1] !== 'undefined') {
+    // if statement checks that next film and extra information is ready 
+    if (typeof films[socket.channel][index+1] !== 'undefined'
+        && typeof films[socket.channel][index+1].shortPlot !== 'undefined'
+        && typeof films[socket.channel][index+1].runtime !== 'undefined') {
       if(inc){
         films[socket.channel][index].yes_count++;
         console.log(films[socket.channel][index].yes_count + ' vs ' + num_users[socket.channel]);
@@ -192,7 +196,7 @@ io.sockets.on('connection', function(socket) {
         }
         socket.emit('new_films', films[socket.channel][index], index);
       }
-    }
+    } 
   });
  
   socket.on('go_signal', function(room) {
@@ -208,29 +212,38 @@ io.sockets.on('connection', function(socket) {
 /**** Deleting a user: DELETE FROM users WHERE username = 'user9';****/
 
   socket.on('sign_in', function(username, password) {
+    get_user_data(username, password, 'NOTSET', 'NOTSET', sign_in);
+  });
+
+  function sign_in(username, password, email, new_password, result){
+    if(result.rows.length != 1) {
+      socket.emit('incorrect_login',"No such user", false);
+      return;
+    }
+    if(!bcrypt.compareSync(password,result.rows[0].password)) {
+      socket.emit('incorrect_login', "Incorrect password",true);
+    }
+    else {
+      console.log("User " + username + " chosen genres " + result.rows[0].genres);
+      socket.emit('correct_login',username, result.rows[0].genres, result.rows[0].email);
+    }
+  }
+
+  function get_user_data(username, password, email, new_password, func){
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
+
       client.query('SELECT * FROM users WHERE username = $1', [username], function(err, result) {
         if(err) {
           return console.error('error running query', err);
         }
-        if(result.rows.length != 1) {
-          socket.emit('incorrect_login',"No such user", false);
-          return;
-        }
-        if(!bcrypt.compareSync(password,result.rows[0].password)) {
-          socket.emit('incorrect_login', "Incorrect password",true);
-        }
-        else {
-          console.log("User " + username + " chosen genres " + result.rows[0].genres);
-          socket.emit('correct_login',username, result.rows[0].genres);
-        }
+        func(username, password, email, new_password, result);
         client.end();
       });
     });
-  });
+  }
 
   socket.on('change_settings', function(username, genres) {
     pg.connect(post_database, function(err, client, done) {
@@ -246,28 +259,54 @@ io.sockets.on('connection', function(socket) {
     });
   });
 
-  socket.on('sign_up', function(username, password, email) {
+  function check_old_password(username, password, email, new_password, result){
+    if(result.rows.length != 1) {
+      socket.emit('incorrect_input',"No such user");
+    } else if(!bcrypt.compareSync(password,result.rows[0].password)) {
+      socket.emit('incorrect_input', "Incorrect password");
+    }
+    else {
+      insert_new_password(username, new_password);
+    }
+  }
+
+  function insert_new_password (username, new_password) {
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
-      client.query('SELECT * FROM users WHERE username = $1', [username], function(err, result) {
+      client.query('UPDATE users SET password=$2 WHERE username=$1;', [username,new_password], function(err, result) {
         if(err) {
           return console.error('error running query', err);
         }
-        if(result.rows.length != 0 || /^(guest)/.test(username)){
-          socket.emit('user_already_exists', username);
-        } 
-        else
-        {
-          var salt = bcrypt.genSaltSync();
-          var hash = bcrypt.hashSync(password, salt);
-          insert_user(username, hash, email);
-          socket.emit('signed_in', username);
-        }
+        socket.emit('changed_password');
         client.end();
       });
     });
+  }
+
+  socket.on('change_password', function(id, username, old_password, new_password) {
+    // TODO verify ID
+    var salt = bcrypt.genSaltSync();
+    var hash = bcrypt.hashSync(new_password, salt);
+    get_user_data(username, old_password, 'NOTSET', hash, check_old_password);
+  });
+
+  function sign_up(username, password, email, new_password, result){
+    if(result.rows.length != 0 || /^(guest)/.test(username)){
+      socket.emit('user_already_exists', username);
+    } 
+    else
+    {
+      var salt = bcrypt.genSaltSync();
+      var hash = bcrypt.hashSync(password, salt);
+      insert_user(username, hash, email);
+      socket.emit('signed_in', username, email);
+    }
+  }
+
+  socket.on('sign_up', function(username, password, email) {
+    get_user_data(username, password, email, 'NOTSET', sign_up);
   });
 
 function insert_user (username, password, email) {
@@ -336,20 +375,29 @@ function add20FilmsByGenre(pageNum, channel, genres) {
           filmInfoCache.get(filmId, function(err, filmInfo) {
             if (!err) {
               if (filmInfo == undefined) {
+                // Cache miss so bring film info into cache & update films
                 addExtraFilmInfo(i, channel); 
               } else {
                 //console.log("######### CACHE HIT #########");
                 //console.log('For film ' + films[channel][i].title);
-                //TODO: update films with extra info
+
+                // Cache hit so update film information with cached film info
                 films[channel][i].shortPlot = filmInfo.info["Plot"];
                 films[channel][i].rated = filmInfo.info["Rated"];
                 films[channel][i].imdbRating = filmInfo.info["imdbRating"];
                 films[channel][i].metascore = filmInfo.info["Metascore"];
                 films[channel][i].tomatoRating = filmInfo.info["tomatoMeter"];
                 films[channel][i].runtime = filmInfo.info["Runtime"];
+
+                if (i == 0) {
+                  initFilmPage(channel);
+                }
               }
             }  
           });
+
+          /* Update films information by modifying required properties
+             and deleting unnecessary ones */
           films[channel][i].poster_path = 'http://image.tmdb.org/t/p/w342' + films[channel][i].poster_path;
           delete films[channel][i].overview;
           delete films[channel][i].backdrop_path;
@@ -358,9 +406,6 @@ function add20FilmsByGenre(pageNum, channel, genres) {
           delete films[channel][i].vote_count;
           films[channel][i].yes_count = 0;
 
-          if (i == 0) {
-            initFilmPage(channel);
-          }
         }
     }
   
@@ -391,10 +436,12 @@ function addExtraFilmInfo(film_index, channel) {
     function (error, response, body) {
       if (!error && response.statusCode == 200) {
         var infoResponse = JSON.parse(body);
-        
-        // Add film info response to cache
+
+        // Create cache JSON object to store
         var filmId = films[channel][film_index].id;
-        var filmInfo = {"info": {
+        var filmInfo = {};
+        if (infoResponse.Response === 'True') {
+          filmInfo = {"info": {
                                 "Plot": infoResponse["Plot"],
                                 "Rated": infoResponse["Rated"],
                                 "imdbRating": infoResponse["imdbRating"],
@@ -402,21 +449,39 @@ function addExtraFilmInfo(film_index, channel) {
                                 "tomatoMeter": infoResponse["tomatoMeter"],
                                 "Runtime": infoResponse["Runtime"]
                               }
-                       };
+                     };
+          
+        } else {
+          filmInfo = {"info": {
+                                "Plot": "N/A",
+                                "Rated": "N/A",
+                                "imdbRating": "N/A",
+                                "Metascore": "N/A",
+                                "tomatoMeter": "N/A",
+                                "Runtime": "N/A"
+                              }
+                     };
+
+        }
+
+        // Add extra film info object to cache
         filmInfoCache.set(filmId, filmInfo, function(err, success) {
           if (!err && success) {
             //console.log('Film ' + films[channel][film_index].title + ' successfully added to cache');
           }
         });
-        films[channel][film_index].shortPlot = infoResponse["Plot"];
-        films[channel][film_index].rated = infoResponse["Rated"];
-        films[channel][film_index].imdbRating = infoResponse["imdbRating"];
-        films[channel][film_index].metascore = infoResponse["Metascore"];
-        films[channel][film_index].tomatoRating = infoResponse["tomatoMeter"];
-        films[channel][film_index].runtime = infoResponse["Runtime"];
-      }
-      if (film_index == 0) {
-        initFilmPage(channel);
+        
+        // Update films with extra film information
+        films[channel][film_index].shortPlot = filmInfo.info["Plot"];
+        films[channel][film_index].rated = filmInfo.info["Rated"];
+        films[channel][film_index].imdbRating = filmInfo.info["imdbRating"];
+        films[channel][film_index].metascore = filmInfo.info["Metascore"];
+        films[channel][film_index].tomatoRating = filmInfo.info["tomatoMeter"];
+        films[channel][film_index].runtime = filmInfo.info["Runtime"];
+        
+        if (film_index == 0) {
+          initFilmPage(channel);
+        }
       }
   });
 

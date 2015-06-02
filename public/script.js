@@ -6,6 +6,7 @@ var room = 'NOTSET';
 var on_main_page = false;
 var is_admin = false;
 var user_genres = [];
+var email = 'NOTSET';
 
 var genreList = [
   "Action",
@@ -109,13 +110,14 @@ function set_username(user){
 
 // ******* LOGIN PAGE ******* //
 
-socket.on('correct_login',function(user, genres){
+socket.on('correct_login',function(user, genres, user_email){
   // User has enetered correct login 
   // and password redirects to room page
   document.getElementById('username').value = '';
   document.getElementById('pwd').value = '';
   set_username(user);
   user_genres = genres;
+  email = user_email;
   $("#user_settings").show();
   $('.login_page').fadeOut('fast', function() {
     $('.room_page').fadeIn('fast');
@@ -163,7 +165,8 @@ $(function(){
 
 // ******* SIGN UP PAGE ******* //
 
-socket.on('signed_in', function(user){
+socket.on('signed_in', function(user, user_email){
+  email = user_email;
   set_username(user);
   $('.sign_up_page').fadeOut('fast', function() {
     $('.settings_page').fadeIn('fast');
@@ -235,14 +238,55 @@ $(function(){
     });
   });
   $('#settings_back').click(function() {
-    $("#user_settings").show();
-    $(".non_sign_up_settings").hide();
-    reset_checkboxes('#genre_settings');
-    $('.settings_page').fadeOut('fast', function() {
-      $('.room_page').fadeIn('fast');
-    });
+    change_settings_view();
+  });
+  $('#change_password_btn').click(function() {
+    $("#change_password_btn").hide();
+    $('#apply').hide();
+    $('#genre_settings').hide();
+    $("#change_password").show();
+    socket.emit('send_email', email);
+  });
+  $('#new_password').click(function() {
+    var id = document.getElementById('unique_id').value;
+    var new_password = document.getElementById('new_pwd_change').value;
+    var old_password = document.getElementById('old_pwd_change').value;
+    document.getElementById('unique_id').value = '';
+    document.getElementById('new_pwd_change').value = '';
+    document.getElementById('old_pwd_change').value = '';
+    document.getElementById('change_pwd_error_message_settings').innerHTML = '';
+    if (id.length < 1 || new_password.length < 1 || old_password.length < 1) {
+      document.getElementById('change_pwd_error_message_settings').innerHTML = 'Please entera valid id, old and new password';
+      $("#change_pwd_error_message_settings").show();
+      message_fade_out($('#change_pwd_error_message_settings'), 5000);
+    } else {
+      socket.emit('change_password', id, username, old_password, new_password);
+    }
   });
 });
+
+socket.on('incorrect_input', function(message){
+  document.getElementById('change_pwd_error_message_settings').innerHTML = message;
+  $("#change_pwd_error_message_settings").show();
+  message_fade_out($('#change_pwd_error_message_settings'), 5000);
+});
+
+socket.on('changed_password', function(){
+  change_settings_view();
+});
+
+function change_settings_view(){
+  $('#apply').show();
+  $('#genre_settings').show();
+  $("#change_password_btn").show();
+  $("#change_password").hide();
+  $("#user_settings").show();
+  $(".non_sign_up_settings").hide();
+  reset_checkboxes('#genre_settings');
+  $('.settings_page').fadeOut('fast', function() {
+    $('.room_page').fadeIn('fast');
+  });
+}
 
 
 // ******* ROOM PAGE ******* //
@@ -268,6 +312,7 @@ $(function(){
   $('#user_settings').click(function() {
     $(".non_sign_up_settings").show();
     set_genre_checkboxes('_settings');
+    document.getElementById('settings_email').innerHTML = 'Email: ' + email;
     $('.room_page').fadeOut('fast', function() {
       $('.settings_page').fadeIn('fast');
     });
@@ -285,6 +330,8 @@ $(function(){
     $('#go').hide();
   });
   $('#room_page_back').click(function() {
+    email = 'NOTSET';
+    username = 'NOTSET';
     $("#user_settings").hide();
     $('.room_page').fadeOut('fast', function() {
       $('.first_page').fadeIn('fast');
