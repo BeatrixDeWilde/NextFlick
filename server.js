@@ -339,7 +339,7 @@ function add20FilmsByGenre(pageNum, channel, genres) {
                 addExtraFilmInfo(i, channel); 
               } else {
                 //console.log("######### CACHE HIT #########");
-                console.log('For film ' + films[channel][i].title);
+                //console.log('For film ' + films[channel][i].title);
                 //TODO: update films with extra info
                 films[channel][i].shortPlot = filmInfo.info["Plot"];
                 films[channel][i].rated = filmInfo.info["Rated"];
@@ -394,7 +394,15 @@ function addExtraFilmInfo(film_index, channel) {
         
         // Add film info response to cache
         var filmId = films[channel][film_index].id;
-        var filmInfo = {info: infoResponse};
+        var filmInfo = {"info": {
+                                "Plot": infoResponse["Plot"],
+                                "Rated": infoResponse["Rated"],
+                                "imdbRating": infoResponse["imdbRating"],
+                                "Metascore": infoResponse["Metascore"],
+                                "tomatoMeter": infoResponse["tomatoMeter"],
+                                "Runtime": infoResponse["Runtime"]
+                              }
+                       };
         filmInfoCache.set(filmId, filmInfo, function(err, success) {
           if (!err && success) {
             //console.log('Film ' + films[channel][film_index].title + ' successfully added to cache');
