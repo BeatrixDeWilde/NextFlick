@@ -514,6 +514,9 @@ document.onkeydown = function(e) {
     case 39:
       socket.emit('choice', "no", index, false);
       break;
+    case 40:
+      $('#filmInfoBtn').trigger('click');
+      break;
   } 
  }
 };
