@@ -50,14 +50,14 @@ function add_genre_checkboxes(genre_div, id_extension){
   });
 }
 
-function set_genre_checkboxes(){
+function set_genre_checkboxes(addition){
   $.each(user_genres, function(index,genre){
-    document.getElementById(genre).checked = true;
-  });
+    document.getElementById(genre  + addition).checked = true;
+  }); 
 }
 
-function reset_checkboxes(){
-  $('#genres input[type=checkbox]').each(function() {
+function reset_checkboxes(genre_class){
+  $(genre_class + ' input[type=checkbox]').each(function() {
     if ($(this).is(":checked")) {
       $(this).attr("checked", false);
     }
@@ -66,7 +66,7 @@ function reset_checkboxes(){
 
 // Do this function when the webpage loads for the first time
 $(document).ready(function() {
- add_genre_checkboxes('#genres','');
+  add_genre_checkboxes('#genres','');
   add_genre_checkboxes('#genre_settings','_settings');
 });
 
@@ -116,6 +116,7 @@ socket.on('correct_login',function(user, genres){
   document.getElementById('pwd').value = '';
   set_username(user);
   user_genres = genres;
+  $("#user_settings").show();
   $('.login_page').fadeOut('fast', function() {
     $('.room_page').fadeIn('fast');
   });
@@ -141,10 +142,15 @@ $(function(){
     document.getElementById('password_error_message').innerHTML = '';
     if (username.length < 1) {
       document.getElementById('username_error_message').innerHTML = 'Please enter a username';
+      $("#username_error_message").show();
+      message_fade_out($('#username_error_message'), 5000);
     } else if (password.length < 1)
     {
       document.getElementById('password_error_message').innerHTML = 'Please enter a password';
-    } else {
+      $("#password_error_message").show();
+      message_fade_out($('#password_error_message'), 5000); 
+    }
+    else {
       socket.emit('sign_in', username, password);
     }
   });
@@ -158,8 +164,6 @@ $(function(){
 // ******* SIGN UP PAGE ******* //
 
 socket.on('signed_in', function(user){
-  document.getElementById('username_sign_up').value = '';
-  document.getElementById('pwd_sign_up').value = '';
   set_username(user);
   $('.sign_up_page').fadeOut('fast', function() {
     $('.settings_page').fadeIn('fast');
@@ -167,16 +171,24 @@ socket.on('signed_in', function(user){
 });
 
 socket.on('user_already_exists', function(username){
-  document.getElementById('username_error_message_sign_up').innerHTML 
-      = "The username " + username + " already exists or starts with the word 'guest'";
+  document.getElementById('username_error_message_sign_up').innerHTML = 
+    'The username ' + username + ' already exists or starts with the word "guest"';
+  $("#username_error_message_sign_up").show();
+  message_fade_out($('#username_error_message_sign_up'), 5000);
 });
 
 $(function(){
   $('#sign_up_button').click(function() {
     var username = document.getElementById('username_sign_up').value;
     var password = document.getElementById('pwd_sign_up').value;
+    var email = document.getElementById('email_sign_up').value;
+    var regex_for_email = /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
     document.getElementById('username_error_message_sign_up').innerHTML = '';
     document.getElementById('password_error_message_sign_up').innerHTML = '';
+    document.getElementById('email_error_message_sign_up').innerHTML = '';
+    document.getElementById('username_sign_up').value = '';
+    document.getElementById('pwd_sign_up').value = '';
+    document.getElementById('email_sign_up').value = '';
     if (username.length < 1) {
       document.getElementById('username_error_message_sign_up').innerHTML = 'Please enter a username';
       $("#username_error_message_sign_up").show();
@@ -186,8 +198,13 @@ $(function(){
       document.getElementById('password_error_message_sign_up').innerHTML = 'Please enter a password';
       $("#password_error_message_sign_up").show();
       message_fade_out($('#password_error_message_sign_up'), 5000);
+    } else if (email.length < 1 || !regex_for_email.test(email))
+    {
+      document.getElementById('email_error_message_sign_up').innerHTML = 'Please enter a valid email';
+      $("#email_error_message_sign_up").show();
+      message_fade_out($('#email_error_message_sign_up'), 5000); 
     } else {
-      socket.emit('sign_up', username, password);
+      socket.emit('sign_up', username, password, email);
     }
   });
   $('#sign_up_back').click(function() {
@@ -208,10 +225,19 @@ $(function(){
         $(this).attr("checked", false);
       }
     }); 
+    user_genres = genres;
     socket.emit('change_settings', username, genres);
-    $.each(genres, function(index,genre){
-      document.getElementById(genre).checked = true;
+    $("#user_settings").show();
+    $(".non_sign_up_settings").hide();
+    reset_checkboxes('#genre_settings');
+    $('.settings_page').fadeOut('fast', function() {
+      $('.room_page').fadeIn('fast');
     });
+  });
+  $('#settings_back').click(function() {
+    $("#user_settings").show();
+    $(".non_sign_up_settings").hide();
+    reset_checkboxes('#genre_settings');
     $('.settings_page').fadeOut('fast', function() {
       $('.room_page').fadeIn('fast');
     });
@@ -224,7 +250,7 @@ $(function(){
 $(function(){
   $('#create').click(function() {
     socket.emit('new_room');
-    set_genre_checkboxes();
+    set_genre_checkboxes('');
     $('.room_page').fadeOut('fast', function() {
       $('.lobby_page').fadeIn('fast');
     });
@@ -239,6 +265,14 @@ $(function(){
     }
   });
 
+  $('#user_settings').click(function() {
+    $(".non_sign_up_settings").show();
+    set_genre_checkboxes('_settings');
+    $('.room_page').fadeOut('fast', function() {
+      $('.settings_page').fadeIn('fast');
+    });
+  });
+
   $('#join').click(function() {
     $('#room_message1').hide();
     $('#room_message2').hide();
@@ -251,6 +285,7 @@ $(function(){
     $('#go').hide();
   });
   $('#room_page_back').click(function() {
+    $("#user_settings").hide();
     $('.room_page').fadeOut('fast', function() {
       $('.first_page').fadeIn('fast');
     });
@@ -280,7 +315,7 @@ socket.on("joined_room", function(channel){
   document.getElementById('myRoom').innerHTML = '<b> Your Room:</b> ' + room + '<br>';
   document.getElementById('lobby_page_username').innerHTML 
     = '<b> Username</b>: ' + username;
-  set_genre_checkboxes();
+  set_genre_checkboxes('');
   $('.room_page').fadeOut('fast', function() {  
     $('.lobby_page').show();
   });
@@ -310,7 +345,7 @@ socket.on('show_film_page', function(film) {
   on_main_page = true;
   //$('#chat').empty();
   initialise_film_page(film);
-  reset_checkboxes();
+  reset_checkboxes('#genres');
   $('.lobby_page').hide('fast', function() {
     $('.film_page').fadeIn('slow');
   });
@@ -326,7 +361,7 @@ $(function(){
 
  $('#lobby_page_back').click(function() {
    socket.emit('leave_room', username, room);
-   reset_checkboxes();
+   reset_checkboxes('#genres');
    $('.lobby_page').fadeOut('fast', function() {
      $('.room_page').fadeIn('fast');
    });
@@ -353,7 +388,7 @@ socket.on('waiting_signal', function() {
 
 socket.on('force_leave', function() {
    socket.emit('leave_room', username, room);
-   reset_checkboxes();
+   reset_checkboxes('#genres');
    $('.lobby_page').hide('fast', function() {
        $('.room_page').fadeIn('fast'); 
        alert('Admin has left the room');

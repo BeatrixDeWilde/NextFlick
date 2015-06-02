@@ -10,6 +10,9 @@ var api_param = 'api_key=a91369e1857e8c0cf2bd02b5daa38260';
 var bcrypt = require('bcrypt-nodejs');
 var pg = require("pg");
 var post_database = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
+// Internal memory cache
+var NodeCache = require("node-cache");
+var filmInfoCache = new NodeCache({stdTTL: 86400, useClones: true});
 
 
 server.listen(port);
@@ -243,7 +246,7 @@ io.sockets.on('connection', function(socket) {
     });
   });
 
-  socket.on('sign_up', function(username, password) {
+  socket.on('sign_up', function(username, password, email) {
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
@@ -259,7 +262,7 @@ io.sockets.on('connection', function(socket) {
         {
           var salt = bcrypt.genSaltSync();
           var hash = bcrypt.hashSync(password, salt);
-          insert_user(username, hash);
+          insert_user(username, hash, email);
           socket.emit('signed_in', username);
         }
         client.end();
@@ -267,12 +270,12 @@ io.sockets.on('connection', function(socket) {
     });
   });
 
-function insert_user (username, password) {
+function insert_user (username, password, email) {
   pg.connect(post_database, function(err, client, done) {
     if(err) {
       return console.error('error connecting', err);
     }
-    client.query('INSERT INTO users(username, password, genres) values($1,$2,$3);', [username, password, "{}"], function(err, result) {
+    client.query('INSERT INTO users(username, password, genres, email) values($1,$2,$3,$4);', [username, password, "{}",email], function(err, result) {
       if(err) {
         return console.error('error running query', err);
       }
@@ -329,7 +332,24 @@ function add20FilmsByGenre(pageNum, channel, genres) {
         request_in_progress[channel] = false;
 
         for (var i = oldLength, len = oldLength + film_list.length; i < len; i++) {
-          addExtraFilmInfo(i, channel);
+          var filmId = films[channel][i].id;
+          filmInfoCache.get(filmId, function(err, filmInfo) {
+            if (!err) {
+              if (filmInfo == undefined) {
+                addExtraFilmInfo(i, channel); 
+              } else {
+                //console.log("######### CACHE HIT #########");
+                //console.log('For film ' + films[channel][i].title);
+                //TODO: update films with extra info
+                films[channel][i].shortPlot = filmInfo.info["Plot"];
+                films[channel][i].rated = filmInfo.info["Rated"];
+                films[channel][i].imdbRating = filmInfo.info["imdbRating"];
+                films[channel][i].metascore = filmInfo.info["Metascore"];
+                films[channel][i].tomatoRating = filmInfo.info["tomatoMeter"];
+                films[channel][i].runtime = filmInfo.info["Runtime"];
+              }
+            }  
+          });
           films[channel][i].poster_path = 'http://image.tmdb.org/t/p/w342' + films[channel][i].poster_path;
           delete films[channel][i].overview;
           delete films[channel][i].backdrop_path;
@@ -337,6 +357,10 @@ function add20FilmsByGenre(pageNum, channel, genres) {
           delete films[channel][i].vote_average;
           delete films[channel][i].vote_count;
           films[channel][i].yes_count = 0;
+
+          if (i == 0) {
+            initFilmPage(channel);
+          }
         }
     }
   
@@ -367,6 +391,23 @@ function addExtraFilmInfo(film_index, channel) {
     function (error, response, body) {
       if (!error && response.statusCode == 200) {
         var infoResponse = JSON.parse(body);
+        
+        // Add film info response to cache
+        var filmId = films[channel][film_index].id;
+        var filmInfo = {"info": {
+                                "Plot": infoResponse["Plot"],
+                                "Rated": infoResponse["Rated"],
+                                "imdbRating": infoResponse["imdbRating"],
+                                "Metascore": infoResponse["Metascore"],
+                                "tomatoMeter": infoResponse["tomatoMeter"],
+                                "Runtime": infoResponse["Runtime"]
+                              }
+                       };
+        filmInfoCache.set(filmId, filmInfo, function(err, success) {
+          if (!err && success) {
+            //console.log('Film ' + films[channel][film_index].title + ' successfully added to cache');
+          }
+        });
         films[channel][film_index].shortPlot = infoResponse["Plot"];
         films[channel][film_index].rated = infoResponse["Rated"];
         films[channel][film_index].imdbRating = infoResponse["imdbRating"];
@@ -375,13 +416,16 @@ function addExtraFilmInfo(film_index, channel) {
         films[channel][film_index].runtime = infoResponse["Runtime"];
       }
       if (film_index == 0) {
-        //socket.emit('initialise', films[channel][0]);
-        console.log('Should be showing film page');
-        io.sockets.in(channel).emit('update_chat', 'SERVER', 'Showing films from genres: ' + query_genres[channel]);
-        io.sockets.in(channel).emit('show_film_page', films[channel][0]);
+        initFilmPage(channel);
       }
   });
 
+}
+
+function initFilmPage(channel) {
+  console.log('Should be showing film page');
+  io.sockets.in(channel).emit('update_chat', 'SERVER', 'Showing films from genres: ' + query_genres[channel]);
+  io.sockets.in(channel).emit('show_film_page', films[channel][0]);
 }
 
 });

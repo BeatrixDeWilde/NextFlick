@@ -27,9 +27,14 @@ html{
   list-style-type: none;
 }
 
+
 .my_btn{
   color: #FFFFFF;
   background-color: #00bc8c;
+}
+
+.first_page{
+  list-style-type: none;
 }
 
 #room_page_username{
@@ -42,6 +47,14 @@ html{
 #room_message2{
   display:none;
   color: #FFFFFF;
+}
+
+#user_settings{
+  display:none; 
+}
+
+.non_sign_up_settings{
+  display:none;
 }
 
 .init_hidden{
