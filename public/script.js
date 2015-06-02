@@ -50,6 +50,20 @@ function add_genre_checkboxes(genre_div, id_extension){
   });
 }
 
+function set_genre_checkboxes(){
+  $.each(user_genres, function(index,genre){
+    document.getElementById(genre).checked = true;
+  });
+}
+
+function reset_checkboxes(){
+  $('#genres input[type=checkbox]').each(function() {
+    if ($(this).is(":checked")) {
+      $(this).attr("checked", false);
+    }
+  }); 
+}
+
 // Do this function when the webpage loads for the first time
 $(document).ready(function() {
  add_genre_checkboxes('#genres','');
@@ -102,25 +116,10 @@ socket.on('correct_login',function(user, genres){
   document.getElementById('pwd').value = '';
   set_username(user);
   user_genres = genres;
-  set_genre_checkboxes();
   $('.login_page').fadeOut('fast', function() {
     $('.room_page').fadeIn('fast');
   });
 }); 
-
-function set_genre_checkboxes(){
-  $.each(user_genres, function(index,genre){
-    document.getElementById(genre).checked = true;
-  });
-}
-
-function reset_checkboxes(){
-  $('#genre input[type=checkbox]').each(function() {
-    if ($(this).is(":checked")) {
-      $(this).attr("checked", false);
-    }
-  }); 
-}
 
 socket.on('incorrect_login', function(message, password) {
   if (password) {
@@ -225,6 +224,7 @@ $(function(){
 $(function(){
   $('#create').click(function() {
     socket.emit('new_room');
+    set_genre_checkboxes();
     $('.room_page').fadeOut('fast', function() {
       $('.lobby_page').fadeIn('fast');
     });
@@ -249,12 +249,12 @@ $(function(){
     }
     document.getElementById('RoomID').value = '';
     $('#go').hide();
-  })
- $('#room_page_back').click(function() {
-   $('.room_page').fadeOut('fast', function() {
-     $('.first_page').fadeIn('fast');
-   });
- });
+  });
+  $('#room_page_back').click(function() {
+    $('.room_page').fadeOut('fast', function() {
+      $('.first_page').fadeIn('fast');
+    });
+  });
 });
 
 function message_fade_out(element, time) {
@@ -279,10 +279,11 @@ socket.on("joined_room", function(channel){
   room = channel;
   document.getElementById('myRoom').innerHTML = '<b> Your Room:</b> ' + room + '<br>';
   document.getElementById('lobby_page_username').innerHTML 
-        = '<b> Username</b>: ' + username;
+    = '<b> Username</b>: ' + username;
+  set_genre_checkboxes();
   $('.room_page').fadeOut('fast', function() {  
-  $('.lobby_page').show();
-});
+    $('.lobby_page').show();
+  });
 
 });
 
