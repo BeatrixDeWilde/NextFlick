@@ -44,7 +44,7 @@ var genreIdLookup = {
   "Music" : 10402,
   "Mystery" : 9648,
   "Romance" : 10749,
-  "Science_Fiction" : 878,
+  "Sci-Fi" : 878,
   "TV_Movie" : 10770,
   "Thriller" : 53,
   "War" : 10752,
