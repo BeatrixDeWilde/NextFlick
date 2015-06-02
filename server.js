@@ -336,7 +336,18 @@ function add20FilmsByGenre(pageNum, channel, genres) {
         request_in_progress[channel] = false;
 
         for (var i = oldLength, len = oldLength + film_list.length; i < len; i++) {
+          /* Update films information by modifying required properties
+             and deleting unnecessary ones */
+          films[channel][i].poster_path = 'http://image.tmdb.org/t/p/w342' + films[channel][i].poster_path;
+          delete films[channel][i].overview;
+          delete films[channel][i].backdrop_path;
+          delete films[channel][i].video;
+          delete films[channel][i].vote_average;
+          delete films[channel][i].vote_count;
+          films[channel][i].yes_count = 0;
+
           var filmId = films[channel][i].id;
+          // Check if extra film info is in cache
           filmInfoCache.get(filmId, function(err, filmInfo) {
             if (!err) {
               if (filmInfo == undefined) {
@@ -360,16 +371,6 @@ function add20FilmsByGenre(pageNum, channel, genres) {
               }
             }  
           });
-
-          /* Update films information by modifying required properties
-             and deleting unnecessary ones */
-          films[channel][i].poster_path = 'http://image.tmdb.org/t/p/w342' + films[channel][i].poster_path;
-          delete films[channel][i].overview;
-          delete films[channel][i].backdrop_path;
-          delete films[channel][i].video;
-          delete films[channel][i].vote_average;
-          delete films[channel][i].vote_count;
-          films[channel][i].yes_count = 0;
 
         }
     }
