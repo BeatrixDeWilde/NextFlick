@@ -33,6 +33,16 @@ html{
   background-color: #00bc8c;
 }
 
+.my_btn:hover{
+  color: #FFFFFF !important;
+  background-color: #00dba3;
+}
+
+.my_btn:active, .my_btn:focus{
+  color: #FFFFFF !important;
+  background-color: #007053;
+}
+
 .first_page{
   list-style-type: none;
 }
@@ -69,11 +79,7 @@ html{
   border-radius: 25px;
   margin: 5%;
   background-color: #464545;
-  /*background-color: #2C3539;*/
- /* background: #004747;*/
- /* background: #330033;*/
-  /*background: #141466;*/
-  padding: 2%;
+  padding: 30px;
   width: auto;
   height: auto;
   min-height: 400px;
