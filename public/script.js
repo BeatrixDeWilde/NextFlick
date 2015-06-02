@@ -50,14 +50,14 @@ function add_genre_checkboxes(genre_div, id_extension){
   });
 }
 
-function set_genre_checkboxes(){
+function set_genre_checkboxes(addition){
   $.each(user_genres, function(index,genre){
-    document.getElementById(genre).checked = true;
-  });
+    document.getElementById(genre  + addition).checked = true;
+  }); 
 }
 
-function reset_checkboxes(){
-  $('#genres input[type=checkbox]').each(function() {
+function reset_checkboxes(genre_class){
+  $(genre_class + ' input[type=checkbox]').each(function() {
     if ($(this).is(":checked")) {
       $(this).attr("checked", false);
     }
@@ -66,7 +66,7 @@ function reset_checkboxes(){
 
 // Do this function when the webpage loads for the first time
 $(document).ready(function() {
- add_genre_checkboxes('#genres','');
+  add_genre_checkboxes('#genres','');
   add_genre_checkboxes('#genre_settings','_settings');
 });
 
@@ -116,6 +116,7 @@ socket.on('correct_login',function(user, genres){
   document.getElementById('pwd').value = '';
   set_username(user);
   user_genres = genres;
+  $("#user_settings").show();
   $('.login_page').fadeOut('fast', function() {
     $('.room_page').fadeIn('fast');
   });
@@ -208,10 +209,22 @@ $(function(){
         $(this).attr("checked", false);
       }
     }); 
+    user_genres = genres;
     socket.emit('change_settings', username, genres);
-    $.each(genres, function(index,genre){
+    /* BOO $.each(genres, function(index,genre){
       document.getElementById(genre).checked = true;
+    }); */
+    $("#user_settings").show();
+    $(".non_sign_up_settings").hide();
+    reset_checkboxes('#genre_settings');
+    $('.settings_page').fadeOut('fast', function() {
+      $('.room_page').fadeIn('fast');
     });
+  });
+  $('#settings_back').click(function() {
+    $("#user_settings").show();
+    $(".non_sign_up_settings").hide();
+    reset_checkboxes('#genre_settings');
     $('.settings_page').fadeOut('fast', function() {
       $('.room_page').fadeIn('fast');
     });
@@ -224,7 +237,7 @@ $(function(){
 $(function(){
   $('#create').click(function() {
     socket.emit('new_room');
-    set_genre_checkboxes();
+    set_genre_checkboxes('');
     $('.room_page').fadeOut('fast', function() {
       $('.lobby_page').fadeIn('fast');
     });
@@ -239,6 +252,14 @@ $(function(){
     }
   });
 
+  $('#user_settings').click(function() {
+    $(".non_sign_up_settings").show();
+    set_genre_checkboxes('_settings');
+    $('.room_page').fadeOut('fast', function() {
+      $('.settings_page').fadeIn('fast');
+    });
+  });
+
   $('#join').click(function() {
     $('#room_message1').hide();
     $('#room_message2').hide();
@@ -251,6 +272,7 @@ $(function(){
     $('#go').hide();
   });
   $('#room_page_back').click(function() {
+    $("#user_settings").hide();
     $('.room_page').fadeOut('fast', function() {
       $('.first_page').fadeIn('fast');
     });
@@ -280,7 +302,7 @@ socket.on("joined_room", function(channel){
   document.getElementById('myRoom').innerHTML = '<b> Your Room:</b> ' + room + '<br>';
   document.getElementById('lobby_page_username').innerHTML 
     = '<b> Username</b>: ' + username;
-  set_genre_checkboxes();
+  set_genre_checkboxes('');
   $('.room_page').fadeOut('fast', function() {  
     $('.lobby_page').show();
   });
@@ -310,7 +332,7 @@ socket.on('show_film_page', function(film) {
   on_main_page = true;
   //$('#chat').empty();
   initialise_film_page(film);
-  reset_checkboxes();
+  reset_checkboxes('#genres');
   $('.lobby_page').hide('fast', function() {
     $('.film_page').fadeIn('slow');
   });
@@ -326,7 +348,7 @@ $(function(){
 
  $('#lobby_page_back').click(function() {
    socket.emit('leave_room', username, room);
-   reset_checkboxes();
+   reset_checkboxes('#genres');
    $('.lobby_page').fadeOut('fast', function() {
      $('.room_page').fadeIn('fast');
    });
@@ -353,7 +375,7 @@ socket.on('waiting_signal', function() {
 
 socket.on('force_leave', function() {
    socket.emit('leave_room', username, room);
-   reset_checkboxes();
+   reset_checkboxes('#genres');
    $('.lobby_page').hide('fast', function() {
        $('.room_page').fadeIn('fast'); 
        alert('Admin has left the room');
