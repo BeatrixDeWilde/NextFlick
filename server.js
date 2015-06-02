@@ -3,6 +3,7 @@ var express = require('express');
 var app     = express();
 var http    = require('http');
 var server  = app.listen(port);
+var nodemailer = require("nodemailer");
 //var server  = http.createServer(app);
 var io      = require('socket.io').listen(server);
 var request = require('request');
@@ -14,6 +15,14 @@ var post_database = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u"
 var NodeCache = require("node-cache");
 var filmInfoCache = new NodeCache({stdTTL: 86400, useClones: true});
 
+
+var smtpTransport = nodemailer.createTransport("SMTP",{
+  service: "Gmail",
+  auth: {
+    user: "email.film.test@gmail.com",
+    pass: "email.test"
+  }
+});
 
 server.listen(port);
 
@@ -29,6 +38,7 @@ var queryDelayBuffer = 10;
 var queryBatchSize = 20; 
 var guest = 0;
 var locks = {};
+var email_ids = [];
 
 // Genre IDs for movie queries
 var genreIdLookup = {
@@ -215,7 +225,7 @@ io.sockets.on('connection', function(socket) {
     get_user_data(username, password, 'NOTSET', 'NOTSET', sign_in);
   });
 
-  function sign_in(username, password, email, new_password, result){
+  function sign_in(username, password, email, hash, result){
     if(result.rows.length != 1) {
       socket.emit('incorrect_login',"No such user", false);
       return;
@@ -229,7 +239,7 @@ io.sockets.on('connection', function(socket) {
     }
   }
 
-  function get_user_data(username, password, email, new_password, func){
+  function get_user_data(username, password, email, hash, func){
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
@@ -239,7 +249,7 @@ io.sockets.on('connection', function(socket) {
         if(err) {
           return console.error('error running query', err);
         }
-        func(username, password, email, new_password, result);
+        func(username, password, email, hash, result);
         client.end();
       });
     });
@@ -259,23 +269,23 @@ io.sockets.on('connection', function(socket) {
     });
   });
 
-  function check_old_password(username, password, email, new_password, result){
+  function check_old_password(username, password, email, hash, result){
     if(result.rows.length != 1) {
       socket.emit('incorrect_input',"No such user");
     } else if(!bcrypt.compareSync(password,result.rows[0].password)) {
       socket.emit('incorrect_input', "Incorrect password");
     }
     else {
-      insert_new_password(username, new_password);
+      insert_new_password(username, hash);
     }
   }
 
-  function insert_new_password (username, new_password) {
+  function insert_new_password (username, hash) {
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
-      client.query('UPDATE users SET password=$2 WHERE username=$1;', [username,new_password], function(err, result) {
+      client.query('UPDATE users SET password=$2 WHERE username=$1;', [username,hash], function(err, result) {
         if(err) {
           return console.error('error running query', err);
         }
@@ -285,11 +295,32 @@ io.sockets.on('connection', function(socket) {
     });
   }
 
+  socket.on('send_email', function(email, username) {
+    var id = 32;
+    email_ids[username] = id;
+    var mailOptions={
+      to : email,
+      subject : 'Password unique id',
+      text : 'ID: ' + id
+    }
+    smtpTransport.sendMail(mailOptions, function(error, response){
+      if(error){
+        console.log(error);
+      }else{
+        console.log("Message sent: " + response.message);
+      }
+    });
+  });
+
   socket.on('change_password', function(id, username, old_password, new_password) {
-    // TODO verify ID
-    var salt = bcrypt.genSaltSync();
-    var hash = bcrypt.hashSync(new_password, salt);
-    get_user_data(username, old_password, 'NOTSET', hash, check_old_password);
+    if (email_ids[username] == id) {
+      var salt = bcrypt.genSaltSync();
+      var hash = bcrypt.hashSync(new_password, salt);
+      get_user_data(username, old_password, 'NOTSET', hash, check_old_password);
+    }
+    else{
+      socket.emit('incorrect_input', "Incorrect unique ID");
+    }
   });
 
   function sign_up(username, password, email, new_password, result){
@@ -371,7 +402,18 @@ function add20FilmsByGenre(pageNum, channel, genres) {
         request_in_progress[channel] = false;
 
         for (var i = oldLength, len = oldLength + film_list.length; i < len; i++) {
+          /* Update films information by modifying required properties
+             and deleting unnecessary ones */
+          films[channel][i].poster_path = 'http://image.tmdb.org/t/p/w342' + films[channel][i].poster_path;
+          delete films[channel][i].overview;
+          delete films[channel][i].backdrop_path;
+          delete films[channel][i].video;
+          delete films[channel][i].vote_average;
+          delete films[channel][i].vote_count;
+          films[channel][i].yes_count = 0;
+
           var filmId = films[channel][i].id;
+          // Check if extra film info is in cache
           filmInfoCache.get(filmId, function(err, filmInfo) {
             if (!err) {
               if (filmInfo == undefined) {
@@ -395,16 +437,6 @@ function add20FilmsByGenre(pageNum, channel, genres) {
               }
             }  
           });
-
-          /* Update films information by modifying required properties
-             and deleting unnecessary ones */
-          films[channel][i].poster_path = 'http://image.tmdb.org/t/p/w342' + films[channel][i].poster_path;
-          delete films[channel][i].overview;
-          delete films[channel][i].backdrop_path;
-          delete films[channel][i].video;
-          delete films[channel][i].vote_average;
-          delete films[channel][i].vote_count;
-          films[channel][i].yes_count = 0;
 
         }
     }

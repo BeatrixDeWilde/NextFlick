@@ -245,7 +245,7 @@ $(function(){
     $('#apply').hide();
     $('#genre_settings').hide();
     $("#change_password").show();
-    socket.emit('send_email', email);
+    socket.emit('send_email', email, username);
   });
   $('#new_password').click(function() {
     var id = document.getElementById('unique_id').value;
@@ -513,6 +513,9 @@ document.onkeydown = function(e) {
       break;
     case 39:
       socket.emit('choice', "no", index, false);
+      break;
+    case 40:
+      $('#filmInfoBtn').trigger('click');
       break;
   } 
  }
