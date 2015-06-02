@@ -153,30 +153,30 @@ io.sockets.on('connection', function(socket) {
   socket.on('leave_room', function(username, room) {
 	  socket.leave(room);
     console.log(username + ' is leaving room ' + room);
-    free_resources();
+    free_resources(username, room);
   });
 
   socket.on('disconnect', function() {
     console.log(socket.username + ' has disconnected from room ' + socket.channel);
-    free_resources();
+    free_resources(socket.username, socket.channel);
   });
 
-  function free_resources() {
+  function free_resources(username, channel) {
     setTimeout(function(){
-    if (typeof socket.username !== 'undefined' && typeof socket.channel !== 'undefined'
-        && typeof users[socket.channel] !== 'undefined') {
-      delete users[socket.channel][socket.username];
-      socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', socket.username + ' has left the channel');
-      io.sockets.in(socket.channel).emit('update_user_list', users[socket.channel]);
-      socket.leave(socket.room);
-      --num_users[socket.channel];
-      if (num_users[socket.channel] == 0) {
-        console.log('Tear down room: ' + socket.channel);
-        delete users[socket.channel];
-        delete films[socket.channel];
-        delete query_collection_count[socket.channel];
-        delete request_in_progress[socket.channel];
-        delete query_genres[socket.channel];
+    if (typeof username !== 'undefined' && typeof channel !== 'undefined'
+        && typeof users[channel] !== 'undefined') {
+      delete users[channel][username];
+      socket.broadcast.to(channel).emit('update_chat', 'SERVER', username + ' has left the channel');
+      io.sockets.in(channel).emit('update_user_list', users[channel]);
+//      socket.leave(room);
+      --num_users[channel];
+      if (num_users[channel] == 0) {
+        console.log('Tear down room: ' + channel);
+        delete users[channel];
+        delete films[channel];
+        delete query_collection_count[channel];
+        delete request_in_progress[channel];
+        delete query_genres[channel];
       }
     }
    }, 10000);
