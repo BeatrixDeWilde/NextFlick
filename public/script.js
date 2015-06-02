@@ -114,6 +114,14 @@ function set_genre_checkboxes(){
   });
 }
 
+function reset_checkboxes(){
+  $('#genre input[type=checkbox]').each(function() {
+    if ($(this).is(":checked")) {
+      $(this).attr("checked", false);
+    }
+  }); 
+}
+
 socket.on('incorrect_login', function(message, password) {
   if (password) {
     document.getElementById('password_error_message').innerHTML = message;
@@ -239,6 +247,7 @@ $(function(){
     if (RoomID.length > 0){
       socket.emit("user_join", username, RoomID);
     }
+    document.getElementById('RoomID').value = '';
     $('#go').hide();
   })
  $('#room_page_back').click(function() {
@@ -300,6 +309,7 @@ socket.on('show_film_page', function(film) {
   on_main_page = true;
   //$('#chat').empty();
   initialise_film_page(film);
+  reset_checkboxes();
   $('.lobby_page').hide('fast', function() {
     $('.film_page').fadeIn('slow');
   });
@@ -315,6 +325,7 @@ $(function(){
 
  $('#lobby_page_back').click(function() {
    socket.emit('leave_room', username, room);
+   reset_checkboxes();
    $('.lobby_page').fadeOut('fast', function() {
      $('.room_page').fadeIn('fast');
    });
@@ -341,6 +352,7 @@ socket.on('waiting_signal', function() {
 
 socket.on('force_leave', function() {
    socket.emit('leave_room', username, room);
+   reset_checkboxes();
    $('.lobby_page').hide('fast', function() {
        $('.room_page').fadeIn('fast'); 
        alert('Admin has left the room');
