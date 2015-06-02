@@ -50,9 +50,13 @@ function add_genre_checkboxes(genre_div, id_extension){
   });
 }
 
-socket.on('connect', function(){
-  add_genre_checkboxes('.genres','');
+// Do this function when the webpage loads for the first time
+$(document).ready(function() {
+ add_genre_checkboxes('.genres','');
   add_genre_checkboxes('.genre_settings','_settings');
+});
+
+socket.on('connect', function(){
 });
 
 socket.on('set_username', function(user) {
@@ -311,8 +315,8 @@ $(function(){
 
  $('#lobby_page_back').click(function() {
    socket.emit('leave_room', username, room);
-   $('.lobby_page').hide('fast', function() {
-     $('.room_page').fadeIn('slow');
+   $('.lobby_page').fadeOut('fast', function() {
+     $('.room_page').fadeIn('fast');
    });
    if (is_admin) {
      socket.emit('force_leave_signal', room);
