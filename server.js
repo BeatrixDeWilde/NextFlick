@@ -162,6 +162,7 @@ io.sockets.on('connection', function(socket) {
   });
 
   function free_resources() {
+    setTimeout(function(){
     if (typeof socket.username !== 'undefined' && typeof socket.channel !== 'undefined'
         && typeof users[socket.channel] !== 'undefined') {
       delete users[socket.channel][socket.username];
@@ -178,7 +179,7 @@ io.sockets.on('connection', function(socket) {
         delete query_genres[socket.channel];
       }
     }
-
+   }, 10000);
   }
   
   socket.on('choice', function(decision, index, inc) {
