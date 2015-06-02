@@ -23,7 +23,7 @@ var genreList = [
   "Music",
   "Mystery",
   "Romance",
-  "Science_Fiction",
+  "Sci-Fi",
   "Thriller",
   "War",
   "Western"
@@ -50,9 +50,13 @@ function add_genre_checkboxes(genre_div, id_extension){
   });
 }
 
-socket.on('connect', function(){
-  add_genre_checkboxes('.genres','');
+// Do this function when the webpage loads for the first time
+$(document).ready(function() {
+ add_genre_checkboxes('.genres','');
   add_genre_checkboxes('.genre_settings','_settings');
+});
+
+socket.on('connect', function(){
 });
 
 socket.on('set_username', function(user) {
@@ -110,16 +114,13 @@ function set_genre_checkboxes(){
   });
 }
 
-
-/*
 function reset_checkboxes(){
-  $('.genre input[type=checkbox]').each(function() {
+  $('#genre input[type=checkbox]').each(function() {
     if ($(this).is(":checked")) {
       $(this).attr("checked", false);
     }
   }); 
-} */
-
+}
 
 socket.on('incorrect_login', function(message, password) {
   if (password) {
@@ -325,8 +326,8 @@ $(function(){
  $('#lobby_page_back').click(function() {
    socket.emit('leave_room', username, room);
    reset_checkboxes();
-   $('.lobby_page').hide('fast', function() {
-     $('.room_page').fadeIn('slow');
+   $('.lobby_page').fadeOut('fast', function() {
+     $('.room_page').fadeIn('fast');
    });
    if (is_admin) {
      socket.emit('force_leave_signal', room);
