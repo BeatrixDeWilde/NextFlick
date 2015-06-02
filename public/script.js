@@ -245,7 +245,7 @@ $(function(){
     $('#apply').hide();
     $('#genre_settings').hide();
     $("#change_password").show();
-    socket.emit('send_email', email);
+    socket.emit('send_email', email, username);
   });
   $('#new_password').click(function() {
     var id = document.getElementById('unique_id').value;
