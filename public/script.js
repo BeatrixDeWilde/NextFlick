@@ -477,6 +477,12 @@ socket.on('new_films', function(film, new_index) {
   $('#chat').append('Changing image! (Index at: ' + index + ') <br>');
   document.getElementById('image').src = film.poster_path;
   document.getElementById('title').innerHTML = film.title;
+  var fontSize = 28;
+  $('#title').css('font-size', fontSize.toString() + 'px');
+  while($('#title').height() >= $('#title_block').height()){
+    fontSize--;
+    $('#title').css('font-size', fontSize.toString() + 'px');
+  }
   document.getElementById('plot').innerHTML = film.shortPlot;
   document.getElementById('runtime').innerHTML = film.runtime;
   document.getElementById('imdbRating').innerHTML = film.imdbRating;
@@ -520,6 +526,7 @@ document.onkeydown = function(e) {
   } 
  }
 };
+
 
 // ******* FOUND PAGE ******* //
 
