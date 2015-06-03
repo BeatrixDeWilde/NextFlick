@@ -133,6 +133,7 @@ io.sockets.on('connection', function(socket) {
           delete email_ids[username];
         }
         delete users[channel][username];
+        io.sockets.in(channel).emit('update_user_list', users[channel]);
         --num_users[channel];
         if (num_users[channel] == 0) {
           // Tear down room.
@@ -356,6 +357,7 @@ io.sockets.on('connection', function(socket) {
         console.log(films[socket.channel][index].yes_count + ' vs ' + num_users[socket.channel]);
       }
       if (films[socket.channel][index].yes_count >= num_users[socket.channel]) {
+        film_found(films[socket.channel][index]);
         // If every user in the channel has said yes to the film then 
         // take every user to the 'found page' with that film displayed
         io.sockets.in(socket.channel).emit('film_found', films[socket.channel][index]);
@@ -378,6 +380,67 @@ io.sockets.on('connection', function(socket) {
       }
     } 
   });
+
+  function film_found(film){
+    // Updates popular films database with new film found
+    get_film(film);
+    // Checks the size of the list - if it is beyond a limit remove all old entries (by last updated)
+  }
+
+  function get_film(film){
+    // Given a film ID 
+    //    if an entry exists in popular films -> update
+    //    if no entry exists -> insert
+    pg.connect(post_database, function(err, client, done) {
+      if(err) {
+        return console.error('error connecting', err);
+      }
+    console.log('film.id: ' + film.id);
+
+      client.query('SELECT * FROM popular_films WHERE film_id = $1;', [film.id], function(err, result) {
+        if(err) {
+          return console.error('error running query', err);
+        }
+        if (result.rows.length == 0) {
+          insert_film(film);
+        }
+        else {
+          console.log("Updating film");
+          update_film(film, result.rows[0].count + 1);
+        }
+        client.end();
+      });
+    });
+  }
+
+  function insert_film(film){
+    pg.connect(post_database, function(err, client, done) {
+      if(err) {
+        return console.error('error connecting', err);
+      }
+      client.query('INSERT INTO popular_films (film_id, poster_url, count) VALUES($1, $2, 0);', [film.id, film.poster_url], function(err, result) {
+        if(err) {
+          return console.error('error running query', err);
+        }
+        client.end();
+      });
+    });
+  }
+
+  function update_film(film, new_count){
+    console.log("Count: " + new_count);
+    pg.connect(post_database, function(err, client, done) {
+      if(err) {
+        return console.error('error connecting', err);
+      }
+      client.query('UPDATE popular_films SET count=$2 WHERE film_id=$1;', [film.id, new_count], function(err, result) {
+        if(err) {
+          return console.error('error running query', err);
+        }
+        client.end();
+      });
+    });
+  }
  
   // ************************** //
   // ******* FOUND PAGE ******* //
