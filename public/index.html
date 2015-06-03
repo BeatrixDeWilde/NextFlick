@@ -50,7 +50,15 @@
               <div id="title_block">
                 <h2 id="title" align="center"></h2>
               </div>
-              <img id="image" src="http://image.tmdb.org/t/p/w500/j6NCjU6Zh7SkfIeN5zDaoTmBn4m.jpg" class = "img-rounded" width="60%">
+              <div id="image_block">
+                <img id="image" src="http://image.tmdb.org/t/p/w500/j6NCjU6Zh7SkfIeN5zDaoTmBn4m.jpg" class = "img-rounded" width="80%">
+              </div>
+              <br>
+              <div>
+                <button type="button" id="yes" class="btn my_btn">YES</button>
+                <button type="button" id="no" class="btn my_btn">NO</button>
+              </div>
+              <br>
               <button class="btn my_btn" type="button" data-toggle="collapse" data-target="#filmInfo" aria-expanded="false" aria-controls="filmInfo" id="filmInfoBtn">
                 <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span> Film Information
               </button>
@@ -61,12 +69,6 @@
                 <p id="runtime"></p>
                 <h4>IMDb Rating:</h4>
                 <p id="imdbRating"></p>
-              </div>
-              <br>
-              <br>
-              <div>
-                <button type="button" id="yes" class="btn my_btn">YES</button>
-                <button type="button" id="no" class="btn my_btn">NO</button>
               </div>
             </div>
           </div>
@@ -260,9 +262,9 @@
         <li class="page found_page">
           <div class="container" align="center">
             <div class="my_block">
-              <h1>Your chosen film is...</h1>
-              <img id="found_film_image" src="http://image.tmdb.org/t/p/w500/j6NCjU6Zh7SkfIeN5zDaoTmBn4m.jpg" class="img-rounded" width="60%">
-               <h1 id="found_film_title" align="center"></h1>
+              <h3>Your chosen film is...</h3>
+              <img id="found_film_image" src="http://image.tmdb.org/t/p/w500/j6NCjU6Zh7SkfIeN5zDaoTmBn4m.jpg" class="img-rounded" width="80%">
+               <h3 id="found_film_title" align="center"></h3>
                <button type="button" id="film_found_confirm" class="btn my_btn">OK</button>
              </div>
           </div> 
