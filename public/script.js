@@ -46,9 +46,33 @@ socket.on('update_user_list', function(users) {
 });
 
 function add_genre_checkboxes(genre_div, id_extension){
+  var string = "";
+  //$(genre_div).append("<table class='table'><tbody>");
+  string += "<table class='table'><tbody>";
+  var first= true;
   $.each(genreList, function(index, genre){
-    $(genre_div).append("<div class='checkbox'><label><input type='checkbox' id=" + genre + id_extension + ">" + genre + "</label></div>");
+    if(first){
+      //$(genre_div).append("<tr><td><div class='checkbox checkbox-default'><input type='checkbox' id=" + genre + id_extension + "><label for='" +genre + id_extension +"'>"+ genre + " " + index +"</label></div></td>");
+      string += "<tr><td><div class='checkbox my_checkbox'><input type='checkbox' id=" 
+        + genre + id_extension + "><label for='" +genre + id_extension +"'>"+ genre + "</label></div></td>";
+      first= false;
+    }else{
+     // $(genre_div).append("<td><div class='checkbox checkbox-default'><input type='checkbox' id=" + genre + id_extension + 
+       // "><label for='" +genre + id_extension +"'>"+ genre + "</label></div></td></tr>");
+      string += "<td><div class='checkbox my_checkbox'><input type='checkbox' id=" + genre + id_extension + 
+        "><label for='" + genre + id_extension +"'>"+ genre + "</label></div></td></tr>";
+      first = true;
+    }
   });
+
+  if(first){
+    //$(genre_div).append("</tr>");
+    string += "</tr>";
+  }
+
+  //$(genre_div).append("</tbody></table>");
+  string += "</tbody></table>";
+  $(genre_div).append(string);
 }
 
 function set_genre_checkboxes(addition){

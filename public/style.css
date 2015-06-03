@@ -217,3 +217,28 @@ html{
     -webkit-transform: scale(1.0);
   }
 }
+
+
+.table > tbody > tr > td{
+  border-top: 0px none transparent !important;
+  padding-right: 8px !important;
+  padding-top: 0px !important;
+  padding-bottom: 0px !important;
+  padding-left: 3px !important;
+  line-height: 20px !important;
+}
+
+
+.checkbox{
+  margin: 0px !important;
+}
+
+.my_checkbox input[type=checkbox]:checked + label:before{
+  background-color: #00bc8c;
+  border-color: #00bc8c;
+}
+.my_checkbox input[type=checkbox]:checked + label:after{
+  color: #FFFFFF;
+}
+
+
