@@ -179,7 +179,7 @@ io.sockets.on('connection', function(socket) {
         delete query_genres[channel];
       }
     }
-   }, 10000);
+   }, 30000);
   }
   
   socket.on('choice', function(decision, index, inc) {
