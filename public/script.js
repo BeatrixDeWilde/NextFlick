@@ -34,19 +34,6 @@ var genreList = [
 // ******* GENERAL ******* //
 // *********************** //
 
-socket.on('update_user_list', function(users) {
-  $('#users').empty();
-  $('#main_page_users').empty();
-  $.each(users, function(key, value) {
-    if(value == username){
-      $('#users').append('<div><b>' + value+ '</b></div>');
-    }else{
-      $('#users').append('<div>' + value+ '</div>');
-    }
-    $('#main_page_users').append('<div>' + value + '</div>');
-  });
-});
-
 function add_genre_checkboxes(genre_div, id_extension){
   var string = "";
   //$(genre_div).append("<table class='table'><tbody>");
@@ -514,12 +501,6 @@ socket.on('new_films', function(film, new_index) {
   document.getElementById('plot').innerHTML = film.shortPlot;
   document.getElementById('runtime').innerHTML = film.runtime;
   document.getElementById('imdbRating').innerHTML = film.imdbRating;
-});
-
-socket.on('update_chat', function(username, text) {
-  $('#chat').append('<b>'+username + ':</b> ' + text + '<br>');
-  var elem = document.getElementById('chat');
-  elem.scrollTop = elem.scrollHeight;
 });
 
 socket.on('film_found', function(film) {
