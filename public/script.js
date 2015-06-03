@@ -30,7 +30,9 @@ var genreList = [
   "Western"
 ]
 
+// *********************** //
 // ******* GENERAL ******* //
+// *********************** //
 
 socket.on('update_user_list', function(users) {
   $('#users').empty();
@@ -102,7 +104,9 @@ socket.on('set_username', function(user) {
   username = user;
 });
 
+// ************************** //
 // ******* FIRST PAGE ******* //
+// ************************** //
 
 $(function(){
   // Fading out pages etc
@@ -132,7 +136,9 @@ function set_username(user){
     = '<b> Username</b>: ' + username;
 }
 
+// ************************** //
 // ******* LOGIN PAGE ******* //
+// ************************** //
 
 socket.on('correct_login',function(user, genres, user_email){
   // User has enetered correct login 
@@ -187,7 +193,9 @@ $(function(){
  });
 });
 
+// **************************** //
 // ******* SIGN UP PAGE ******* //
+// **************************** //
 
 socket.on('signed_in', function(user, user_email){
   email = user_email;
@@ -241,7 +249,9 @@ $(function(){
  });
 });
 
+// ***************************** //
 // ******* SETTINGS PAGE ******* //
+// ***************************** //
 
 $(function(){
   $('#apply').click(function() {
@@ -312,8 +322,9 @@ function change_settings_view(){
   });
 }
 
-
+// ************************* //
 // ******* ROOM PAGE ******* //
+// ************************* //
 
 $(function(){
   $('#create').click(function() {
@@ -398,7 +409,9 @@ socket.on('set_room_id', function(channel) {
     socket.emit('user_join', username, room);
 });
 
+// ************************** //
 // ******* LOBBY PAGE ******* //
+// ************************** //
 
 function initialise_film_page(film) {
   document.getElementById('image').src = film.poster_path;
@@ -466,7 +479,9 @@ socket.on('force_leave', function() {
    });
 });
 
+// ************************* //
 // ******* FILM PAGE ******* //
+// ************************* //
 
 $(function(){
   $('#yes').click(function() {
@@ -474,17 +489,6 @@ $(function(){
   });
   $('#no').click(function() {
     socket.emit('choice', "no", index, false);
-  });
-  $('#datasend').click( function() {
-    var message = $('#data').val();
-    $('#data').val('');
-    socket.emit('send_message', message);
-  });
-  $('#data').keypress(function(e) {
-    if(e.which == 13) {
-      $(this).blur();
-      $('#datasend').focus().click();
-    }
   });
 });
 
@@ -551,8 +555,9 @@ document.onkeydown = function(e) {
  }
 };
 
-
+// ************************** //
 // ******* FOUND PAGE ******* //
+// ************************** //
 
 $(function(){
   $('#film_found_confirm').click(function() {

@@ -3,19 +3,23 @@ var express = require('express');
 var app     = express();
 var http    = require('http');
 var server  = app.listen(port);
-var nodemailer = require("nodemailer");
 //var server  = http.createServer(app);
 var io      = require('socket.io').listen(server);
 var request = require('request');
-var api_param = 'api_key=a91369e1857e8c0cf2bd02b5daa38260';
+
+// To send verification emails to users
+var nodemailer = require("nodemailer");
+// Encryption for passwords
 var bcrypt = require('bcrypt-nodejs');
+// To connect to the database
 var pg = require("pg");
-var post_database = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
 // Internal memory cache
 var NodeCache = require("node-cache");
 var filmInfoCache = new NodeCache({stdTTL: 86400, useClones: true});
 
-
+// Security information that needs to be moved to a skeleton file.
+var post_database = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
+var api_param = 'api_key=a91369e1857e8c0cf2bd02b5daa38260';
 var smtpTransport = nodemailer.createTransport("SMTP",{
   service: "Gmail",
   auth: {
@@ -29,6 +33,7 @@ server.listen(port);
 var users = {};
 var films = [];
 var num_users = [];
+var query_genres = [];
 var query_collection_count = {};
 /* Stores a boolean for each channel to indicate if there is already a 
    request in progress for the next batch of films (prevents race conditions) */
@@ -38,7 +43,11 @@ var queryDelayBuffer = 10;
 var queryBatchSize = 20; 
 var guest = 0;
 var locks = {};
+// Stores mappings from email unique ID to username for verification to 
+// change user passwords.
 var email_ids = [];
+
+var dateToday = (new Date()).toISOString().substring(0,10);
 
 // Genre IDs for movie queries
 var genreIdLookup = {
@@ -64,9 +73,6 @@ var genreIdLookup = {
   "Western" : 37
 }
 
-var query_genres = [];
-var dateToday = (new Date()).toISOString().substring(0,10);
-
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', function(req, res) {
@@ -75,7 +81,131 @@ app.get('/', function(req, res) {
 
 io.sockets.on('connection', function(socket) {
  
+  // *********************** //
+  // ******* GENERAL ******* //
+  // *********************** //
+
   console.log('Obtained connection');
+
+  // Not called
+  socket.on('generate_films', function(room, genres) {
+    console.log('DEPRECATED: socket on generate_films');
+    query_genres[room] = genres;
+    console.log('Generating films for room ' + room + ' of genres: ' + query_genres[room]);
+    // Initialise film list with results from page 1
+    // This function now calls back to show the film pages once done
+    add20FilmsByGenre(1, room, query_genres[room]);
+    //io.sockets.in(room).emit('initialise', films[room][0]);
+  });
+
+  socket.on('leave_room', function(username, room) {
+    socket.leave(room);
+    console.log(username + ' is leaving room ' + room);
+    free_resources(username, room);
+  });
+
+  socket.on('disconnect', function() {
+    console.log(socket.username + ' has disconnected from room ' + socket.channel);
+    free_resources(socket.username, socket.channel);
+  });
+
+  function free_resources(username, channel) {
+    setTimeout(function(){
+      if (typeof username !== 'undefined' && typeof channel !== 'undefined'
+          && typeof users[channel] !== 'undefined') {
+        delete users[channel][username];
+        socket.broadcast.to(channel).emit('update_chat', 'SERVER', username + ' has left the channel');
+        io.sockets.in(channel).emit('update_user_list', users[channel]);
+        // socket.leave(room);
+        --num_users[channel];
+        if (num_users[channel] == 0) {
+          console.log('Tear down room: ' + channel);
+          delete users[channel];
+          delete films[channel];
+          delete query_collection_count[channel];
+          delete request_in_progress[channel];
+          delete query_genres[channel];
+        }
+      }
+    }, 30000);
+  }
+
+  // ************************** //
+  // ******* FIRST PAGE ******* //
+  // ************************** //
+
+  socket.on('get_guest_id', function() {
+   var username = 'guest';
+   guest++;
+   username += guest;
+   socket.emit('set_username', username);
+  });
+
+  // ************************** //
+  // ******* LOGIN PAGE ******* //
+  // ************************** //
+
+  socket.on('sign_in', function(username, password) {
+    get_user_data(username, password, 'NOTSET', 'NOTSET', sign_in);
+  });
+
+  // **************************** //
+  // ******* SIGN UP PAGE ******* //
+  // **************************** //
+
+  socket.on('sign_up', function(username, password, email) {
+    get_user_data(username, password, email, 'NOTSET', sign_up);
+  });
+
+  // ***************************** //
+  // ******* SETTINGS PAGE ******* //
+  // ***************************** //
+
+  socket.on('change_settings', function(username, genres) {
+    pg.connect(post_database, function(err, client, done) {
+      if(err) {
+        return console.error('error connecting', err);
+      }
+      client.query('UPDATE users SET genres=$2 WHERE username=$1;', [username,genres], function(err, result) {
+        if(err) {
+          return console.error('error running query', err);
+        }
+        client.end();
+      });
+    });
+  });
+
+  socket.on('send_email', function(email, username) {
+    var id = 32;
+    email_ids[username] = id;
+    var mailOptions={
+      to : email,
+      subject : 'Password unique id',
+      text : 'ID: ' + id
+    }
+    smtpTransport.sendMail(mailOptions, function(error, response){
+      if(error){
+        console.log(error);
+      }else{
+        console.log("Message sent: " + response.message);
+      }
+    });
+  });
+
+  socket.on('change_password', function(id, username, old_password, new_password) {
+    if (email_ids[username] == id) {
+      var salt = bcrypt.genSaltSync();
+      var hash = bcrypt.hashSync(new_password, salt);
+      get_user_data(username, old_password, 'NOTSET', hash, check_old_password);
+    }
+    else{
+      socket.emit('incorrect_input', "Incorrect unique ID");
+    }
+  });
+
+  // ************************* //
+  // ******* ROOM PAGE ******* //
+  // ************************* //
 
   socket.on('new_room', function() {
      // TODO: Random Room ID Generator, just using guest for now
@@ -89,6 +219,29 @@ io.sockets.on('connection', function(socket) {
      request_in_progress[channel] = false;
      socket.emit('set_room_id', channel);
   });
+
+  socket.on('user_join', function(username, channel) {
+    socket.username = username;
+    socket.channel = channel;
+    if (locks[channel] == true) {
+      socket.emit('room_is_locked');
+    } else if (typeof users[channel] === 'undefined') {
+      socket.emit('room_not_initialised');
+    } else {
+      socket.emit("joined_room", channel);
+      //socket.emit('initialise', films[channel][0]);
+      users[channel][username] = username;
+      socket.join(channel);
+      ++num_users[channel];
+      socket.emit('update_chat', 'SERVER', 'Connected to channel ' + channel);
+      socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', username + ' has joined the channel');
+      io.sockets.in(socket.channel).emit('update_user_list', users[channel]);
+    }
+  });
+
+  // ************************** //
+  // ******* LOBBY PAGE ******* //
+  // ************************** //
  
   socket.on('user_add_genres', function(genres) {
      query_genres[socket.channel] = query_genres[socket.channel].concat(genres);
@@ -106,82 +259,22 @@ io.sockets.on('connection', function(socket) {
     // This function now calls back to show the film pages once done
     add20FilmsByGenre(1, room, query_genres[room]);
     //io.sockets.in(room).emit('initialise', films[room][0]);
-
   }
 
-  socket.on('generate_films', function(room, genres) {
-    console.log('DEPRECATED: socket on generate_films');
-    query_genres[room] = genres;
-    console.log('Generating films for room ' + room + ' of genres: ' + query_genres[room]);
-    // Initialise film list with results from page 1
-    // This function now calls back to show the film pages once done
-    add20FilmsByGenre(1, room, query_genres[room]);
-    //io.sockets.in(room).emit('initialise', films[room][0]);
+  socket.on('go_signal', function(room) {
+    locks[room] = true;
+    io.sockets.in(room).emit('waiting_signal');
+  });
+ 
+  socket.on('force_leave_signal', function(room) {
+    console.log('Admin has left room ' + room);
+    socket.broadcast.to(room).emit('force_leave');
   });
 
-  socket.on('get_guest_id', function() {
-     var username = 'guest';
-     guest++;
-     username += guest;
-     socket.emit('set_username', username);
-  });
-   
-  socket.on('user_join', function(username, channel) {
-    socket.username = username;
-	  socket.channel = channel;
-    if (locks[channel] == true) {
-      socket.emit('room_is_locked');
-    } else if (typeof users[channel] === 'undefined') {
-      socket.emit('room_not_initialised');
-    } else {
-      socket.emit("joined_room", channel);
-      //socket.emit('initialise', films[channel][0]);
-  	  users[channel][username] = username;
-  	  socket.join(channel);
-      ++num_users[channel];
-      socket.emit('update_chat', 'SERVER', 'Connected to channel ' + channel);
-  	  socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', username + ' has joined the channel');
-      io.sockets.in(socket.channel).emit('update_user_list', users[channel]);
-    }
-   });
-  
-  socket.on('send_message', function(message) {
-	  socket.emit('update_chat', 'You', message);
-  	socket.broadcast.to(socket.channel).emit('update_chat', socket.username, message);
-  });
+  // ************************* //
+  // ******* FILM PAGE ******* //
+  // ************************* //
 
-  socket.on('leave_room', function(username, room) {
-	  socket.leave(room);
-    console.log(username + ' is leaving room ' + room);
-    free_resources(username, room);
-  });
-
-  socket.on('disconnect', function() {
-    console.log(socket.username + ' has disconnected from room ' + socket.channel);
-    free_resources(socket.username, socket.channel);
-  });
-
-  function free_resources(username, channel) {
-    setTimeout(function(){
-    if (typeof username !== 'undefined' && typeof channel !== 'undefined'
-        && typeof users[channel] !== 'undefined') {
-      delete users[channel][username];
-      socket.broadcast.to(channel).emit('update_chat', 'SERVER', username + ' has left the channel');
-      io.sockets.in(channel).emit('update_user_list', users[channel]);
-//      socket.leave(room);
-      --num_users[channel];
-      if (num_users[channel] == 0) {
-        console.log('Tear down room: ' + channel);
-        delete users[channel];
-        delete films[channel];
-        delete query_collection_count[channel];
-        delete request_in_progress[channel];
-        delete query_genres[channel];
-      }
-    }
-   }, 30000);
-  }
-  
   socket.on('choice', function(decision, index, inc) {
     // if statement checks that next film and extra information is ready 
     if (typeof films[socket.channel][index+1] !== 'undefined'
@@ -210,21 +303,69 @@ io.sockets.on('connection', function(socket) {
     } 
   });
  
-  socket.on('go_signal', function(room) {
-    locks[room] = true;
-    io.sockets.in(room).emit('waiting_signal');
-  });
- 
-  socket.on('force_leave_signal', function(room) {
-    console.log('Admin has left room ' + room);
-    socket.broadcast.to(room).emit('force_leave');
-  });
+  // ************************** //
+  // ******* FOUND PAGE ******* //
+  // ************************** //
+
+
+// ************************** //
+// **** USER - FUNCTIONS **** //
+// ************************** //
 
 /**** Deleting a user: DELETE FROM users WHERE username = 'user9';****/
 
-  socket.on('sign_in', function(username, password) {
-    get_user_data(username, password, 'NOTSET', 'NOTSET', sign_in);
-  });
+  function insert_user (username, password, email) {
+    pg.connect(post_database, function(err, client, done) {
+      if(err) {
+        return console.error('error connecting', err);
+      }
+      client.query('INSERT INTO users(username, password, genres, email) values($1,$2,$3,$4);', [username, password, "{}",email], function(err, result) {
+        if(err) {
+          return console.error('error running query', err);
+        }
+        client.end();
+      });
+    });
+  }
+
+  function sign_up(username, password, email, new_password, result){
+    if(result.rows.length != 0 || /^(guest)/.test(username)){
+      socket.emit('user_already_exists', username);
+    } 
+    else
+    {
+      var salt = bcrypt.genSaltSync();
+      var hash = bcrypt.hashSync(password, salt);
+      insert_user(username, hash, email);
+      socket.emit('signed_in', username, email);
+    }
+  }
+
+  function check_old_password(username, password, email, hash, result){
+    if(result.rows.length != 1) {
+      socket.emit('incorrect_input',"No such user");
+    } else if(!bcrypt.compareSync(password,result.rows[0].password)) {
+      socket.emit('incorrect_input', "Incorrect password");
+    }
+    else {
+      insert_new_password(username, hash);
+    }
+  }
+
+  function insert_new_password (username, hash) {
+    pg.connect(post_database, function(err, client, done) {
+      if(err) {
+        return console.error('error connecting', err);
+      }
+      client.query('UPDATE users SET password=$2 WHERE username=$1;', [username,hash], function(err, result) {
+        if(err) {
+          return console.error('error running query', err);
+        }
+        socket.emit('changed_password');
+        client.end();
+      });
+    });
+  }
 
   function sign_in(username, password, email, hash, result){
     if(result.rows.length != 1) {
@@ -256,104 +397,11 @@ io.sockets.on('connection', function(socket) {
     });
   }
 
-  socket.on('change_settings', function(username, genres) {
-    pg.connect(post_database, function(err, client, done) {
-      if(err) {
-        return console.error('error connecting', err);
-      }
-      client.query('UPDATE users SET genres=$2 WHERE username=$1;', [username,genres], function(err, result) {
-        if(err) {
-          return console.error('error running query', err);
-        }
-        client.end();
-      });
-    });
-  });
+// ************************** //
+// **** MOVIE API QUERIES *** //
+// ************************** //
 
-  function check_old_password(username, password, email, hash, result){
-    if(result.rows.length != 1) {
-      socket.emit('incorrect_input',"No such user");
-    } else if(!bcrypt.compareSync(password,result.rows[0].password)) {
-      socket.emit('incorrect_input', "Incorrect password");
-    }
-    else {
-      insert_new_password(username, hash);
-    }
-  }
-
-  function insert_new_password (username, hash) {
-    pg.connect(post_database, function(err, client, done) {
-      if(err) {
-        return console.error('error connecting', err);
-      }
-      client.query('UPDATE users SET password=$2 WHERE username=$1;', [username,hash], function(err, result) {
-        if(err) {
-          return console.error('error running query', err);
-        }
-        socket.emit('changed_password');
-        client.end();
-      });
-    });
-  }
-
-  socket.on('send_email', function(email, username) {
-    var id = 32;
-    email_ids[username] = id;
-    var mailOptions={
-      to : email,
-      subject : 'Password unique id',
-      text : 'ID: ' + id
-    }
-    smtpTransport.sendMail(mailOptions, function(error, response){
-      if(error){
-        console.log(error);
-      }else{
-        console.log("Message sent: " + response.message);
-      }
-    });
-  });
-
-  socket.on('change_password', function(id, username, old_password, new_password) {
-    if (email_ids[username] == id) {
-      var salt = bcrypt.genSaltSync();
-      var hash = bcrypt.hashSync(new_password, salt);
-      get_user_data(username, old_password, 'NOTSET', hash, check_old_password);
-    }
-    else{
-      socket.emit('incorrect_input', "Incorrect unique ID");
-    }
-  });
-
-  function sign_up(username, password, email, new_password, result){
-    if(result.rows.length != 0 || /^(guest)/.test(username)){
-      socket.emit('user_already_exists', username);
-    } 
-    else
-    {
-      var salt = bcrypt.genSaltSync();
-      var hash = bcrypt.hashSync(password, salt);
-      insert_user(username, hash, email);
-      socket.emit('signed_in', username, email);
-    }
-  }
-
-  socket.on('sign_up', function(username, password, email) {
-    get_user_data(username, password, email, 'NOTSET', sign_up);
-  });
-
-function insert_user (username, password, email) {
-  pg.connect(post_database, function(err, client, done) {
-    if(err) {
-      return console.error('error connecting', err);
-    }
-    client.query('INSERT INTO users(username, password, genres, email) values($1,$2,$3,$4);', [username, password, "{}",email], function(err, result) {
-      if(err) {
-        return console.error('error running query', err);
-      }
-      client.end();
-    });
-  });
-}
+// TODO: Henry can you put some of this in another file? Also indentation is wrong. Like passing in callback functions.
 
 // Thriller genre: 'http://api.themoviedb.org/3/genre/53/movies'
 // Base image url: 'http://image.tmdb.org/t/p/w500'
