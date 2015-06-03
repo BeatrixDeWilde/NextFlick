@@ -36,7 +36,9 @@ var users = {};
 var films = [];
 // Stores the number of users currently in a room 
 var num_users = [];
+// Stores the genres to be added to a query for a specific room
 var query_genres = [];
+// Stores how many users have sent off there prefered genres
 var query_collection_count = {};
 /* Stores a boolean for each channel to indicate if there is already a 
    request in progress for the next batch of films (prevents race conditions) */
@@ -45,6 +47,8 @@ var request_in_progress = {};
 var queryDelayBuffer = 10;
 var queryBatchSize = 20; 
 var guest = 0;
+// If a room is already in session (choosing films) a new user cannot join
+// so the rooms lock is set to true
 var locks = {};
 // Stores mappings from email unique ID to username for verification to 
 // change user passwords.
@@ -123,6 +127,11 @@ io.sockets.on('connection', function(socket) {
     setTimeout(function(){
       if (typeof username !== 'undefined' && typeof channel !== 'undefined'
           && typeof users[channel] !== 'undefined') {
+        // If the user is not a quest and has requested a change in 
+        // password delete the unique ID to username mapping
+        if (!/^(guest)/.test(username) && email_ids[username] !== 'undefined'){
+          delete email_ids[username];
+        }
         delete users[channel][username];
         --num_users[channel];
         if (num_users[channel] == 0) {
@@ -206,6 +215,8 @@ io.sockets.on('connection', function(socket) {
   // ***************************** //
 
   socket.on('change_settings', function(username, genres) {
+    // Updates the list of genres relating to a users defualt 
+    // preferences stored in the database
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
@@ -220,13 +231,18 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('send_email', function(email, username) {
+    // TODO: need to store random id
     var id = 32;
+    // Sets the mapping from username to unique ID 
+    // (deleted when user disconnects)
     email_ids[username] = id;
+    // Set up email
     var mailOptions={
       to : email,
       subject : 'Password unique id',
       text : 'ID: ' + id
     }
+    // Send email
     smtpTransport.sendMail(mailOptions, function(error, response){
       if(error){
         console.log(error);
@@ -237,12 +253,16 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('change_password', function(id, username, old_password, new_password) {
+    // Checks that the user has entered the correct unique ID (sent in email)
     if (email_ids[username] == id) {
+      // Encrypts new password
       var salt = bcrypt.genSaltSync();
       var hash = bcrypt.hashSync(new_password, salt);
+      // Checks old password is correct then inserts new hashed password
       get_user_data(username, old_password, 'NOTSET', hash, check_old_password);
     }
     else{
+      // Incorrect unique ID has been entered
       socket.emit('incorrect_input', "Incorrect unique ID");
     }
   });
@@ -252,34 +272,38 @@ io.sockets.on('connection', function(socket) {
   // ************************* //
 
   socket.on('new_room', function() {
-     // TODO: Random Room ID Generator, just using guest for now
-     var channel = guest++;
-     socket.channel = channel;
-     users[channel] = {};
-     num_users[channel] = 0;
-     films[channel] = [];
-     query_genres[channel] = [];
-     query_collection_count[channel] = [];
-     request_in_progress[channel] = false;
-     socket.emit('set_room_id', channel);
+    // Sets up newly created room, with no users
+    // (set_room_id then goes on to add admin to room)
+    // TODO: Random Room ID Generator, just using guest for now
+    var channel = guest++;
+    socket.channel = channel;
+    users[channel] = {};
+    num_users[channel] = 0;
+    films[channel] = [];
+    query_genres[channel] = [];
+    query_collection_count[channel] = [];
+    request_in_progress[channel] = false;
+    // This then calls user_join on client side to add admin to room.
+    socket.emit('set_room_id', channel);
   });
 
   socket.on('user_join', function(username, channel) {
+    // Adds a user to a room
     socket.username = username;
     socket.channel = channel;
     if (locks[channel] == true) {
+      // If a room is already in session (picking films)
       socket.emit('room_is_locked');
     } else if (typeof users[channel] === 'undefined') {
+      // If a room has not been set up yet
       socket.emit('room_not_initialised');
     } else {
-      socket.emit("joined_room", channel);
-      //socket.emit('initialise', films[channel][0]);
+      // Adds user to channel and send them to the lobby page to wait 
       users[channel][username] = username;
       socket.join(channel);
       ++num_users[channel];
-      socket.emit('update_chat', 'SERVER', 'Connected to channel ' + channel);
-      socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', username + ' has joined the channel');
-      io.sockets.in(socket.channel).emit('update_user_list', users[channel]);
+      socket.emit("joined_room", channel);
+      io.sockets.in(socket.channel).emit('update_user_list', users[channel]);    
     }
   });
 
@@ -288,13 +312,15 @@ io.sockets.on('connection', function(socket) {
   // ************************** //
  
   socket.on('user_add_genres', function(genres) {
-     query_genres[socket.channel] = query_genres[socket.channel].concat(genres);
-     ++query_collection_count[socket.channel];
-     if (query_collection_count[socket.channel] >= num_users[socket.channel]) {
-        console.log('All users have voted. Should fire off only once!');
-        //TODO:  request_in_progress[socket.channel] = true; // not sure if need
-        generate_films(socket.channel);
-     } 
+    // Adds the users genres preferences to the rooms 
+    // list of genres to be sent to filter the API query
+    query_genres[socket.channel] = query_genres[socket.channel].concat(genres);
+    ++query_collection_count[socket.channel];
+    if (query_collection_count[socket.channel] >= num_users[socket.channel]) {
+      console.log('All users have voted. Should fire off only once.');
+      //TODO:  request_in_progress[socket.channel] = true; // not sure if need
+      generate_films(socket.channel);
+    }
   });
 
   function generate_films(room) {
@@ -320,28 +346,34 @@ io.sockets.on('connection', function(socket) {
   // ************************* //
 
   socket.on('choice', function(decision, index, inc) {
-    // if statement checks that next film and extra information is ready 
+    // Only responds to choice if there is another film ready
     if (typeof films[socket.channel][index+1] !== 'undefined'
         && typeof films[socket.channel][index+1].shortPlot !== 'undefined'
         && typeof films[socket.channel][index+1].runtime !== 'undefined') {
       if(inc){
+        // If yes increments that films yes count
         films[socket.channel][index].yes_count++;
         console.log(films[socket.channel][index].yes_count + ' vs ' + num_users[socket.channel]);
       }
       if (films[socket.channel][index].yes_count >= num_users[socket.channel]) {
+        // If every user in the channel has said yes to the film then 
+        // take every user to the 'found page' with that film displayed
         io.sockets.in(socket.channel).emit('film_found', films[socket.channel][index]);
+        // Room no longer in session TODO move? delete? Chase
         locks[socket.channel] = false;
       } else {
+        // Go to next film
         index++;
         var message = ' said ' + decision + ' to movie: ' + films[socket.channel][index-1].title;
     	  socket.emit('update_chat', 'You', message);
-      	socket.broadcast.to(socket.channel).emit('update_chat', socket.username, message);
         if (index == (films[socket.channel].length - queryDelayBuffer) 
             && !request_in_progress[socket.channel]) {
-          request_in_progress[socket.channel] = true;
+          // Gets next request if a request is not in progress
+          request_in_progress[socket.channel] = true; // TODO: Henry you never set this to false?
           var nextPage = Math.floor(index / queryBatchSize) + 2;
           add20FilmsByGenre(nextPage, socket.channel, query_genres[socket.channel]);
         }
+        // Send news films to the user with the updated index
         socket.emit('new_films', films[socket.channel][index], index);
       }
     } 
