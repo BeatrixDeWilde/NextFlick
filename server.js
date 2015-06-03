@@ -37,6 +37,7 @@ var request_in_progress = {};
 var queryDelayBuffer = 10;
 var queryBatchSize = 20; 
 var guest = 0;
+// To store whether room is in session
 var locks = {};
 var email_ids = [];
 
@@ -184,10 +185,12 @@ io.sockets.on('connection', function(socket) {
   
   socket.on('choice', function(decision, index, inc) {
     // if statement checks that next film and extra information is ready 
-    if (typeof films[socket.channel][index+1] !== 'undefined'
+    if (typeof films[socket.channel] !== 'undefined'
+        && typeof films[socket.channel][index+1] !== 'undefined'
         && typeof films[socket.channel][index+1].shortPlot !== 'undefined'
-        && typeof films[socket.channel][index+1].runtime !== 'undefined') {
-      if(inc){
+        && typeof films[socket.channel][index+1].runtime !== 'undefined'
+        && films[socket.channel][index+1].valid != null) {
+      if(inc) {
         films[socket.channel][index].yes_count++;
         console.log(films[socket.channel][index].yes_count + ' vs ' + num_users[socket.channel]);
       }
@@ -195,17 +198,24 @@ io.sockets.on('connection', function(socket) {
         io.sockets.in(socket.channel).emit('film_found', films[socket.channel][index]);
         locks[socket.channel] = false;
       } else {
-        index++;
-        var message = ' said ' + decision + ' to movie: ' + films[socket.channel][index-1].title;
-    	  socket.emit('update_chat', 'You', message);
-      	socket.broadcast.to(socket.channel).emit('update_chat', socket.username, message);
-        if (index == (films[socket.channel].length - queryDelayBuffer) 
-            && !request_in_progress[socket.channel]) {
-          request_in_progress[socket.channel] = true;
-          var nextPage = Math.floor(index / queryBatchSize) + 2;
-          add20FilmsByGenre(nextPage, socket.channel, query_genres[socket.channel]);
-        }
+        //var message = ' said ' + decision + ' to movie: ' + films[socket.channel][index-1].title;
+    	  //socket.emit('update_chat', 'You', message);
+      	//socket.broadcast.to(socket.channel).emit('update_chat', socket.username, message);
+
+        do {
+          index++;
+          console.log('Filtering out film at index ' + index);
+          //TODO: Made sure threshold to get next film batch works
+          if (index == (films[socket.channel].length - queryDelayBuffer) 
+              && !request_in_progress[socket.channel]) {
+            request_in_progress[socket.channel] = true;
+            var nextPage = Math.floor(index / queryBatchSize) + 2;
+            add20FilmsByGenre(nextPage, socket.channel, query_genres[socket.channel]);
+          }
+        } while (films[socket.channel][index] == null || !films[socket.channel][index].valid);
+
         socket.emit('new_films', films[socket.channel][index], index);
+        console.log('Showing film with index ' + index);
       }
     } 
   });
@@ -406,12 +416,13 @@ function add20FilmsByGenre(pageNum, channel, genres) {
           /* Update films information by modifying required properties
              and deleting unnecessary ones */
           films[channel][i].poster_path = 'http://image.tmdb.org/t/p/w342' + films[channel][i].poster_path;
+          films[channel][i].valid = null;
+          films[channel][i].yes_count = 0;
           delete films[channel][i].overview;
           delete films[channel][i].backdrop_path;
           delete films[channel][i].video;
           delete films[channel][i].vote_average;
           delete films[channel][i].vote_count;
-          films[channel][i].yes_count = 0;
 
           var filmId = films[channel][i].id;
           // Check if extra film info is in cache
@@ -431,7 +442,7 @@ function add20FilmsByGenre(pageNum, channel, genres) {
                 films[channel][i].metascore = filmInfo.info["Metascore"];
                 films[channel][i].tomatoRating = filmInfo.info["tomatoMeter"];
                 films[channel][i].runtime = filmInfo.info["Runtime"];
-
+                //TODO: call function to filter and set valid attribute
                 if (i == 0) {
                   initFilmPage(channel);
                 }
@@ -496,14 +507,26 @@ function addExtraFilmInfo(film_index, channel) {
                      };
 
         }
-
-        // Add extra film info object to cache
-        filmInfoCache.set(filmId, filmInfo, function(err, success) {
-          if (!err && success) {
-            //console.log('Film ' + films[channel][film_index].title + ' successfully added to cache');
-          }
-        });
+        //TODO: pass in runtime filter param to function
+        //TODO: put in helper function
         
+        // Set valid attribute according to runtime of film
+        var filmRuntimeStrWithMins = filmInfo.info["Runtime"];
+        if (filmRuntimeStrWithMins !== 'N/A') {
+          var runtimeFilter = 90;
+          var filmRuntimeStr = filmRuntimeStrWithMins.replace('min', '');
+          var filmRuntime = parseInt(filmRuntimeStr);
+
+          if (filmRuntime <= runtimeFilter) {
+            films[channel][film_index].valid = true;
+          } else {
+            films[channel][film_index].valid = false;
+          }
+
+        } else {
+          films[channel][film_index].valid = false;
+        }
+
         // Update films with extra film information
         films[channel][film_index].shortPlot = filmInfo.info["Plot"];
         films[channel][film_index].rated = filmInfo.info["Rated"];
@@ -515,6 +538,14 @@ function addExtraFilmInfo(film_index, channel) {
         if (film_index == 0) {
           initFilmPage(channel);
         }
+
+        // Add extra film info object to cache
+        filmInfoCache.set(filmId, filmInfo, function(err, success) {
+          if (!err && success) {
+            //console.log('Film ' + films[channel][film_index].title + ' successfully added to cache');
+          }
+        });
+        
       }
   });
 
