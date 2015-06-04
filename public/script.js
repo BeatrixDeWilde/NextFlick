@@ -4,6 +4,7 @@ var socket = io.connect();
 var username = 'NOTSET';
 var room = 'NOTSET';
 var on_main_page = false;
+var on_film_found_page = false;
 var is_admin = false;
 var user_genres = [];
 var email = 'NOTSET';
@@ -519,6 +520,7 @@ function adjustTitle(){
 
 socket.on('film_found', function(film) {
   on_main_page = false;
+  on_film_found_page = true;
   socket.emit('leave_room', username, room);
   document.getElementById('found_film_title').innerHTML = film.title;
   document.getElementById('found_film_image').src = film.poster_path;
@@ -547,7 +549,14 @@ document.onkeydown = function(e) {
       $('#filmInfoBtn').trigger('click');
       break;
   } 
- }
+ } 
+ if(on_film_found_page){
+  switch(e.keyCode){
+    case 13:
+      $('#film_found_confirm').trigger('click');
+    break;
+  }
+ } 
 };
 
 // ************************** //
@@ -556,6 +565,7 @@ document.onkeydown = function(e) {
 
 $(function(){
   $('#film_found_confirm').click(function() {
+    on_film_found_page = false;
      $('.found_page').hide("slow", function() {
        $('.room_page').fadeIn("slow");
      });
