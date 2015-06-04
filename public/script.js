@@ -37,16 +37,17 @@ var genreList = [
 
 socket.on('update_user_list', function(users) {
   $('#users').empty();
-  $('#main_page_users').empty();
   $.each(users, function(key, value) {
-    if(value == username){
-      $('#users').append('<div><b>' + value+ '</b></div>');
-    }else{
-      $('#users').append('<div>' + value+ '</div>');
-    }
-    $('#main_page_users').append('<div>' + value + '</div>');
+     $('#users').append('<div id='+value.username+'>' + value.username + '</div>');
+        if (value.ready) {
+          set_to_ready(value.username);
+        }
   });
 });
+
+function set_to_ready(username) {
+  $('#'+username).append(' (READY)');
+}
 
 function add_genre_checkboxes(genre_div, id_extension){
   var string = "";
@@ -336,6 +337,7 @@ $(function(){
     });
     is_admin = true;
     $('#go').show();
+    $('#ready').hide();
   });
 
   $('#RoomID').keydown(function(event){
@@ -364,6 +366,9 @@ $(function(){
     }
     document.getElementById('RoomID').value = '';
     $('#go').hide();
+    $('#ready').show();
+    $('#ready').removeAttr("disabled");
+    enable_checkboxes();
   });
   $('#room_page_back').click(function() {
     email = 'NOTSET';
@@ -464,12 +469,31 @@ $(function(){
    $('.lobby_page').fadeOut('fast', function() {
      $('.room_page').fadeIn('fast');
    });
+  $('#ready').removeAttr("disabled");
+  enable_checkboxes();
    if (is_admin) {
      socket.emit('force_leave_signal', room);
      is_admin = false;
    }
  });
+ $('#ready').click(function() {
+   socket.emit('ready_signal', username, room);
+   $('#ready').attr("disabled", true);
+   disable_checkboxes();
+ });
 });
+
+function disable_checkboxes() {
+  $('#genres input[type=checkbox]').each(function() {
+    $(this).attr("disabled",true);
+  });
+}
+
+function enable_checkboxes() {
+  $('#genres input[type=checkbox]').each(function() {
+    $(this).removeAttr("disabled");
+  });
+}
 
 socket.on('waiting_signal', function() {
     var genres = [];
