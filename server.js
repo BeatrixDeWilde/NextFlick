@@ -418,7 +418,8 @@ io.sockets.on('connection', function(socket) {
       if(err) {
         return console.error('error connecting', err);
       }
-      client.query('INSERT INTO popular_films (film_id, poster_url, count) VALUES($1, $2, 0);', [film.id, film.poster_url], function(err, result) {
+      client.query('INSERT INTO popular_films (film_id, poster_url, count, last_time_updated) VALUES($1, $2, 0, $3);',
+                   [film.id, film.poster_path, new Date()], function(err, result) {
         if(err) {
           return console.error('error running query', err);
         }
@@ -428,7 +429,6 @@ io.sockets.on('connection', function(socket) {
   }
 
   function update_film(film, new_count){
-    console.log("Count: " + new_count);
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
