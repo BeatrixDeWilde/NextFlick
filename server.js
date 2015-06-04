@@ -100,6 +100,8 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('leave_room', function(username, room) {
     socket.leave(room);
+    users[room][username].ready = false;
+    
     console.log(username + ' is leaving room ' + room);
     free_resources(username, room);
   });
@@ -110,24 +112,27 @@ io.sockets.on('connection', function(socket) {
   });
 
   function free_resources(username, channel) {
-    setTimeout(function(){
+    socket.broadcast.to(channel).emit('update_chat', 'SERVER', username + ' has left the channel');
+    io.sockets.in(channel).emit('update_user_list', users[channel]);
+    //io.sockets.in(channel).emit('remove_from_user_list', username);
+
       if (typeof username !== 'undefined' && typeof channel !== 'undefined'
           && typeof users[channel] !== 'undefined') {
+        --num_users[channel];
         delete users[channel][username];
         socket.broadcast.to(channel).emit('update_chat', 'SERVER', username + ' has left the channel');
         io.sockets.in(channel).emit('update_user_list', users[channel]);
-        // socket.leave(room);
-        --num_users[channel];
         if (num_users[channel] == 0) {
-          console.log('Tear down room: ' + channel);
-          delete users[channel];
-          delete films[channel];
-          delete query_collection_count[channel];
-          delete request_in_progress[channel];
-          delete query_genres[channel];
+            setTimeout(function() {
+            console.log('Tear down room: ' + channel);
+            delete users[channel];
+            delete films[channel];
+            delete query_collection_count[channel];
+            delete request_in_progress[channel];
+            delete query_genres[channel];
+            }, 30000);
         }
-      }
-    }, 30000);
+    }
   }
 
   // ************************** //
@@ -230,12 +235,14 @@ io.sockets.on('connection', function(socket) {
     } else {
       socket.emit("joined_room", channel);
       //socket.emit('initialise', films[channel][0]);
-      users[channel][username] = username;
+      users[channel][username] = {username:username, ready:false};
       socket.join(channel);
       ++num_users[channel];
       socket.emit('update_chat', 'SERVER', 'Connected to channel ' + channel);
       socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', username + ' has joined the channel');
       io.sockets.in(socket.channel).emit('update_user_list', users[channel]);
+      console.log('Adding: ' +users[channel][username].username);
+  //    io.sockets.in(socket.channel).emit('add_to_user_list', users[channel]);
     }
   });
 
@@ -269,6 +276,12 @@ io.sockets.on('connection', function(socket) {
   socket.on('force_leave_signal', function(room) {
     console.log('Admin has left room ' + room);
     socket.broadcast.to(room).emit('force_leave');
+  });
+
+  socket.on('ready_signal', function(username, room) {
+    console.log(username + ' is ready');
+    users[room][username].ready = true;
+    io.sockets.in(room).emit('update_user_list', users[room]);
   });
 
   // ************************* //
