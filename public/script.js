@@ -431,6 +431,7 @@ socket.on('show_film_page', function(film) {
   reset_checkboxes('#genres');
   $('.lobby_page').hide('fast', function() {
     $('.film_page').fadeIn('slow');
+    adjustTitle();
   });
 });
 
@@ -491,29 +492,30 @@ $(function(){
   });
 });
 
-socket.on('initialise', function(film) {
-  document.getElementById('image').src = film.poster_path;
-  document.getElementById('title').innerHTML = film.title;
-  document.getElementById('plot').innerHTML = film.shortPlot;
-  document.getElementById('runtime').innerHTML = film.runtime;
-  document.getElementById('imdbRating').innerHTML = film.imdbRating;
-});
 
 socket.on('new_films', function(film, new_index) {
   index = new_index;
   $('#chat').append('Changing image! (Index at: ' + index + ') <br>');
   document.getElementById('image').src = film.poster_path;
   document.getElementById('title').innerHTML = film.title;
-  var fontSize = 28;
-  $('#title').css('font-size', fontSize.toString() + 'px');
-  while($('#title').height() >= $('#title_block').height()){
-    fontSize--;
-    $('#title').css('font-size', fontSize.toString() + 'px');
-  }
+  adjustTitle();
   document.getElementById('plot').innerHTML = film.shortPlot;
   document.getElementById('runtime').innerHTML = film.runtime;
   document.getElementById('imdbRating').innerHTML = film.imdbRating;
 });
+
+function adjustTitle(){
+  var fontSize = 29;
+  //$('#title').css('font-size', fontSize.toString() + 'px');
+  do{
+     fontSize--;
+    $('#title').css('font-size', fontSize.toString() + 'px');
+  //  alert("$('#title').height(): " + $('#title').height());
+    //alert("$('#title_block').height(): " +$('#title_block').height());
+  } while($('#title').height() >= $('#title_block').height());
+   
+  //alert("adjustTitle " + fontSize);
+}
 
 socket.on('film_found', function(film) {
   on_main_page = false;
