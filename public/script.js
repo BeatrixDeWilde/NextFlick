@@ -428,8 +428,9 @@ function initialise_film_page(film) {
 
 
 socket.on('show_film_page', function(film) {
-  $('.overlay_message').fadeOut('fast', function(){
-    $('.overlay').fadeOut();
+  $('#room_build_overlay_message').fadeOut('fast', function(){
+    enable_checkboxes();
+    $('#room_build_overlay').fadeOut();
   });
   on_main_page = true;
   //$('#chat').empty();
@@ -453,10 +454,10 @@ $(function(){
    socket.emit('leave_room', username, room);
    reset_checkboxes('#genres');
    $('.lobby_page').fadeOut('fast', function() {
+     enable_checkboxes();
+     $('#ready').removeAttr("disabled");
      $('.room_page').fadeIn('fast');
    });
-  $('#ready').removeAttr("disabled");
-  enable_checkboxes();
    if (is_admin) {
      socket.emit('force_leave_signal', room);
      is_admin = false;
@@ -465,20 +466,17 @@ $(function(){
  $('#ready').click(function() {
    socket.emit('ready_signal', username, room);
    $('#ready').attr("disabled", true);
+   $('#genre_overlay').fadeIn();
    disable_checkboxes();
  });
 });
 
 function disable_checkboxes() {
-  $('#genres input[type=checkbox]').each(function() {
-    $(this).attr("disabled",true);
-  });
+  $('#genre_overlay').fadeIn();
 }
 
 function enable_checkboxes() {
-  $('#genres input[type=checkbox]').each(function() {
-    $(this).removeAttr("disabled");
-  });
+  $('#genre_overlay').hide();
 }
 
 socket.on('waiting_signal', function() {
@@ -491,8 +489,8 @@ socket.on('waiting_signal', function() {
       });
    socket.emit('user_add_genres', genres);
 
-   $('.overlay').fadeIn();
-   $('.overlay_message').show();
+   $('#room_build_overlay').fadeIn();
+   $('#room_build_overlay_message').show();
 });
 
 socket.on('force_leave', function() {

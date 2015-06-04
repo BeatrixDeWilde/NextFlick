@@ -122,6 +122,7 @@ html{
   color: #FFFFFF;
   border-radius:10px;
   padding: 2.5%;
+  position:relative;
 }
 
 /*#users{
@@ -130,15 +131,25 @@ html{
   column-count: 2;
 }*/
 
+#genre_overlay {
+ border: 2px solid #606060;
+ border-radius:10px;
+ position:absolute;
+ z-index:1;
+ background:rgba(70, 69, 69, 0.8);
+ display:none;
+ width:100%;
+ height:100%;
+}
+
 .overlay {
  position:absolute;
  top:0%;
  left:0%;
  width:100%;
  height:100%;
- background:black;
+ background:rgba(0,0,0,0.5);
  z-index:1001;
- opacity:0.5;
  display:none; 
 }
 
@@ -150,22 +161,22 @@ html{
  background-color:#464545;
  z-index:1002;
  overflow:auto;
- width:400px;
- height:200px;
- margin-left:-200px;
- margin-top:-100px;
+ width:300px;
+ height:150px;
+ margin-left:-150px;
+ margin-top:-75px;
  display: none; 
 }
 
 .overlay_message_text {
   color: #FFFFFF;
   margin: 0;
-  font-size:200%;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    margin-right: -50%;
-    transform: translate(-50%, -50%);
+  font-size:150%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-right: -50%;
+  transform: translate(-50%, -50%);
 }
 
 .spinner {
@@ -177,7 +188,7 @@ html{
 .spinner > div {
   width: 18px;
   height: 18px;
-  background-color: #606060;
+  background-color: #00bc8c; /*#606060;*/
 
   border-radius: 100%;
   display: inline-block;

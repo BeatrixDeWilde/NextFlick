@@ -14,8 +14,8 @@
     
   </head>
   <body>
-    <div class="overlay"></div>
-    <div class="overlay_message">
+    <div id="room_build_overlay" class="overlay"></div>
+    <div id="room_build_overlay_message" class="overlay_message">
          <div class="overlay_message_text">Building Room
             <div class="spinner">
                 <div class="bounce1"></div>
@@ -251,7 +251,17 @@
               </div>
               <br>
               <form role="form">
-                <div id="genres" class="genres"> 
+                <div id="genres" class="genres">
+                 <div id="genre_overlay" class="overlay">
+                    <div class="overlay_message_text">Waiting for Host...
+                      <div class="spinner">
+                       <div class="bounce1"></div>
+                       <div class="bounce2"></div>
+                       <div class="bounce3"></div>
+                    </div>
+                  </div>
+               </div>
+
                 </div>
               </form>
               <br>
