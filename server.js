@@ -109,6 +109,8 @@ io.sockets.on('connection', function(socket) {
     // Called when a user leaves a room (via button), free resources 
     // should tear down the room if username is the last user
     socket.leave(room);
+    users[room][username].ready = false;
+    
     console.log(username + ' is leaving room ' + room);
     free_resources(username, room);
   });
@@ -121,31 +123,30 @@ io.sockets.on('connection', function(socket) {
   });
 
   function free_resources(username, channel) {
-    // After time out deletes the user from the room, 
-    // decrements the number of users in the room and 
-    // then tears down if username is the last user
-    setTimeout(function(){
+    
       if (typeof username !== 'undefined' && typeof channel !== 'undefined'
           && typeof users[channel] !== 'undefined') {
+        delete users[channel][username];
+        io.sockets.in(channel).emit('update_user_list', users[channel]);
+         
         // If the user is not a quest and has requested a change in 
         // password delete the unique ID to username mapping
         if (!/^(guest)/.test(username) && email_ids[username] !== 'undefined'){
           delete email_ids[username];
         }
-        delete users[channel][username];
-        io.sockets.in(channel).emit('update_user_list', users[channel]);
         --num_users[channel];
+        // If all users have left, tear down the room after 30 secs
         if (num_users[channel] == 0) {
-          // Tear down room.
-          console.log('Tear down room: ' + channel);
-          delete users[channel];
-          delete films[channel];
-          delete query_collection_count[channel];
-          delete request_in_progress[channel];
-          delete query_genres[channel];
+            setTimeout(function() {
+            console.log('Tear down room: ' + channel);
+            delete users[channel];
+            delete films[channel];
+            delete query_collection_count[channel];
+            delete request_in_progress[channel];
+            delete query_genres[channel];
+            }, 30000);
         }
-      }
-    }, 30000);
+    }
   }
 
   // ************************** //
@@ -300,12 +301,12 @@ io.sockets.on('connection', function(socket) {
       socket.emit('room_not_initialised');
     } else {
       // Adds user to channel and send them to the lobby page to wait 
-      users[channel][username] = username;
+      users[channel][username] = {username:username, ready:false};
       socket.join(channel);
       ++num_users[channel];
-      socket.emit("joined_room", channel);
-      io.sockets.in(socket.channel).emit('update_user_list', users[channel]);    
-    }
+      socket.emit('joined_room', channel);
+      io.sockets.in(socket.channel).emit('update_user_list', users[channel]);
+     }
   });
 
   socket.on('get_popular_films', function(){
@@ -357,6 +358,12 @@ io.sockets.on('connection', function(socket) {
   socket.on('force_leave_signal', function(room) {
     console.log('Admin has left room ' + room);
     socket.broadcast.to(room).emit('force_leave');
+  });
+
+  socket.on('ready_signal', function(username, room) {
+    console.log(username + ' is ready');
+    users[room][username].ready = true;
+    io.sockets.in(room).emit('update_user_list', users[room]);
   });
 
   // ************************* //

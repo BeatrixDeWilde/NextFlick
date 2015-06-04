@@ -4,8 +4,9 @@
     <link rel="stylesheet" type="text/css" href="style.css">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <script src="/socket.io/socket.io.js"></script>
-    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"
-    >
+   <!-- <script src="http://hammerjs.github.io/dist/hammer.min.js"></script>-->
+   <script src="http://hammerjs.github.io/dist/hammer.js"></script>
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="awesome-bootstrap-checkbox.css">
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
@@ -14,8 +15,8 @@
     
   </head>
   <body>
-    <div class="overlay"></div>
-    <div class="overlay_message">
+    <div id="room_build_overlay" class="overlay"></div>
+    <div id="room_build_overlay_message" class="overlay_message">
          <div class="overlay_message_text">Building Room
             <div class="spinner">
                 <div class="bounce1"></div>
@@ -251,11 +252,22 @@
               </div>
               <br>
               <form role="form">
-                <div id="genres" class="genres"> 
+                <div id="genres" class="genres">
+                 <div id="genre_overlay" class="overlay">
+                    <div class="overlay_message_text">Waiting for Host...
+                      <div class="spinner">
+                       <div class="bounce1"></div>
+                       <div class="bounce2"></div>
+                       <div class="bounce3"></div>
+                    </div>
+                  </div>
+               </div>
+
                 </div>
               </form>
               <br>
               <button type="button" id="go" class="btn my_btn">Go</button>
+              <button type="button" id="ready" class="btn my_btn">Ready</button>
               <button type="button" id="lobby_page_back" class="btn my_btn">Leave Room</button>
               <br>
               <br>

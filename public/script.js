@@ -4,6 +4,7 @@ var socket = io.connect();
 var username = 'NOTSET';
 var room = 'NOTSET';
 var on_main_page = false;
+var on_film_found_page = false;
 var is_admin = false;
 var user_genres = [];
 var email = 'NOTSET';
@@ -36,16 +37,17 @@ var genreList = [
 
 socket.on('update_user_list', function(users) {
   $('#users').empty();
-  $('#main_page_users').empty();
   $.each(users, function(key, value) {
-    if(value == username){
-      $('#users').append('<div><b>' + value+ '</b></div>');
-    }else{
-      $('#users').append('<div>' + value+ '</div>');
-    }
-    $('#main_page_users').append('<div>' + value + '</div>');
+     $('#users').append('<div id='+value.username+'>' + value.username + '</div>');
+        if (value.ready) {
+          set_to_ready(value.username);
+        }
   });
 });
+
+function set_to_ready(username) {
+  $('#'+username).append(' (READY)');
+}
 
 function add_genre_checkboxes(genre_div, id_extension){
   var string = "";
@@ -331,6 +333,7 @@ $(function(){
     socket.emit('new_room');
     is_admin = true;
     $('#go').show();
+    $('#ready').hide();
   });
 
   $('#RoomID').keydown(function(event){
@@ -359,6 +362,9 @@ $(function(){
     }
     document.getElementById('RoomID').value = '';
     $('#go').hide();
+    $('#ready').show();
+    $('#ready').removeAttr("disabled");
+    enable_checkboxes();
   });
   $('#room_page_back').click(function() {
     email = 'NOTSET';
@@ -469,12 +475,16 @@ function initialise_film_page(film) {
   document.getElementById('plot').innerHTML = film.shortPlot;
   document.getElementById('runtime').innerHTML = film.runtime;
   document.getElementById('imdbRating').innerHTML = film.imdbRating;
+  $("img").on("dragstart", function(event){
+    event.preventDefault();
+  });
 }
 
 
 socket.on('show_film_page', function(film) {
-  $('.overlay_message').fadeOut('fast', function(){
-    $('.overlay').fadeOut();
+  $('#room_build_overlay_message').fadeOut('fast', function(){
+    enable_checkboxes();
+    $('#room_build_overlay').fadeOut();
   });
   on_main_page = true;
   //$('#chat').empty();
@@ -483,6 +493,17 @@ socket.on('show_film_page', function(film) {
   $('.lobby_page').hide('fast', function() {
     $('.film_page').fadeIn('slow');
     adjustTitle();
+    var my_image = document.getElementById('image');
+    var touch_input = new Hammer(my_image);
+    touch_input.get('swipe').set({velocity:0.1, threshold: 3});
+    touch_input.on("swipeleft", function(){
+      socket.emit('choice', "no", index, false);
+    });
+
+    touch_input.on("swiperight", function(){
+      socket.emit('choice', "yes", index, true);
+    });
+
   });
 });
 
@@ -498,6 +519,8 @@ $(function(){
    socket.emit('leave_room', username, room);
    reset_checkboxes('#genres');
    $('.lobby_page').fadeOut('fast', function() {
+     enable_checkboxes();
+     $('#ready').removeAttr("disabled");
      $('.room_page').fadeIn('fast');
    });
    if (is_admin) {
@@ -505,7 +528,21 @@ $(function(){
      is_admin = false;
    }
  });
+ $('#ready').click(function() {
+   socket.emit('ready_signal', username, room);
+   $('#ready').attr("disabled", true);
+   $('#genre_overlay').fadeIn();
+   disable_checkboxes();
+ });
 });
+
+function disable_checkboxes() {
+  $('#genre_overlay').fadeIn();
+}
+
+function enable_checkboxes() {
+  $('#genre_overlay').hide();
+}
 
 socket.on('waiting_signal', function() {
     var genres = [];
@@ -517,8 +554,8 @@ socket.on('waiting_signal', function() {
       });
    socket.emit('user_add_genres', genres);
 
-   $('.overlay').fadeIn();
-   $('.overlay_message').show();
+   $('#room_build_overlay').fadeIn();
+   $('#room_build_overlay_message').show();
 });
 
 socket.on('force_leave', function() {
@@ -570,6 +607,7 @@ function adjustTitle(){
 
 socket.on('film_found', function(film) {
   on_main_page = false;
+  on_film_found_page = true;
   socket.emit('leave_room', username, room);
   document.getElementById('found_film_title').innerHTML = film.title;
   document.getElementById('found_film_image').src = film.poster_path;
@@ -598,8 +636,19 @@ document.onkeydown = function(e) {
       $('#filmInfoBtn').trigger('click');
       break;
   } 
- }
+ } 
+ if(on_film_found_page){
+  switch(e.keyCode){
+    case 13:
+      $('#film_found_confirm').trigger('click');
+    break;
+  }
+ } 
 };
+
+
+
+
 
 // ************************** //
 // ******* FOUND PAGE ******* //
@@ -607,6 +656,7 @@ document.onkeydown = function(e) {
 
 $(function(){
   $('#film_found_confirm').click(function() {
+    on_film_found_page = false;
      $('.found_page').hide("slow", function() {
        $('.room_page').fadeIn("slow");
      });
