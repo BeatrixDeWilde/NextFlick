@@ -30,10 +30,15 @@ var smtpTransport = nodemailer.createTransport("SMTP",{
 
 server.listen(port);
 
+// Stores the users currently in a room.
 var users = {};
+// Stores the films currently stored for a specific room
 var films = [];
+// Stores the number of users currently in a room 
 var num_users = [];
+// Stores the genres to be added to a query for a specific room
 var query_genres = [];
+// Stores how many users have sent off there prefered genres
 var query_collection_count = {};
 /* Stores a boolean for each channel to indicate if there is already a 
    request in progress for the next batch of films (prevents race conditions) */
@@ -42,6 +47,8 @@ var request_in_progress = {};
 var queryDelayBuffer = 10;
 var queryBatchSize = 20; 
 var guest = 0;
+// If a room is already in session (choosing films) a new user cannot join
+// so the rooms lock is set to true
 var locks = {};
 // Stores mappings from email unique ID to username for verification to 
 // change user passwords.
@@ -87,7 +94,7 @@ io.sockets.on('connection', function(socket) {
 
   console.log('Obtained connection');
 
-  // Not called
+  // Not called ?
   socket.on('generate_films', function(room, genres) {
     console.log('DEPRECATED: socket on generate_films');
     query_genres[room] = genres;
@@ -99,6 +106,8 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('leave_room', function(username, room) {
+    // Called when a user leaves a room (via button), free resources 
+    // should tear down the room if username is the last user
     socket.leave(room);
     users[room][username].ready = false;
     
@@ -107,21 +116,26 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('disconnect', function() {
+    // Called when a user leaves a room (via disconnect), free resources 
+    // should tear down the room if username is the last user
     console.log(socket.username + ' has disconnected from room ' + socket.channel);
     free_resources(socket.username, socket.channel);
   });
 
   function free_resources(username, channel) {
-    socket.broadcast.to(channel).emit('update_chat', 'SERVER', username + ' has left the channel');
-    io.sockets.in(channel).emit('update_user_list', users[channel]);
-    //io.sockets.in(channel).emit('remove_from_user_list', username);
-
+    
       if (typeof username !== 'undefined' && typeof channel !== 'undefined'
           && typeof users[channel] !== 'undefined') {
-        --num_users[channel];
         delete users[channel][username];
-        socket.broadcast.to(channel).emit('update_chat', 'SERVER', username + ' has left the channel');
         io.sockets.in(channel).emit('update_user_list', users[channel]);
+         
+        // If the user is not a quest and has requested a change in 
+        // password delete the unique ID to username mapping
+        if (!/^(guest)/.test(username) && email_ids[username] !== 'undefined'){
+          delete email_ids[username];
+        }
+        --num_users[channel];
+        // If all users have left, tear down the room after 30 secs
         if (num_users[channel] == 0) {
             setTimeout(function() {
             console.log('Tear down room: ' + channel);
@@ -140,10 +154,11 @@ io.sockets.on('connection', function(socket) {
   // ************************** //
 
   socket.on('get_guest_id', function() {
-   var username = 'guest';
-   guest++;
-   username += guest;
-   socket.emit('set_username', username);
+    // TODO: random guest id?
+    guest++;
+    // Gets an unused guest id then calls set username 
+    // so the client can get and set this username
+   socket.emit('set_username', 'guest' + guest);
   });
 
   // ************************** //
@@ -151,22 +166,59 @@ io.sockets.on('connection', function(socket) {
   // ************************** //
 
   socket.on('sign_in', function(username, password) {
+    // Gets the row corresponding to username then calls sign in with this row
     get_user_data(username, password, 'NOTSET', 'NOTSET', sign_in);
   });
+
+  function sign_in(username, password, email, hash, result){
+    // Report error if user does not exist
+    if(result.rows.length != 1) {
+      socket.emit('incorrect_login',"No such user", false);
+      return;
+    }
+    // Report error if the password is incorrect
+    if(!bcrypt.compareSync(password,result.rows[0].password)) {
+      socket.emit('incorrect_login', "Incorrect password",true);
+      return;
+    }
+    // Correct password entered -> sign in
+    console.log("User " + username + " chosen genres " + result.rows[0].genres);
+    socket.emit('correct_login',username, result.rows[0].genres, result.rows[0].email);
+  }
 
   // **************************** //
   // ******* SIGN UP PAGE ******* //
   // **************************** //
 
   socket.on('sign_up', function(username, password, email) {
+    // Gets the row corresponding to username then calls sign up with this row
     get_user_data(username, password, email, 'NOTSET', sign_up);
   });
+
+
+  function sign_up(username, password, email, new_password, result){
+    // If a user with the same username has been found or the 
+    // username includes the word guest report an error to client
+    if(result.rows.length != 0 || /^(guest)/.test(username)){
+      socket.emit('user_already_exists', username);
+    } 
+    else
+    {
+      // Gets salt and hashes the password to be stored in the database
+      var salt = bcrypt.genSaltSync();
+      var hash = bcrypt.hashSync(password, salt);
+      insert_user(username, hash, email);
+      socket.emit('signed_in', username, email);
+    }
+  }
 
   // ***************************** //
   // ******* SETTINGS PAGE ******* //
   // ***************************** //
 
   socket.on('change_settings', function(username, genres) {
+    // Updates the list of genres relating to a users defualt 
+    // preferences stored in the database
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
@@ -181,13 +233,18 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('send_email', function(email, username) {
+    // TODO: need to store random id
     var id = 32;
+    // Sets the mapping from username to unique ID 
+    // (deleted when user disconnects)
     email_ids[username] = id;
+    // Set up email
     var mailOptions={
       to : email,
       subject : 'Password unique id',
       text : 'ID: ' + id
     }
+    // Send email
     smtpTransport.sendMail(mailOptions, function(error, response){
       if(error){
         console.log(error);
@@ -198,12 +255,16 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('change_password', function(id, username, old_password, new_password) {
+    // Checks that the user has entered the correct unique ID (sent in email)
     if (email_ids[username] == id) {
+      // Encrypts new password
       var salt = bcrypt.genSaltSync();
       var hash = bcrypt.hashSync(new_password, salt);
+      // Checks old password is correct then inserts new hashed password
       get_user_data(username, old_password, 'NOTSET', hash, check_old_password);
     }
     else{
+      // Incorrect unique ID has been entered
       socket.emit('incorrect_input', "Incorrect unique ID");
     }
   });
@@ -213,37 +274,39 @@ io.sockets.on('connection', function(socket) {
   // ************************* //
 
   socket.on('new_room', function() {
-     // TODO: Random Room ID Generator, just using guest for now
-     var channel = guest++;
-     socket.channel = channel;
-     users[channel] = {};
-     num_users[channel] = 0;
-     films[channel] = [];
-     query_genres[channel] = [];
-     query_collection_count[channel] = [];
-     request_in_progress[channel] = false;
-     socket.emit('set_room_id', channel);
+    // Sets up newly created room, with no users
+    // (set_room_id then goes on to add admin to room)
+    // TODO: Random Room ID Generator, just using guest for now
+    var channel = guest++;
+    socket.channel = channel;
+    users[channel] = {};
+    num_users[channel] = 0;
+    films[channel] = [];
+    query_genres[channel] = [];
+    query_collection_count[channel] = [];
+    request_in_progress[channel] = false;
+    // This then calls user_join on client side to add admin to room.
+    socket.emit('set_room_id', channel);
   });
 
   socket.on('user_join', function(username, channel) {
+    // Adds a user to a room
     socket.username = username;
     socket.channel = channel;
     if (locks[channel] == true) {
+      // If a room is already in session (picking films)
       socket.emit('room_is_locked');
     } else if (typeof users[channel] === 'undefined') {
+      // If a room has not been set up yet
       socket.emit('room_not_initialised');
     } else {
-      socket.emit("joined_room", channel);
-      //socket.emit('initialise', films[channel][0]);
+      // Adds user to channel and send them to the lobby page to wait 
       users[channel][username] = {username:username, ready:false};
       socket.join(channel);
       ++num_users[channel];
-      socket.emit('update_chat', 'SERVER', 'Connected to channel ' + channel);
-      socket.broadcast.to(socket.channel).emit('update_chat', 'SERVER', username + ' has joined the channel');
+      socket.emit('joined_room', channel);
       io.sockets.in(socket.channel).emit('update_user_list', users[channel]);
-      console.log('Adding: ' +users[channel][username].username);
-  //    io.sockets.in(socket.channel).emit('add_to_user_list', users[channel]);
-    }
+     }
   });
 
   // ************************** //
@@ -251,13 +314,15 @@ io.sockets.on('connection', function(socket) {
   // ************************** //
  
   socket.on('user_add_genres', function(genres) {
-     query_genres[socket.channel] = query_genres[socket.channel].concat(genres);
-     ++query_collection_count[socket.channel];
-     if (query_collection_count[socket.channel] >= num_users[socket.channel]) {
-        console.log('All users have voted. Should fire off only once!');
-        //TODO:  request_in_progress[socket.channel] = true; // not sure if need
-        generate_films(socket.channel);
-     } 
+    // Adds the users genres preferences to the rooms 
+    // list of genres to be sent to filter the API query
+    query_genres[socket.channel] = query_genres[socket.channel].concat(genres);
+    ++query_collection_count[socket.channel];
+    if (query_collection_count[socket.channel] >= num_users[socket.channel]) {
+      console.log('All users have voted. Should fire off only once.');
+      //TODO:  request_in_progress[socket.channel] = true; // not sure if need
+      generate_films(socket.channel);
+    }
   });
 
   function generate_films(room) {
@@ -289,32 +354,100 @@ io.sockets.on('connection', function(socket) {
   // ************************* //
 
   socket.on('choice', function(decision, index, inc) {
-    // if statement checks that next film and extra information is ready 
+    // Only responds to choice if there is another film ready
     if (typeof films[socket.channel][index+1] !== 'undefined'
         && typeof films[socket.channel][index+1].shortPlot !== 'undefined'
         && typeof films[socket.channel][index+1].runtime !== 'undefined') {
       if(inc){
+        // If yes increments that films yes count
         films[socket.channel][index].yes_count++;
         console.log(films[socket.channel][index].yes_count + ' vs ' + num_users[socket.channel]);
       }
       if (films[socket.channel][index].yes_count >= num_users[socket.channel]) {
+        film_found(films[socket.channel][index]);
+        // If every user in the channel has said yes to the film then 
+        // take every user to the 'found page' with that film displayed
         io.sockets.in(socket.channel).emit('film_found', films[socket.channel][index]);
+        // Room no longer in session TODO move? delete? Chase
         locks[socket.channel] = false;
       } else {
+        // Go to next film
         index++;
         var message = ' said ' + decision + ' to movie: ' + films[socket.channel][index-1].title;
     	  socket.emit('update_chat', 'You', message);
-      	socket.broadcast.to(socket.channel).emit('update_chat', socket.username, message);
         if (index == (films[socket.channel].length - queryDelayBuffer) 
             && !request_in_progress[socket.channel]) {
-          request_in_progress[socket.channel] = true;
+          // Gets next request if a request is not in progress
+          request_in_progress[socket.channel] = true; // TODO: Henry you never set this to false?
           var nextPage = Math.floor(index / queryBatchSize) + 2;
           add20FilmsByGenre(nextPage, socket.channel, query_genres[socket.channel]);
         }
+        // Send news films to the user with the updated index
         socket.emit('new_films', films[socket.channel][index], index);
       }
     } 
   });
+
+  function film_found(film){
+    // Updates popular films database with new film found
+    get_film(film);
+    // Checks the size of the list - if it is beyond a limit remove all old entries (by last updated)
+  }
+
+  function get_film(film){
+    // Given a film ID 
+    //    if an entry exists in popular films -> update
+    //    if no entry exists -> insert
+    pg.connect(post_database, function(err, client, done) {
+      if(err) {
+        return console.error('error connecting', err);
+      }
+    console.log('film.id: ' + film.id);
+
+      client.query('SELECT * FROM popular_films WHERE film_id = $1;', [film.id], function(err, result) {
+        if(err) {
+          return console.error('error running query', err);
+        }
+        if (result.rows.length == 0) {
+          insert_film(film);
+        }
+        else {
+          console.log("Updating film");
+          update_film(film, result.rows[0].count + 1);
+        }
+        client.end();
+      });
+    });
+  }
+
+  function insert_film(film){
+    pg.connect(post_database, function(err, client, done) {
+      if(err) {
+        return console.error('error connecting', err);
+      }
+      client.query('INSERT INTO popular_films (film_id, poster_url, count, last_time_updated) VALUES($1, $2, 0, $3);',
+                   [film.id, film.poster_path, new Date()], function(err, result) {
+        if(err) {
+          return console.error('error running query', err);
+        }
+        client.end();
+      });
+    });
+  }
+
+  function update_film(film, new_count){
+    pg.connect(post_database, function(err, client, done) {
+      if(err) {
+        return console.error('error connecting', err);
+      }
+      client.query('UPDATE popular_films SET count=$2 WHERE film_id=$1;', [film.id, new_count], function(err, result) {
+        if(err) {
+          return console.error('error running query', err);
+        }
+        client.end();
+      });
+    });
+  }
  
   // ************************** //
   // ******* FOUND PAGE ******* //
@@ -327,7 +460,41 @@ io.sockets.on('connection', function(socket) {
 
 /**** Deleting a user: DELETE FROM users WHERE username = 'user9';****/
 
+
+  function check_old_password(username, password, email, hash, result){
+    // If the user does not exist report error
+    if(result.rows.length != 1) {
+      socket.emit('incorrect_input',"No such user");
+      return;
+    }
+    // If the password does not match the one in the database report error
+    if(!bcrypt.compareSync(password,result.rows[0].password)) {
+      socket.emit('incorrect_input', "Incorrect password");
+      return;
+    }
+    // Old password is correct so change password
+    update_password(username, hash);
+  }
+
+  function update_password (username, hash) {
+    // Change user password in database
+    pg.connect(post_database, function(err, client, done) {
+      if(err) {
+        return console.error('error connecting', err);
+      }
+      client.query('UPDATE users SET password=$2 WHERE username=$1;', [username,hash], function(err, result) {
+        if(err) {
+          return console.error('error running query', err);
+        }
+        console.log("Changed password of user: " + username);
+        socket.emit('changed_password');
+        client.end();
+      });
+    });
+  }
+
   function insert_user (username, password, email) {
+    // Inserts a new column into the database for the new user
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
@@ -341,60 +508,9 @@ io.sockets.on('connection', function(socket) {
     });
   }
 
-  function sign_up(username, password, email, new_password, result){
-    if(result.rows.length != 0 || /^(guest)/.test(username)){
-      socket.emit('user_already_exists', username);
-    } 
-    else
-    {
-      var salt = bcrypt.genSaltSync();
-      var hash = bcrypt.hashSync(password, salt);
-      insert_user(username, hash, email);
-      socket.emit('signed_in', username, email);
-    }
-  }
-
-  function check_old_password(username, password, email, hash, result){
-    if(result.rows.length != 1) {
-      socket.emit('incorrect_input',"No such user");
-    } else if(!bcrypt.compareSync(password,result.rows[0].password)) {
-      socket.emit('incorrect_input', "Incorrect password");
-    }
-    else {
-      insert_new_password(username, hash);
-    }
-  }
-
-  function insert_new_password (username, hash) {
-    pg.connect(post_database, function(err, client, done) {
-      if(err) {
-        return console.error('error connecting', err);
-      }
-      client.query('UPDATE users SET password=$2 WHERE username=$1;', [username,hash], function(err, result) {
-        if(err) {
-          return console.error('error running query', err);
-        }
-        socket.emit('changed_password');
-        client.end();
-      });
-    });
-  }
-
-  function sign_in(username, password, email, hash, result){
-    if(result.rows.length != 1) {
-      socket.emit('incorrect_login',"No such user", false);
-      return;
-    }
-    if(!bcrypt.compareSync(password,result.rows[0].password)) {
-      socket.emit('incorrect_login', "Incorrect password",true);
-    }
-    else {
-      console.log("User " + username + " chosen genres " + result.rows[0].genres);
-      socket.emit('correct_login',username, result.rows[0].genres, result.rows[0].email);
-    }
-  }
-
   function get_user_data(username, password, email, hash, func){
+    // Gets the data about the user matching username and 
+    // then calls func with this data (result)
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
@@ -414,7 +530,8 @@ io.sockets.on('connection', function(socket) {
 // **** MOVIE API QUERIES *** //
 // ************************** //
 
-// TODO: Henry can you put some of this in another file? Also indentation is wrong. Like passing in callback functions.
+// TODO: Henry can you put some of this in another file? 
+// Also indentation is wrong. Like passing in callback functions.
 
 // Thriller genre: 'http://api.themoviedb.org/3/genre/53/movies'
 // Base image url: 'http://image.tmdb.org/t/p/w500'
