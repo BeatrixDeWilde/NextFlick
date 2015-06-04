@@ -329,10 +329,6 @@ function change_settings_view(){
 $(function(){
   $('#create').click(function() {
     socket.emit('new_room');
-    set_genre_checkboxes('');
-    $('.room_page').fadeOut('fast', function() {
-      $('.lobby_page').fadeIn('fast');
-    });
     is_admin = true;
     $('#go').show();
   });
@@ -397,20 +393,75 @@ socket.on("joined_room", function(channel){
   document.getElementById('myRoom').innerHTML = '<b> Your Room:</b> ' + room + '<br>';
   document.getElementById('lobby_page_username').innerHTML 
     = '<b> Username</b>: ' + username;
-  set_genre_checkboxes('');
-  $('.room_page').fadeOut('fast', function() {  
+  set_up_lobby_page();
+  $('.room_page').fadeOut('fast', function() {
     $('.lobby_page').show();
   });
 });
 
 socket.on('set_room_id', function(channel) {
-    room = channel;
-    socket.emit('user_join', username, room);
+  room = channel;
+  socket.emit('user_join', username, room);
 });
+
+function set_up_lobby_page() {
+  socket.emit('get_popular_films');
+  set_genre_checkboxes('');
+}
+
+socket.on('popular_films', function(popular_films){
+  $.each(popular_films, function(index, film){
+    $("#popular_film_list").append('<li><img src="' + film.poster_url + '" width="250" height="300 " /></li>');
+  });
+  scroll_films();
+});
+
+// Scrolling films:
+function scroll_films(){
+    var list_popular_films = $('#poster_scroller div.list_for_scroller');
+    var width_of_viewing_area = list_popular_films.width();
+    // Gets all the list elements in the list
+    var popular_films = list_popular_films.children('ul');
+    // Duplicates the list and adds it on the end
+    popular_films.children().clone().appendTo(popular_films);
+    var displacement = 0;
+    popular_films.children().each(function(){
+        // Sets the film posters displacement in the reel
+        $(this).css('left', displacement);
+        // Adds to current displacement another film image width 
+        displacement += $(this).find('img').width();
+    });
+    // End of displacement so total length of reel
+    var total_width_of_reel_of_films = displacement;
+    var cont = {current_speed:0, full_speed:2};
+    var $cont = $(cont);
+    var set_new_speed = function(new_speed, time_length)
+    {
+        if (time_length === undefined){
+          time_length = 600;
+        }
+        $cont.stop(true).animate({current_speed:new_speed}, time_length);
+    };
+    // Means it increments placement until the end of
+    // the reel of two films then goes back to the beginning of the reel
+    var scroll = function()
+    {
+        var current_placement = list_popular_films.scrollLeft();
+        var new_placement = current_placement + cont.current_speed;
+        // If at the end of the reel
+        if (new_placement > total_width_of_reel_of_films - width_of_viewing_area){
+          new_placement -= total_width_of_reel_of_films/2;
+        }
+        list_popular_films.scrollLeft(new_placement);
+    };
+    setInterval(scroll, 20);
+    set_new_speed(cont.full_speed);
+}
 
 // ************************** //
 // ******* LOBBY PAGE ******* //
 // ************************** //
+
 
 function initialise_film_page(film) {
   document.getElementById('image').src = film.poster_path;

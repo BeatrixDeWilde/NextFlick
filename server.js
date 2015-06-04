@@ -308,6 +308,23 @@ io.sockets.on('connection', function(socket) {
     }
   });
 
+  socket.on('get_popular_films', function(){
+    // Gets the 10 (limit) most popular films
+    var limit = 10;
+    pg.connect(post_database, function(err, client, done) {
+      if(err) {
+        return console.error('error connecting', err);
+      }
+      client.query('SELECT poster_url FROM popular_films ORDER BY last_time_updated LIMIT $1;', [limit], function(err, result) {
+        if(err) {
+          return console.error('error running query', err);
+        }
+        socket.emit('popular_films', result.rows);
+        client.end();
+      });
+    });
+  });
+
   // ************************** //
   // ******* LOBBY PAGE ******* //
   // ************************** //
@@ -390,14 +407,12 @@ io.sockets.on('connection', function(socket) {
   function get_film(film){
     // Given a film ID 
     //    if an entry exists in popular films -> update
-    //    if no entry exists -> insert
+    //    if no entry exists                  -> insert
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
-    console.log('film.id: ' + film.id);
-
-      client.query('SELECT * FROM popular_films WHERE film_id = $1;', [film.id], function(err, result) {
+      client.query('SELECT count FROM popular_films WHERE film_id = $1;', [film.id], function(err, result) {
         if(err) {
           return console.error('error running query', err);
         }
@@ -414,11 +429,12 @@ io.sockets.on('connection', function(socket) {
   }
 
   function insert_film(film){
+    // Puts the film in the popular films database -> intial count of 1 
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
-      client.query('INSERT INTO popular_films (film_id, poster_url, count, last_time_updated) VALUES($1, $2, 0, $3);',
+      client.query('INSERT INTO popular_films (film_id, poster_url, count, last_time_updated) VALUES($1, $2, 1, $3);',
                    [film.id, film.poster_path, new Date()], function(err, result) {
         if(err) {
           return console.error('error running query', err);
@@ -429,6 +445,7 @@ io.sockets.on('connection', function(socket) {
   }
 
   function update_film(film, new_count){
+    // Updates the row to have the new incremented counts
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);

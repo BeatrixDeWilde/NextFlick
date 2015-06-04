@@ -57,6 +57,29 @@ html{
   box-shadow:inset  0 2px 0 rgba(100,100,100,0.5);
 }
 
+#poster_scroller {
+  position: relative;
+}
+#poster_scroller .list_for_scroller {
+  left: 0;
+  right: 0;
+  overflow: hidden;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 250px;
+}
+#poster_scroller ul {
+  padding: 0;
+  position: relative;
+  margin: 0;
+}
+#poster_scroller li {  
+  padding: 0;
+  list-style-type: none;
+  margin: 0;
+  position: absolute;
+}
 
 .my_btn{
   color: #FFFFFF;
