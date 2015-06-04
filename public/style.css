@@ -120,11 +120,6 @@ html{
 .genres{
   background-color: #606060;
   color: #FFFFFF;
-  -webkit-column-count: 2;
-  -moz-column-count: 2;
-  column-count: 2;
- /* border-style: solid;
-  border-color: #FFFFFF; */
   border-radius:10px;
   padding: 2.5%;
 }
