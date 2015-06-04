@@ -438,6 +438,7 @@ socket.on('show_film_page', function(film) {
     adjustTitle();
     var my_image = document.getElementById('image');
     var touch_input = new Hammer(my_image);
+    touch_input.get('swipe').set({velocity:0.1, threshold: 3});
     touch_input.on("swipeleft", function(){
       socket.emit('choice', "no", index, false);
     });
