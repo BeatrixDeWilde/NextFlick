@@ -419,6 +419,9 @@ function initialise_film_page(film) {
   document.getElementById('plot').innerHTML = film.shortPlot;
   document.getElementById('runtime').innerHTML = film.runtime;
   document.getElementById('imdbRating').innerHTML = film.imdbRating;
+  $("img").on("dragstart", function(event){
+    event.preventDefault();
+  });
 }
 
 
@@ -433,6 +436,16 @@ socket.on('show_film_page', function(film) {
   $('.lobby_page').hide('fast', function() {
     $('.film_page').fadeIn('slow');
     adjustTitle();
+    var my_image = document.getElementById('image');
+    var touch_input = new Hammer(my_image);
+    touch_input.on("swipeleft", function(){
+      socket.emit('choice', "no", index, false);
+    });
+
+    touch_input.on("swiperight", function(){
+      socket.emit('choice', "yes", index, true);
+    });
+
   });
 });
 
@@ -558,6 +571,10 @@ document.onkeydown = function(e) {
   }
  } 
 };
+
+
+
+
 
 // ************************** //
 // ******* FOUND PAGE ******* //
