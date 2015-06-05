@@ -233,8 +233,9 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('send_email', function(email, username) {
-    // TODO: need to store random id
-    var id = 32;
+    var min = 0;
+    var max = 9999;
+    var id = Math.floor(Math.random() * (max - min + 1)) + min;
     // Sets the mapping from username to unique ID 
     // (deleted when user disconnects)
     email_ids[username] = id;
