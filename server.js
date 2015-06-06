@@ -49,7 +49,8 @@ var query_collection_count = {};
 var request_in_progress = {};
 /* Stores a boolean to indicate if there is a request to add more films
    to the global film list in progress */
-var global_request_in_progress;
+var global_request_in_progress = false;
+var isGlobalFilmListMaxed = false;
 // Has to be greater than 0 and less than the number of films in each batch
 var queryDelayBuffer = 12;
 var queryBatchSize = 25;
@@ -106,7 +107,7 @@ var maxConcurrency = 20;
 var extraInfoReqQueue = async.queue(addExtraFilmInfo, maxConcurrency);
 
 extraInfoReqQueue.drain = function() {
-  console.log('All OMDb requests have been processed');
+  console.log('All OMDb requests have been processed for current batch');
 
   /*for (var i = 0, len = globalFilms.length; i < len; i++) {
     console.log('Film ' + i + ':> ' + globalFilms[i].title);
@@ -118,19 +119,23 @@ extraInfoReqQueue.drain = function() {
 
 
 console.log('Server started.');
-console.log('Adding first 100 films to global film list');
 
 
 function addFilms(numBatches) {
-  if (numBatches >= 1) {
+  if (!global_request_in_progress && numBatches >= 1 && !isGlobalFilmListMaxed) {
+    global_request_in_progress = true; 
     addFilmsByGenre(lastPageQueried, 0, numBatches);
     //TODO: If a TMDb request fails make sure retried
+  } else {
+    //console.log('GLOBAL REQUEST IN PROGRESS!');
+    if (isGlobalFilmListMaxed) {
+      console.log('Global film list is MAXED!!');
+    }
   }
 }
 
 
-global_request_in_progress = true; 
-addFilms(25);
+addFilms(5);
 
 
 io.sockets.on('connection', function(socket) {
@@ -372,7 +377,6 @@ io.sockets.on('connection', function(socket) {
     ++query_collection_count[socket.channel];
     if (query_collection_count[socket.channel] >= num_users[socket.channel]) {
       console.log('All users have voted. Should fire off only once.');
-      request_in_progress[socket.channel] = true; //TODO: not sure if need
       generate_films(socket.channel);
     }
   });
@@ -382,7 +386,10 @@ io.sockets.on('connection', function(socket) {
     // This function now calls back to show the film pages once done
     //add20FilmsByGenre(1, room, query_genres[room]);
     console.log('About to filter films for room ' + room + ' with genres ' + query_genres[room]);
-    filterFilmsForChannel(room, query_genres[room], queryBatchSize);
+    if (!request_in_progress[room]) {
+      request_in_progress[socket.channel] = true; //TODO: not sure if need
+      filterFilmsForChannel(room, query_genres[room], queryBatchSize);
+    }
     //TODO: create per channel list of indexes into global film list & corresponding yes counts
     //TODO: initialise first film
     ////io.sockets.in(room).emit('initialise', films[room][0]);
@@ -405,9 +412,9 @@ io.sockets.on('connection', function(socket) {
   socket.on('choice', function(decision, index, inc) {
     // Only responds to choice if there is another film ready
     if (typeof films[socket.channel][index+1] !== 'undefined'
-        && typeof films[socket.channel][index+1].filmIndex !== 'undefined'
-        && typeof globalFilms[films[socket.channel][index+1].filmIndex] !== 'undefined'
-        && typeof globalFilms[films[socket.channel][index+1].filmIndex].runtime !== 'undefined') {
+        && typeof films[socket.channel][index+1].filmIndex !== 'undefined') {
+        if (typeof globalFilms[films[socket.channel][index+1].filmIndex] !== 'undefined'
+            && typeof globalFilms[films[socket.channel][index+1].filmIndex].runtime !== 'undefined') {
       if(inc) {
         // If yes increments that films yes count
         films[socket.channel][index].yes_count++;
@@ -425,9 +432,7 @@ io.sockets.on('connection', function(socket) {
         index++;
         var message = ' said ' + decision + ' to movie: ' + globalFilms[films[socket.channel][index-1].title];
     	  socket.emit('update_chat', 'You', message);
-        if (index == (globalFilms.length - queryBatchSize)
-            && !global_request_in_progress) {
-          global_request_in_progress = true;
+        if (index == (globalFilms.length - queryBatchSize)) {
           addFilms(5);
         }
         if (index == (films[socket.channel].length - queryDelayBuffer)
@@ -439,10 +444,16 @@ io.sockets.on('connection', function(socket) {
         }
         // Send news films to the user with the updated index
         socket.emit('new_films', globalFilms[films[socket.channel][index].filmIndex], index);
-        console.log('Showing film with index ' + index);
       }
+      } else {
+        //console.log('next film in GLOBAL film list is/has undefined info');
+        //console.log('should be index ' + films[socket.channel][index+1].filmIndex + ' in global list');
+        addFilms(10);
+      }
+
     } else {
-      console.log('next film is/has undefined info');
+      //console.log('next film in rooms film list is/has undefined info');
+      //console.log('prev film in room list is at index ' + films[socket.channel][index].filmIndex);
       if (!request_in_progress[socket.channel]) {
         request_in_progress[socket.channel] = true;
         filterFilmsForChannel(socket.channel, query_genres[socket.channel], queryBatchSize);
@@ -762,7 +773,11 @@ function shuffle(o) {
 function initFilmPage(channel) {
   console.log('Should be showing film page');
   io.sockets.in(channel).emit('update_chat', 'SERVER', 'Showing films from genres: ' + query_genres[channel]);
-  io.sockets.in(channel).emit('show_film_page', globalFilms[films[channel][0].filmIndex]);
+  if (typeof films[channel][0] !== 'undefined') {
+    io.sockets.in(channel).emit('show_film_page', globalFilms[films[channel][0].filmIndex]);
+  } else {
+    console.log('No films in room film list! - make query more general');
+  }
 }
 
 
@@ -776,10 +791,14 @@ function initFilmPage(channel) {
 // TODO: 5 recursive requests as param or global variable?
 function addFilmsByGenre(pageNum, reqCounter, numBatches) {
   // Maximum page is 1000 so check last page queried was lower than this
-  if (reqCounter < numBatches && lastPageQueried < 1000) {
+  if (reqCounter == 0) {
+    var totalToAdd = numBatches * 20;
+    console.log('Adding ' + totalToAdd + ' films to global film list');
+  }
+  if (reqCounter < numBatches && pageNum < 1000) {
     pageNum++;
+    reqCounter++;
     lastPageQueried = pageNum;
-    console.log('add20Films: Adding 20 films of genres: ' );
     // Only query within range 0 < n <= 1000, otherwise default query page 1
     if (pageNum == 0 || pageNum > 1000) {
       pageNum = 1;
@@ -797,9 +816,16 @@ function addFilmsByGenre(pageNum, reqCounter, numBatches) {
       }}, 
       function (error, response, body) {
         if (!error && response.statusCode == 200) {
-          var response = JSON.parse(body);
-          var film_list = response.results;
-
+          
+          var res = null;
+          try {
+            res = JSON.parse(body);
+          } catch(e) {
+            console.log('JSON parse failed for TMDb query');
+          }
+          if (res != null) {
+            var film_list = res.results;
+          
           // append films to JSON films array
           var oldLength = globalFilms.length;
           if (oldLength == 0) {
@@ -807,7 +833,7 @@ function addFilmsByGenre(pageNum, reqCounter, numBatches) {
           } else {
             globalFilms.push.apply(globalFilms, film_list);
           }
-          
+         
           //request_in_progress[channel] = false;
           //TODO: make sure global list is updated with pages in correct order
 
@@ -817,7 +843,7 @@ function addFilmsByGenre(pageNum, reqCounter, numBatches) {
             //   and deleting unnecessary ones
             //TODO: base URL in variable at top of file
             extraInfoReqQueue.push(i , function(err) {
-              console.log('finished processing request for index ' + i);
+              //console.log('finished processing request for index ' + i);
             }); //TODO: remove callback function
             globalFilms[i].poster_path = 'http://image.tmdb.org/t/p/w342' + globalFilms[i].poster_path;
             delete globalFilms[i].overview;
@@ -853,16 +879,14 @@ function addFilmsByGenre(pageNum, reqCounter, numBatches) {
             });*/
 
           }
+          }
           
-          //TODO: reqCounter magic number - set as global variable/param
-          if (reqCounter < numBatches - 1) {
-            reqCounter++;
-            pageNum++;
+          if (reqCounter < numBatches) {
             addFilmsByGenre(pageNum, reqCounter, numBatches);
           } else {
             //console.log(globalFilms);
             global_request_in_progress = false;
-            console.log('Recursive TMDb API query limit reached for current batch');
+            //console.log('Recursive TMDb API query limit reached for current batch');
 
           }
 
@@ -874,6 +898,7 @@ function addFilmsByGenre(pageNum, reqCounter, numBatches) {
     }); 
   } else {
     console.log('request counter greater than number of batches requested or requested page greater than 1000');
+    isGlobalFilmListMaxed = true;
   }
 }
 
@@ -893,12 +918,17 @@ function addExtraFilmInfo(film_index, callback) {
     }}, 
     function (error, response, body) {
       if (!error && response.statusCode == 200) {
-        var infoResponse = JSON.parse(body);
-
+        var jsonParseFailed = false;
+        // Ensure JSON returned from server is valid
+        try {
+          var infoResponse = JSON.parse(body);
+        } catch(e) {
+          jsonParseFailed = true;
+        }
         // Create cache JSON object to store
         var filmId = globalFilms[film_index].id;
         var filmInfo = {};
-        if (infoResponse.Response === 'True') {
+        if (!jsonParseFailed && infoResponse.Response === 'True') {
           filmInfo = {"info": {
                                 "Plot": infoResponse["Plot"],
                                 "Rated": infoResponse["Rated"],
@@ -957,7 +987,6 @@ function filterFilmsForChannel(room, genres, numFilms) {
   var numQueryGenres = genres.length;
   if (numQueryGenres != 0) {
     //TODO: Refactor to reduce WILT score
-    console.log('Filtering by genre');
     var filmsAdded = 0;
     var filterIndex = nextFilmIndexFilter[room];
 
@@ -975,7 +1004,7 @@ function filterFilmsForChannel(room, genres, numFilms) {
               if (currFilmIds[i] == genres[j]) {
                 addFilmToRoomList(filterIndex, room);
                 filmsAdded++;
-                console.log('Added film ' + globalFilms[filterIndex].title + ' to room film list');
+                //console.log('Added film ' + globalFilms[filterIndex].title + ' to room film list');
                 // Breaks out of both for loops
                 break commonGenreLoop;
               }
@@ -983,18 +1012,14 @@ function filterFilmsForChannel(room, genres, numFilms) {
             }
           }
         } else {
-          console.log('Film ' + globalFilms[filterIndex].title + ' has no genres so filtered out');
+          //console.log('Film ' + globalFilms[filterIndex].title + ' has no genres so filtered out');
   
         }
 
       } else {
         //TODO: add more films to global list
         console.log('Filtering ran out of loaded global films so added more to global list');
-        
-        if (!global_request_in_progress) {
-          global_request_in_progress = true;
-          addFilms(20);
-        }
+        addFilms(10);
         break;
       }
       filterIndex++;
@@ -1007,8 +1032,8 @@ function filterFilmsForChannel(room, genres, numFilms) {
     for (var i = listLength, len = listLength + numFilms; i < len; i++) {
       addFilmToRoomList(i, room);
     }
-    console.log('Added ' + numFilms + ' extra films to room film list (no filtering)');
-    console.log('No genres supplied so filtering popular films');
+    //console.log('Added ' + numFilms + ' extra films to room film list (no filtering)');
+    //console.log('No genres supplied so filtering popular films');
   }
   request_in_progress[room] = false;
 
