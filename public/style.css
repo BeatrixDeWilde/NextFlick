@@ -268,5 +268,3 @@ html{
 .my_checkbox input[type=checkbox]:checked + label:after{
   color: #FFFFFF;
 }
-
-
