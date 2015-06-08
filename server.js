@@ -178,7 +178,7 @@ io.sockets.on('connection', function(socket) {
           // Tear down room.
           setTimeout(function() {
           console.log('Tear down room: ' + channel);
-          remove_room_id(room);
+          remove_room_id(channel);
           delete users[channel];
           delete films[channel];
           delete query_collection_count[channel];
