@@ -17,7 +17,7 @@ var pg = require("pg");
 var NodeCache = require("node-cache");
 // Asynchronous module for async requests with a max concurrency limit
 var async = require("async");
-var filmInfoCache = new NodeCache({stdTTL: 86400, useClones: true});
+//var filmInfoCache = new NodeCache({stdTTL: 86400, useClones: true});
 
 // Security information that needs to be moved to a skeleton file.
 var post_database = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
@@ -398,7 +398,7 @@ io.sockets.on('connection', function(socket) {
     }
 
     if (films[socket.channel][index].yes_count >= num_users[socket.channel]) {
-      //TODO: put back in TODO: film_found(films[socket.channel][index]);
+      film_found(globalFilms[films[socket.channel][index].filmIndex]);
       // If every user in the channel has said yes to the film then 
       // take every user to the 'found page' with that film displayed
       io.sockets.in(socket.channel).emit('film_found', globalFilms[films[socket.channel][index].filmIndex]);
@@ -413,8 +413,8 @@ io.sockets.on('connection', function(socket) {
             && typeof globalFilms[films[socket.channel][index+1].filmIndex].runtime !== 'undefined') {
           // Go to next film
           index++;
-          var message = ' said ' + decision + ' to movie: ' + globalFilms[films[socket.channel][index-1].title];
-      	  socket.emit('update_chat', 'You', message);
+          //var message = ' said ' + decision + ' to movie: ' + globalFilms[films[socket.channel][index-1].title];
+      	  //socket.emit('update_chat', 'You', message);
           
           // Add 5 batches of films to global list// TODO: no longer needed? 
           if (index == (globalFilms.length - queryBatchSize)) {
@@ -929,7 +929,7 @@ function addExtraFilmInfo(film_index, callback) {
 
 //TODO: factor out code into helper functions
 function filterFilmsForChannel(room, genres, numFilms) {
-  
+  //TODO: add loading overlay when films are being filtered and next isn't yet ready
   var listLength = films[room].length;
   //TODO: check films exist in global list (add to list if need to)
   var numQueryGenres = genres.length;
@@ -959,13 +959,9 @@ function filterFilmsForChannel(room, genres, numFilms) {
               
             }
           }
-        } else {
-          //console.log('Film ' + globalFilms[filterIndex].title + ' has no genres so filtered out');
-  
-        }
+        } 
 
       } else {
-        //TODO: add more films to global list
         console.log('Filtering ran out of loaded global films so added more to global list');
         addFilms(10);
         break;
