@@ -493,7 +493,7 @@ socket.on('show_film_page', function(film) {
   $('.lobby_page').hide('fast', function() {
     $('.film_page').fadeIn('slow');
     adjustTitle();
-    var my_image = document.getElementById('image');
+    var my_image = document.getElementById('image_block');
     var touch_input = new Hammer(my_image);
     touch_input.get('swipe').set({velocity:0.1, threshold: 3});
     touch_input.on("swipeleft", function(){
