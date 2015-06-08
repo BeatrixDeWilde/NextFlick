@@ -53,6 +53,8 @@ var locks = {};
 // Stores mappings from email unique ID to username for verification to 
 // change user passwords.
 var email_ids = [];
+var guest_ids = [];
+var room_ids = [];
 
 var dateToday = (new Date()).toISOString().substring(0,10);
 
@@ -119,6 +121,7 @@ io.sockets.on('connection', function(socket) {
     // Called when a user leaves a room (via disconnect), free resources 
     // should tear down the room if username is the last user
     console.log(socket.username + ' has disconnected from room ' + socket.channel);
+    users_force_leave_if_admin(socket.username, socket.channel);
     free_resources(socket.username, socket.channel);
   });
 
@@ -139,6 +142,7 @@ io.sockets.on('connection', function(socket) {
         if (num_users[channel] == 0) {
             setTimeout(function() {
             console.log('Tear down room: ' + channel);
+            room_ids[channel] = false;
             delete users[channel];
             delete films[channel];
             delete query_collection_count[channel];
@@ -149,16 +153,57 @@ io.sockets.on('connection', function(socket) {
     }
   }
 
+  function users_force_leave_if_admin(username, room) { 
+    if (room != undefined && username != undefined) {
+      if (users[room][username].is_admin) {
+         console.log('Admin (' +username +')  has left room ' + room);
+         socket.broadcast.to(room).emit('force_leave');
+      }
+    }
+  }
+
+  function generate_id() { 
+    return Math.random().toString(10).substring(2,6);
+  }
+  
+  function generate_guest_id() {
+    return generate_id_for_list(guest_ids);
+  }
+
+  function generate_room_id() {
+    return generate_id_for_list(room_ids);
+  }
+   
+  function generate_id_for_list(list) {
+    var id = generate_id();
+    while (list[id] == true) {
+      id = generate_id();
+    }
+    list[id] = true;
+    console.log(id);
+    return id;
+  }
+ 
+  function remove_guest_id(username) {
+    if (username.substring(0,5) == 'guest') {
+       var guest_id = username.substring(5);
+       console.log('Freeing guest_id: ' + guest_id);
+       guest_ids[guest_id] = false;
+    }
+  }
+ 
+
   // ************************** //
   // ******* FIRST PAGE ******* //
   // ************************** //
 
   socket.on('get_guest_id', function() {
     // TODO: random guest id?
-    guest++;
+    var guest_id = guest++;
+    //var guest_id = generate_guest_id();
     // Gets an unused guest id then calls set username 
     // so the client can get and set this username
-   socket.emit('set_username', 'guest' + guest);
+   socket.emit('set_username', 'guest' + guest_id);
   });
 
   // ************************** //
@@ -277,6 +322,7 @@ io.sockets.on('connection', function(socket) {
     // Sets up newly created room, with no users
     // (set_room_id then goes on to add admin to room)
     // TODO: Random Room ID Generator, just using guest for now
+    //var channel = generate_room_id();
     var channel = guest++;
     socket.channel = channel;
     users[channel] = {};
@@ -289,7 +335,7 @@ io.sockets.on('connection', function(socket) {
     socket.emit('set_room_id', channel);
   });
 
-  socket.on('user_join', function(username, channel) {
+  socket.on('user_join', function(username, channel, is_admin_bool) {
     // Adds a user to a room
     socket.username = username;
     socket.channel = channel;
@@ -301,12 +347,16 @@ io.sockets.on('connection', function(socket) {
       socket.emit('room_not_initialised');
     } else {
       // Adds user to channel and send them to the lobby page to wait 
-      users[channel][username] = {username:username, ready:false};
+      users[channel][username] = {username:username, ready:false, is_admin:is_admin_bool};
       socket.join(channel);
       ++num_users[channel];
       socket.emit('joined_room', channel);
       io.sockets.in(socket.channel).emit('update_user_list', users[channel]);
      }
+  });
+  
+  socket.on('user_set_admin', function(username, room) {
+     users[room][username].is_admin = true;
   });
 
   socket.on('get_popular_films', function(){
@@ -324,6 +374,11 @@ io.sockets.on('connection', function(socket) {
         client.end();
       });
     });
+  });
+  
+  socket.on('reset_user', function(username) {
+    console.log('reset user: '+ username );
+    remove_guest_id(username);
   });
 
   // ************************** //

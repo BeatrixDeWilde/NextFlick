@@ -38,15 +38,29 @@ var genreList = [
 socket.on('update_user_list', function(users) {
   $('#users').empty();
   $.each(users, function(key, value) {
-     $('#users').append('<div id='+value.username+'>' + value.username + '</div>');
-        if (value.ready) {
-          set_to_ready(value.username);
+     $('#users').append('<div id='+value.username+'>   ' + value.username + '</div>');
+        if (value.is_admin) {
+          set_to_admin(value.username);
+        } else {
+          if (value.ready) {
+            set_to_ready(value.username);
+          } else {
+            set_to_choosing(value.username);
+          }
         }
   });
 });
 
+function set_to_choosing(username) {
+  $('#'+username).append(' <span class="glyphicon glyphicon-option-horizontal"></span>');
+}
+
 function set_to_ready(username) {
-  $('#'+username).append(' (READY)');
+  $('#'+username).append(' <span class="glyphicon glyphicon-ok" ></span>');
+}
+
+function set_to_admin(username) {
+  $('#'+username).append(' <span class="glyphicon glyphicon-user"></span>');
 }
 
 function add_genre_checkboxes(genre_div, id_extension){
@@ -358,7 +372,7 @@ $(function(){
     $('#gap').show();
     var RoomID = document.getElementById('RoomID').value;
     if (RoomID.length > 0){
-      socket.emit("user_join", username, RoomID);
+      socket.emit("user_join", username, RoomID, is_admin);
     }
     document.getElementById('RoomID').value = '';
     $('#go').hide();
@@ -368,6 +382,7 @@ $(function(){
   });
   $('#room_page_back').click(function() {
     email = 'NOTSET';
+    socket.emit('reset_user', username);
     username = 'NOTSET';
     $("#user_settings").hide();
     $('.room_page').fadeOut('fast', function() {
@@ -407,7 +422,7 @@ socket.on("joined_room", function(channel){
 
 socket.on('set_room_id', function(channel) {
   room = channel;
-  socket.emit('user_join', username, room);
+  socket.emit('user_join', username, room, is_admin);
 });
 
 function set_up_lobby_page() {
@@ -537,7 +552,7 @@ $(function(){
 });
 
 function disable_checkboxes() {
-  $('#genre_overlay').fadeIn();
+  $('#genre_overlay').fadeIn('slow');
 }
 
 function enable_checkboxes() {
