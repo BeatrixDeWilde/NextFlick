@@ -8,7 +8,9 @@
     "pg": "",
     "bcrypt-nodejs": "",
     "node-cache": "",
-    "nodemailer": "~0.7.1"
+    "nodemailer": "~0.7.1",
+    "async": "",
+    "request": ""
   },
   "scripts": {
     "start": "node server.js"

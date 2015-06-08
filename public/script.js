@@ -361,6 +361,7 @@ $(function(){
     $(".non_sign_up_settings").show();
     set_genre_checkboxes('_settings');
     document.getElementById('settings_email').innerHTML = 'Email: ' + email;
+    document.getElementById('settings_username').innerHTML = 'User: ' + username;
     $('.room_page').fadeOut('fast', function() {
       $('.settings_page').fadeIn('fast');
     });
