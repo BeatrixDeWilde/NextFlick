@@ -144,6 +144,8 @@ io.sockets.on('connection', function(socket) {
     // Called when a user leaves a room (via button), free resources 
     // should tear down the room if username is the last user
     socket.leave(room);
+    users[room][username].ready = false;
+    
     console.log(username + ' is leaving room ' + room);
     free_resources(username, room);
   });
@@ -156,32 +158,32 @@ io.sockets.on('connection', function(socket) {
   });
 
   function free_resources(username, channel) {
-    // After time out deletes the user from the room, 
-    // decrements the number of users in the room and 
-    // then tears down if username is the last user
-    setTimeout(function(){
+    
       if (typeof username !== 'undefined' && typeof channel !== 'undefined'
           && typeof users[channel] !== 'undefined') {
+        delete users[channel][username];
+        io.sockets.in(channel).emit('update_user_list', users[channel]);
+         
         // If the user is not a quest and has requested a change in 
         // password delete the unique ID to username mapping
         if (!/^(guest)/.test(username) && email_ids[username] !== 'undefined'){
           delete email_ids[username];
         }
-        delete users[channel][username];
-        io.sockets.in(channel).emit('update_user_list', users[channel]);
         --num_users[channel];
+        // If all users have left, tear down the room after 30 secs
         if (num_users[channel] == 0) {
           // Tear down room.
+          setTimeout(function() {
           console.log('Tear down room: ' + channel);
           delete users[channel];
           delete films[channel];
-          delete nextFilmIndexFilter[channel];
           delete query_collection_count[channel];
+          delete nextFilmIndexFilter[channel];
           delete request_in_progress[channel];
           delete query_genres[channel];
+          }, 30000);
         }
-      }
-    }, 30000);
+    }
   }
 
   // ************************** //
@@ -268,8 +270,9 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('send_email', function(email, username) {
-    // TODO: need to store random id
-    var id = 32;
+    var min = 0;
+    var max = 9999;
+    var id = Math.floor(Math.random() * (max - min + 1)) + min;
     // Sets the mapping from username to unique ID 
     // (deleted when user disconnects)
     email_ids[username] = id;
@@ -337,12 +340,29 @@ io.sockets.on('connection', function(socket) {
       socket.emit('room_not_initialised');
     } else {
       // Adds user to channel and send them to the lobby page to wait 
-      users[channel][username] = username;
+      users[channel][username] = {username:username, ready:false};
       socket.join(channel);
       ++num_users[channel];
-      socket.emit("joined_room", channel);
-      io.sockets.in(socket.channel).emit('update_user_list', users[channel]);    
-    }
+      socket.emit('joined_room', channel);
+      io.sockets.in(socket.channel).emit('update_user_list', users[channel]);
+     }
+  });
+
+  socket.on('get_popular_films', function(){
+    // Gets the 10 (limit) most popular films
+    var limit = 10;
+    pg.connect(post_database, function(err, client, done) {
+      if(err) {
+        return console.error('error connecting', err);
+      }
+      client.query('SELECT poster_url FROM popular_films ORDER BY last_time_updated LIMIT $1;', [limit], function(err, result) {
+        if(err) {
+          return console.error('error running query', err);
+        }
+        socket.emit('popular_films', result.rows);
+        client.end();
+      });
+    });
   });
 
   // ************************** //
@@ -384,6 +404,12 @@ io.sockets.on('connection', function(socket) {
   socket.on('force_leave_signal', function(room) {
     console.log('Admin has left room ' + room);
     socket.broadcast.to(room).emit('force_leave');
+  });
+
+  socket.on('ready_signal', function(username, room) {
+    console.log(username + ' is ready');
+    users[room][username].ready = true;
+    io.sockets.in(room).emit('update_user_list', users[room]);
   });
 
   // ************************* //
@@ -457,14 +483,12 @@ io.sockets.on('connection', function(socket) {
   function get_film(film){
     // Given a film ID 
     //    if an entry exists in popular films -> update
-    //    if no entry exists -> insert
+    //    if no entry exists                  -> insert
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
-    console.log('film.id: ' + film.id);
-
-      client.query('SELECT * FROM popular_films WHERE film_id = $1;', [film.id], function(err, result) {
+      client.query('SELECT count FROM popular_films WHERE film_id = $1;', [film.id], function(err, result) {
         if(err) {
           return console.error('error running query', err);
         }
@@ -481,11 +505,13 @@ io.sockets.on('connection', function(socket) {
   }
 
   function insert_film(film){
+    // Puts the film in the popular films database -> intial count of 1 
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
-      client.query('INSERT INTO popular_films (film_id, poster_url, count) VALUES($1, $2, 0);', [film.id, film.poster_url], function(err, result) {
+      client.query('INSERT INTO popular_films (film_id, poster_url, count, last_time_updated) VALUES($1, $2, 1, $3);',
+                   [film.id, film.poster_path, new Date()], function(err, result) {
         if(err) {
           return console.error('error running query', err);
         }
@@ -495,7 +521,7 @@ io.sockets.on('connection', function(socket) {
   }
 
   function update_film(film, new_count){
-    console.log("Count: " + new_count);
+    // Updates the row to have the new incremented counts
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
