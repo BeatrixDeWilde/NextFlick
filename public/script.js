@@ -104,7 +104,7 @@ function reset_checkboxes(genre_class){
     if ($(this).is(":checked")) {
       $(this).attr("checked", false);
     }
-  }); 
+  });
 }
 
 // Do this function when the webpage loads for the first time
@@ -377,6 +377,7 @@ $(function(){
     }
     document.getElementById('RoomID').value = '';
     $('#go').hide();
+    $('#options').hide();
     $('#ready').show();
     $('#ready').removeAttr("disabled");
     enable_checkboxes();
@@ -515,7 +516,6 @@ socket.on('show_film_page', function(film) {
     touch_input.on("swipeleft", function(){
       socket.emit('choice', "no", index, false);
     });
-
     touch_input.on("swiperight", function(){
       socket.emit('choice', "yes", index, true);
     });
