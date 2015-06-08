@@ -194,7 +194,8 @@ io.sockets.on('connection', function(socket) {
   }
 
   function users_force_leave_if_admin(username, room) { 
-    if (room != undefined && username != undefined) {
+    if (room != undefined && username != undefined
+        && users[room] != undefined && users[room][username] != undefined) {
       if (users[room][username].is_admin) {
          console.log('Admin (' +username +')  has left room ' + room);
          socket.broadcast.to(room).emit('force_leave');

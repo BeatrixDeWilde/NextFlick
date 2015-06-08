@@ -254,19 +254,38 @@
                 <div id="users" class="message"></div>
               </div>
               <br>
-              <form role="form">
+              <form role="form" id="selection">
                 <div id="genres" class="genres">
+                  <b class="message">Select genres:</b>
                  <div id="genre_overlay" class="overlay">
                     <div class="overlay_message_text">Waiting for Host...
                       <div class="spinner">
                        <div class="bounce1"></div>
                        <div class="bounce2"></div>
                        <div class="bounce3"></div>
+                      </div>
                     </div>
                   </div>
-               </div>
-
                 </div>
+                <br>
+                <div id="options" class="genres">
+                  <b class="message">Select running time:</b>
+                  <table class='table'>
+                    <tbody>
+                      <tr>
+                        <td>
+                          <div class='radio my_radio'><input type='radio' id="any_time" name="runtime" value="0" checked><label for='any_time'>Any</label></div>
+                        </td>
+                        <td>
+                          <div class='radio my_radio'><input type='radio' id="under_2" name="runtime" value="2"><label for='under_2'>&lt; 2hrs</label></div>
+                        </td>
+                         <td>
+                          <div class='radio my_radio'><input type='radio' id="under_3" name="runtime" value="3"><label for='under_3'>&lt; 3hrs</label></div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                 </div>
               </form>
               <br>
               <button type="button" id="go" class="btn my_btn">Go</button>

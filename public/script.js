@@ -104,7 +104,7 @@ function reset_checkboxes(genre_class){
     if ($(this).is(":checked")) {
       $(this).attr("checked", false);
     }
-  }); 
+  });
 }
 
 // Do this function when the webpage loads for the first time
@@ -377,6 +377,7 @@ $(function(){
     }
     document.getElementById('RoomID').value = '';
     $('#go').hide();
+    $('#options').hide();
     $('#ready').show();
     $('#ready').removeAttr("disabled");
     enable_checkboxes();
@@ -509,13 +510,12 @@ socket.on('show_film_page', function(film) {
   $('.lobby_page').hide('fast', function() {
     $('.film_page').fadeIn('slow');
     adjustTitle();
-    var my_image = document.getElementById('image');
+    var my_image = document.getElementById('image_block');
     var touch_input = new Hammer(my_image);
     touch_input.get('swipe').set({velocity:0.1, threshold: 3});
     touch_input.on("swipeleft", function(){
       socket.emit('choice', "no", index, false);
     });
-
     touch_input.on("swiperight", function(){
       socket.emit('choice', "yes", index, true);
     });
@@ -527,6 +527,7 @@ $(function(){
   $('#go').click(function() {
     if (is_admin) {
       socket.emit('go_signal', room);
+      socket.emit('add_runtime_filter', $("#selection input[name='runtime']:checked").val());
       //socket.emit('generate_films', room, genres);
     }
   });
