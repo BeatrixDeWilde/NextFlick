@@ -118,7 +118,7 @@ console.log('Server started.');
 //TODO: When server goes live, set this to 1000 and remove occurences of 
 //      addFilms in rest of code (much faster processing but slower startup)
 // Current way dynamically adds to global list
-addFilms(5);
+addFilms(10);
 
 
 io.sockets.on('connection', function(socket) {
@@ -953,46 +953,36 @@ function addExtraFilmInfo(film_index, callback) {
 
 }
 
-//TODO: factor out code into helper functions
 function filterFilmsForChannel(room, genres, numFilms) {
   //TODO: add loading overlay when films are being filtered and next isn't yet ready
   var listLength = films[room].length;
   //TODO: check films exist in global list (add to list if need to)
   var numQueryGenres = genres.length;
   if (numQueryGenres != 0) {
-    //TODO: Refactor to reduce WILT score
     var filmsAdded = 0;
     var filterIndex = nextFilmIndexFilter[room];
 
     while (filmsAdded < queryBatchSize) {
       if (globalFilms[filterIndex] != null
-          && globalFilms[filterIndex].genre_ids != null) {
+          && globalFilms[filterIndex].genre_ids != null
+          && globalFilms[filterIndex].runtime != null) {
+
         var currFilmIds = globalFilms[filterIndex].genre_ids;
-        var numFilmGenres = currFilmIds.length;
-
-        if (numFilmGenres != 0) {
-
-          commonGenreLoop:
-          for (var i = 0; i < numFilmGenres; i++) {
-            for (var j = 0; j < numQueryGenres; j++) {
-              if (currFilmIds[i] == genres[j]) {
-                addFilmToRoomList(filterIndex, room);
-                filmsAdded++;
-                //console.log('Added film ' + globalFilms[filterIndex].title + ' to room film list');
-                // Breaks out of both for loops
-                break commonGenreLoop;
-              }
-              
-            }
-          }
-        } 
+        var currFilmRuntime = globalFilms[filterIndex].runtime;
+        var filterRuntime = null; //TODO: pass filter runtime into function
+        // Filter films by genre and runtime
+        if (filterFilmByGenre(currFilmIds, genres) 
+            && filterFilmByRuntime(currFilmRuntime, filterRuntime)) {
+          filmsAdded++;
+          addFilmToRoomList(filterIndex, room);
+        }
+        filterIndex++;
 
       } else {
         console.log('Filtering ran out of loaded global films so added more to global list');
         addFilms(10);
         break;
       }
-      filterIndex++;
 
     }
     nextFilmIndexFilter[room] = filterIndex;
@@ -1012,6 +1002,46 @@ function filterFilmsForChannel(room, genres, numFilms) {
   }
 
 }
+
+// Returns true if film matches genre filter, false otherwise
+function filterFilmByGenre(filmGenreIds, queryGenreIds) {
+  
+  var numFilmGenres = filmGenreIds.length;
+  var numQueryGenres = queryGenreIds.length;
+
+  if (numFilmGenres != 0) {
+
+    commonGenreLoop:
+    for (var i = 0; i < numFilmGenres; i++) {
+      for (var j = 0; j < numQueryGenres; j++) {
+        if (filmGenreIds[i] == queryGenreIds[j]) {
+          //console.log('Added film ' + globalFilms[filmIndex].title + ' to room film list');
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+
+}
+
+function filterFilmByRuntime(filmRuntimeAttr, filterRuntime) {
+  
+  if (filterRuntime != null) {
+    // Get runtime filter in minutes
+    filterRuntime *= 60; 
+  }
+  if (filmRuntimeAttr !== 'N/A') {
+    filterRuntime = 120; // TODO: currently use 120 mins as default as not passed in yet
+    var filmRuntimeStr = filmRuntimeAttr.replace('min', '');
+    var filmRuntime = parseInt(filmRuntimeStr);
+    return filmRuntime <= filterRuntime;
+  }
+  return false;
+
+}
+
+
 
 function addFilmToRoomList(index, room) {
   var newFilm = {
