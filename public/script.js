@@ -527,6 +527,7 @@ $(function(){
   $('#go').click(function() {
     if (is_admin) {
       socket.emit('go_signal', room);
+      socket.emit('add_runtime_filter', $("#selection input[name='runtime']:checked").val());
       //socket.emit('generate_films', room, genres);
     }
   });
