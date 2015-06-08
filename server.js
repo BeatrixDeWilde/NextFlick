@@ -1026,42 +1026,36 @@ function filterFilmsForChannel(room, genres, runtime, numFilms) {
   var listLength = films[room].length;
   //TODO: check films exist in global list (add to list if need to)
   var numQueryGenres = genres.length;
-  if (numQueryGenres != 0) {
-    var filmsAdded = 0;
-    var filterIndex = nextFilmIndexFilter[room];
+  var filmsAdded = 0;
+  var filterIndex = nextFilmIndexFilter[room];
 
-    while (filmsAdded < queryBatchSize) {
-      if (globalFilms[filterIndex] != null
-          && globalFilms[filterIndex].genre_ids != null
-          && globalFilms[filterIndex].runtime != null) {
+  while (filmsAdded < queryBatchSize) {
+    if (globalFilms[filterIndex] != null
+        && globalFilms[filterIndex].genre_ids != null
+        && globalFilms[filterIndex].runtime != null) {
 
-        var currFilmIds = globalFilms[filterIndex].genre_ids;
-        var currFilmRuntime = globalFilms[filterIndex].runtime;
-        // Filter films by genre and runtime
-        if (filterFilmByGenre(currFilmIds, genres) 
-            && filterFilmByRuntime(currFilmRuntime, runtime)) {
-          filmsAdded++;
-          addFilmToRoomList(filterIndex, room);
-        }
-        filterIndex++;
+      var currFilmIds = globalFilms[filterIndex].genre_ids;
+      var currFilmRuntime = globalFilms[filterIndex].runtime;
+      // Filter films by genre and runtime
+      if (numQueryGenres == 0 && filterFilmByRuntime(currFilmRuntime, runtime)) {
+        filmsAdded++;
+        addFilmToRoomList(filterIndex, room);
 
-      } else {
-        console.log('Filtering ran out of loaded global films so added more to global list');
-        addFilms(10);
-        break;
+      } else if (filterFilmByGenre(currFilmIds, genres)
+                 && filterFilmByRuntime(currFilmRuntime, runtime)) {
+        filmsAdded++;
+        addFilmToRoomList(filterIndex, room);
       }
+      filterIndex++;
 
+    } else {
+      console.log('Filtering ran out of loaded global films so added more to global list');
+      addFilms(10);
+      break;
     }
-    nextFilmIndexFilter[room] = filterIndex;
 
-  } else {
-    // Add numFilms films to list of films for room
-    for (var i = listLength, len = listLength + numFilms; i < len; i++) {
-      addFilmToRoomList(i, room);
-    }
-    //console.log('Added ' + numFilms + ' extra films to room film list (no filtering)');
-    //console.log('No genres supplied so filtering popular films');
   }
+  nextFilmIndexFilter[room] = filterIndex;
   request_in_progress[room] = false;
 
   if (listLength == 0) {
