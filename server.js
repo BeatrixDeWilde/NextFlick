@@ -164,32 +164,32 @@ io.sockets.on('connection', function(socket) {
 
   function free_resources(username, room) {
     
-      if (typeof username !== 'undefined' && typeof room !== 'undefined'
-          && typeof users[room] !== 'undefined') {
-        delete users[room][username];
-        io.sockets.in(room).emit('update_user_list', users[room]);
-         
-        // If the user is not a quest and has requested a change in 
-        // password delete the unique ID to username mapping
-        if (!/^(guest)/.test(username) && email_ids[username] !== 'undefined'){
-          delete email_ids[username];
-        }
-        --num_users[room];
-        // If all users have left, tear down the room after 30 secs
-        if (num_users[room] == 0) {
-          // Tear down room.
-          setTimeout(function() {
-          console.log('Tear down room: ' + room);
-          remove_room_id(room);
-          delete users[room];
-          delete films[room];
-          delete runtime_filters[room];
-          delete query_collection_count[room];
-          delete nextFilmIndexFilter[room];
-          delete request_in_progress[room];
-          delete query_genres[room];
-          }, 30000);
-        }
+    if (typeof username !== 'undefined' && typeof room !== 'undefined'
+        && typeof users[room] !== 'undefined') {
+      delete users[room][username];
+      io.sockets.in(room).emit('update_user_list', users[room]);
+       
+      // If the user is not a quest and has requested a change in 
+      // password delete the unique ID to username mapping
+      if (!/^(guest)/.test(username) && email_ids[username] !== 'undefined'){
+        delete email_ids[username];
+      }
+      --num_users[room];
+      // If all users have left, tear down the room after 30 secs
+      if (num_users[room] == 0) {
+        // Tear down room.
+        setTimeout(function() {
+        console.log('Tear down room: ' + room);
+        remove_room_id(room);
+        delete users[room];
+        delete films[room];
+        delete runtime_filters[room];
+        delete query_collection_count[room];
+        delete nextFilmIndexFilter[room];
+        delete request_in_progress[room];
+        delete query_genres[room];
+        }, 30000);
+      }
     }
   }
 
@@ -197,8 +197,8 @@ io.sockets.on('connection', function(socket) {
     if (room != undefined && username != undefined
         && users[room] != undefined && users[room][username] != undefined) {
       if (users[room][username].is_admin) {
-         console.log('Admin (' +username +')  has left room ' + room);
-         socket.broadcast.to(room).emit('force_leave');
+        console.log('Admin (' +username +')  has left room ' + room);
+        socket.broadcast.to(room).emit('force_leave');
       }
     }
   }
@@ -227,9 +227,9 @@ io.sockets.on('connection', function(socket) {
  
   function remove_guest_id(username) {
     if (username.substring(0,5) == 'guest') {
-       var guest_id = username.substring(5);
-       console.log('Freeing guest_id: ' + guest_id);
-       guest_ids[guest_id] = false;
+      var guest_id = username.substring(5);
+      console.log('Freeing guest_id: ' + guest_id);
+      guest_ids[guest_id] = false;
     }
   }
 
@@ -682,6 +682,9 @@ io.sockets.on('connection', function(socket) {
   }
 
 });
+
+
+
 // ************************** //
 // **** MOVIE API QUERIES *** //
 // ************************** //
@@ -692,165 +695,12 @@ io.sockets.on('connection', function(socket) {
 /* Get 20 films of all genres from the array parameter 'genres' 
    from page number pageNum and append them to the list of films */
 
-/*function add20FilmsByGenre(pageNum, room, genres) {
-  console.log('add20Films: Adding 20 films of genres: ' + genres);
-  // Only query within range 0 < n <= 1000, otherwise default query page 1
-  if (pageNum == 0 || pageNum > 1000) {
-    pageNum = 1;
-  }
-  // Prepare genre IDs for query
-  var genreParams = '';
-  if (genres.length != 0) {
-    for (var i = 0, len = genres.length; i < len; i++) {
-      genreParams += genreIdLookup[genres[i]];
-      if (i != (len - 1)) {
-        genreParams += '|';
-      }
-    }
-  }
-  console.log('Sending request: ' + genreParams);
-  request({
-    method: 'GET',
-    url: 'http://api.themoviedb.org/3/discover/movie?' + api_param + 
-         '&page=' + pageNum + 
-         '&include_adult=false' + 
-         '&sort_by=popularity.desc' + 
-         '&release_date.lte=' + dateToday +
-         '&with_genres=' + genreParams,
-    headers: {
-      'Accept': 'application/json'
-    }}, 
-    function (error, response, body) {
-      if (!error && response.statusCode == 200) {
-        var response = JSON.parse(body);
-        var film_list = response.results;
-
-        // append films to JSON films array
-        var oldLength = films[room].length;
-        if (oldLength == 0) {
-          films[room] = shuffle(film_list);
-        } else {
-          films[room].push.apply(films[room], shuffle(film_list));
-        }
-        request_in_progress[room] = false;
-
-        for (var i = oldLength, len = oldLength + film_list.length; i < len; i++) {
-          // Update films information by modifying required properties
-          //   and deleting unnecessary ones
-          films[room][i].poster_path = 'http://image.tmdb.org/t/p/w342' + films[room][i].poster_path;
-          delete films[room][i].overview;
-          delete films[room][i].backdrop_path;
-          delete films[room][i].video;
-          delete films[room][i].vote_average;
-          delete films[room][i].vote_count;
-          films[room][i].yes_count = 0;
-
-          var filmId = films[room][i].id;
-          // Check if extra film info is in cache
-          filmInfoCache.get(filmId, function(err, filmInfo) {
-            if (!err) {
-              if (filmInfo == undefined) {
-                // Cache miss so bring film info into cache & update films
-                addExtraFilmInfo(i, room); 
-              } else {
-                //console.log("######### CACHE HIT #########");
-                //console.log('For film ' + films[room][i].title);
-
-                // Cache hit so update film information with cached film info
-                films[room][i].shortPlot = filmInfo.info["Plot"];
-                films[room][i].rated = filmInfo.info["Rated"];
-                films[room][i].imdbRating = filmInfo.info["imdbRating"];
-                films[room][i].metascore = filmInfo.info["Metascore"];
-                films[room][i].tomatoRating = filmInfo.info["tomatoMeter"];
-                films[room][i].runtime = filmInfo.info["Runtime"];
-
-                if (i == 0) {
-                  initFilmPage(room);
-                }
-              }
-            }  
-          });
-
-        }
-    }
-  
-  });  
-}
-*/
 // Shuffling algorithm
-
 function shuffle(o) {
 	for(var j, x, i = o.length; i; j = parseInt(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
 	return o;
 }
 
-
-// Query OMDb API for extra film information (plot, runtime, rating etc.)
-/*function addExtraFilmInfo(film_index, room) {
-  var encTitle = encodeURIComponent(films[room][film_index].title);
-  request({
-    method: 'GET',
-    url: 'http://www.omdbapi.com/?' +
-         't=' + encTitle +
-         '&plot=short' +
-         '&r=json' +
-         '&tomatoes=true', 
-    headers: {
-      'Accept': 'application/json'
-    }}, 
-    function (error, response, body) {
-      if (!error && response.statusCode == 200) {
-        var infoResponse = JSON.parse(body);
-
-        // Create cache JSON object to store
-        var filmId = films[room][film_index].id;
-        var filmInfo = {};
-        if (infoResponse.Response === 'True') {
-          filmInfo = {"info": {
-                                "Plot": infoResponse["Plot"],
-                                "Rated": infoResponse["Rated"],
-                                "imdbRating": infoResponse["imdbRating"],
-                                "Metascore": infoResponse["Metascore"],
-                                "tomatoMeter": infoResponse["tomatoMeter"],
-                                "Runtime": infoResponse["Runtime"]
-                              }
-                     };
-          
-        } else {
-          filmInfo = {"info": {
-                                "Plot": "N/A",
-                                "Rated": "N/A",
-                         2015       "imdbRating": "N/A",
-                                "Metascore": "N/A",
-                                "tomatoMeter": "N/A",
-                                "Runtime": "N/A"
-                              }
-                     };
-
-        }
-
-        // Add extra film info object to cache
-        filmInfoCache.set(filmId, filmInfo, function(err, success) {
-          if (!err && success) {
-            //console.log('Film ' + films[room][film_index].title + ' successfully added to cache');
-          }
-        });
-        
-        // Update films with extra film information
-        films[room][film_index].shortPlot = filmInfo.info["Plot"];
-        films[room][film_index].rated = filmInfo.info["Rated"];
-        films[room][film_index].imdbRating = filmInfo.info["imdbRating"];
-        films[room][film_index].metascore = filmInfo.info["Metascore"];
-        films[room][film_index].tomatoRating = filmInfo.info["tomatoMeter"];
-        films[room][film_index].runtime = filmInfo.info["Runtime"];
-        
-        if (film_index == 0) {
-          initFilmPage(room);
-        }
-      }
-  });
-
-}*/
 
 function initFilmPage(room) {
   console.log('Should be showing film page');
