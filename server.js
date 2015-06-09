@@ -320,12 +320,10 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('send_email', function(email, username) {
-    var min = 0;
-    var max = 9999;
-    var id = Math.floor(Math.random() * (max - min + 1)) + min;
     // Sets the mapping from username to unique ID 
     // (deleted when user disconnects)
-    email_ids[username] = id;
+    email_ids[username] = generate_id();
+    console.log(email_ids[username]);
     // Set up email
     var mailOptions={
       to : email,
@@ -404,13 +402,13 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('get_popular_films', function(){
-    // Gets the 10 (limit) most popular films
-    var limit = 10;
+    // Gets the 'limit' most popular films
+    var limit = 20;
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
-      client.query('SELECT poster_url FROM popular_films ORDER BY last_time_updated LIMIT $1;', [limit], function(err, result) {
+      client.query('SELECT poster_url FROM popular_films ORDER BY count DESC LIMIT $1;', [limit], function(err, result) {
         if(err) {
           return console.error('error running query', err);
         }
@@ -537,13 +535,14 @@ io.sockets.on('connection', function(socket) {
   function film_found(film){
     // Updates popular films database with new film found
     get_film(film);
-    // Checks the size of the list - if it is beyond a limit remove all old entries (by last updated)
   }
 
   function get_film(film){
     // Given a film ID 
     //    if an entry exists in popular films -> update
     //    if no entry exists                  -> insert
+    // If too many films stored deleted the last updated films
+    var size_limit = 70;
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
@@ -559,9 +558,29 @@ io.sockets.on('connection', function(socket) {
           console.log("Updating film");
           update_film(film, result.rows[0].count + 1);
         }
+        // Checks the size of the list - if it is beyond a limit remove all old entries (by last updated)
+        if (result.rowCount < size_limit) {
+          delete_films();
+        }
         client.end();
       });
     });
+  }
+
+  function delete_films(){
+    var delete_size = 20;
+    /*pg.connect(post_database, function(err, client, done) {
+      if(err) {
+        return console.error('error connecting', err);
+      }
+      client.query('INSERT INTO popular_films (film_id, poster_url, count, last_time_updated) VALUES($1, $2, 1, $3);',
+                   [film.id, film.poster_path, new Date()], function(err, result) {
+        if(err) {
+          return console.error('error running query', err);
+        }
+        client.end();
+      });
+    });*/
   }
 
   function insert_film(film){
@@ -586,7 +605,7 @@ io.sockets.on('connection', function(socket) {
       if(err) {
         return console.error('error connecting', err);
       }
-      client.query('UPDATE popular_films SET count=$2 WHERE film_id=$1;', [film.id, new_count], function(err, result) {
+      client.query('UPDATE popular_films SET count=$2, last_time_updated=$3 WHERE film_id=$1;', [film.id, new_count, new Date()], function(err, result) {
         if(err) {
           return console.error('error running query', err);
         }
