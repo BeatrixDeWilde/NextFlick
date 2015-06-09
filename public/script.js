@@ -116,7 +116,7 @@ $(document).ready(function() {
 
 socket.on('popular_films', function(popular_films){
   $.each(popular_films, function(index, film){
-    $("#popular_film_list").append('<li><img src="' + film.poster_url + '" width="250" height="300" /></li>');
+    $("#popular_film_list").append('<li><img src="' + film.poster_url + '" width="78" height="115" /></li>');
   });
   scroll_films();
 });
@@ -138,21 +138,21 @@ function scroll_films(){
     });
     // End of displacement so total length of reel
     var total_width_of_reel_of_films = displacement;
-    var cont = {current_speed:0, full_speed:2};
-    var $cont = $(cont);
+    var c = {current_speed:0, full_speed:2};
+    var $c = $(c);
     var set_new_speed = function(new_speed, time_length)
     {
-        if (time_length === undefined){
-          time_length = 600;
-        }
-        $cont.stop(true).animate({current_speed:new_speed}, time_length);
+      if (time_length === undefined){
+        time_length = 600;
+      }
+      $c.stop(true).animate({current_speed:new_speed}, time_length);
     };
     // Means it increments placement until the end of
     // the reel of two films then goes back to the beginning of the reel
     var scroll = function()
     {
         var current_placement = list_popular_films.scrollLeft();
-        var new_placement = current_placement + cont.current_speed;
+        var new_placement = current_placement + c.current_speed;
         // If at the end of the reel
         if (new_placement > total_width_of_reel_of_films - width_of_viewing_area){
           new_placement -= total_width_of_reel_of_films/2;
@@ -160,7 +160,7 @@ function scroll_films(){
         list_popular_films.scrollLeft(new_placement);
     };
     setInterval(scroll, 20);
-    set_new_speed(cont.full_speed);
+    set_new_speed(c.full_speed);
 }
 
 socket.on('connect', function(){
