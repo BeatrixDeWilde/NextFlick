@@ -819,7 +819,7 @@ function shuffle(o) {
           filmInfo = {"info": {
                                 "Plot": "N/A",
                                 "Rated": "N/A",
-                                "imdbRating": "N/A",
+                         2015       "imdbRating": "N/A",
                                 "Metascore": "N/A",
                                 "tomatoMeter": "N/A",
                                 "Runtime": "N/A"
@@ -957,10 +957,17 @@ function addFilmsByGenre(pageNum, reqCounter, numBatches) {
 // Query OMDb API for extra film information (plot, runtime, rating etc.)
 function addExtraFilmInfo(film_index, callback) {
   var encTitle = encodeURIComponent(globalFilms[film_index].title);
+  var releaseDate = globalFilms[film_index].release_date;
+  if (releaseDate != null && releaseDate.length > 4) {
+    var releaseYear = releaseDate.substr(0,4);
+  } else {
+    var releaseYear = '';
+  }
   request({
     method: 'GET',
     url: 'http://www.omdbapi.com/?' +
          't=' + encTitle +
+         '&y=' + releaseYear +
          '&plot=short' +
          '&r=json' +
          '&tomatoes=true', 
