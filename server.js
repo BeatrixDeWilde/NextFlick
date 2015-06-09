@@ -40,6 +40,8 @@ var films = [];
 var globalFilms = [];
 // Stores the number of users currently in a room 
 var num_users = [];
+// Stores the runtime filter:  0 = any, 2 = < 2hrs, 3 = < 3hrs
+var runtime_filters = [];
 // Stores the genres to be added to a query for a specific room
 var query_genres = [];
 // Stores how many users have sent off there prefered genres
@@ -181,6 +183,7 @@ io.sockets.on('connection', function(socket) {
           remove_room_id(room);
           delete users[room];
           delete films[room];
+          delete runtime_filters[room];
           delete query_collection_count[room];
           delete nextFilmIndexFilter[room];
           delete request_in_progress[room];
@@ -372,6 +375,7 @@ io.sockets.on('connection', function(socket) {
     num_users[room] = 0;
     films[room] = [];
     nextFilmIndexFilter[room] = 0;
+    runtime_filters[room] = 0;
     query_genres[room] = [];
     query_collection_count[room] = [];
     request_in_progress[room] = false;
@@ -443,17 +447,22 @@ io.sockets.on('connection', function(socket) {
       generate_films(socket.room);
     }
   });
+  
+  /* runtime filter is an integer specifying the number of hours 
+     the film runtime must be less than */
+  socket.on('add_runtime_filter', function(runtimeFilter) {
+    runtime_filters[socket.room] = parseInt(runtimeFilter);
+  });
 
   function generate_films(room) {
     // Initialise film list with results from page 1
     // This function now calls back to show the film pages once done
-    //add20FilmsByGenre(1, room, query_genres[room]);
     console.log('About to filter films for room ' + room + ' with genres ' + query_genres[room]);
     if (!request_in_progress[room]) {
       request_in_progress[socket.room] = true;
-      filterFilmsForroom(room, query_genres[room], queryBatchSize);
+      filterFilmsForRoom(room, query_genres[room], runtime_filters[room], queryBatchSize);
+
     }
-    ////io.sockets.in(room).emit('initialise', films[room][0]);
   }
 
   socket.on('go_signal', function(room) {
@@ -511,7 +520,7 @@ io.sockets.on('connection', function(socket) {
               && !request_in_progress[socket.room]) {
             // Gets next request if a request is not in progress
             request_in_progress[socket.room] = true;
-            filterFilmsForroom(socket.room, query_genres[socket.room], queryBatchSize);
+            filterFilmsForRoom(socket.room, query_genres[socket.room], runtime_filters[socket.room], queryBatchSize);
             //var nextPage = Math.floor(index / queryBatchSize) + 2;
           }
           // Send news films to the user with the updated index
@@ -528,7 +537,7 @@ io.sockets.on('connection', function(socket) {
         //console.log('prev film in room list is at index ' + films[socket.room][index].filmIndex);
         if (!request_in_progress[socket.room]) {
           request_in_progress[socket.room] = true;
-          filterFilmsForroom(socket.room, query_genres[socket.room], queryBatchSize);
+          filterFilmsForRoom(socket.room, query_genres[socket.room], runtime_filters[socket.room], queryBatchSize);
         }
       }
     }
@@ -1013,48 +1022,41 @@ function addExtraFilmInfo(film_index, callback) {
 
 }
 
-function filterFilmsForroom(room, genres, numFilms) {
+function filterFilmsForRoom(room, genres, runtime, numFilms) {
   //TODO: add loading overlay when films are being filtered and next isn't yet ready
   var listLength = films[room].length;
   //TODO: check films exist in global list (add to list if need to)
   var numQueryGenres = genres.length;
-  if (numQueryGenres != 0) {
-    var filmsAdded = 0;
-    var filterIndex = nextFilmIndexFilter[room];
+  var filmsAdded = 0;
+  var filterIndex = nextFilmIndexFilter[room];
 
-    while (filmsAdded < queryBatchSize) {
-      if (globalFilms[filterIndex] != null
-          && globalFilms[filterIndex].genre_ids != null
-          && globalFilms[filterIndex].runtime != null) {
+  while (filmsAdded < queryBatchSize) {
+    if (globalFilms[filterIndex] != null
+        && globalFilms[filterIndex].genre_ids != null
+        && globalFilms[filterIndex].runtime != null) {
 
-        var currFilmIds = globalFilms[filterIndex].genre_ids;
-        var currFilmRuntime = globalFilms[filterIndex].runtime;
-        var filterRuntime = null; //TODO: pass filter runtime into function
-        // Filter films by genre and runtime
-        if (filterFilmByGenre(currFilmIds, genres) 
-            && filterFilmByRuntime(currFilmRuntime, filterRuntime)) {
-          filmsAdded++;
-          addFilmToRoomList(filterIndex, room);
-        }
-        filterIndex++;
+      var currFilmIds = globalFilms[filterIndex].genre_ids;
+      var currFilmRuntime = globalFilms[filterIndex].runtime;
+      // Filter films by genre and runtime
+      if (numQueryGenres == 0 && filterFilmByRuntime(currFilmRuntime, runtime)) {
+        filmsAdded++;
+        addFilmToRoomList(filterIndex, room);
 
-      } else {
-        console.log('Filtering ran out of loaded global films so added more to global list');
-        addFilms(10);
-        break;
+      } else if (filterFilmByGenre(currFilmIds, genres)
+                 && filterFilmByRuntime(currFilmRuntime, runtime)) {
+        filmsAdded++;
+        addFilmToRoomList(filterIndex, room);
       }
+      filterIndex++;
 
+    } else {
+      console.log('Filtering ran out of loaded global films so added more to global list');
+      addFilms(10);
+      break;
     }
-    nextFilmIndexFilter[room] = filterIndex;
 
-  } else {
-    // Add numFilms films to list of films for room
-    for (var i = listLength, len = listLength + numFilms; i < len; i++) {
-      addFilmToRoomList(i, room);
-    }
-    //console.log('Added ' + numFilms + ' extra films to room film list (no filtering)');
-    //console.log('No genres supplied so filtering popular films');
   }
+  nextFilmIndexFilter[room] = filterIndex;
   request_in_progress[room] = false;
 
   if (listLength == 0) {
@@ -1087,12 +1089,16 @@ function filterFilmByGenre(filmGenreIds, queryGenreIds) {
 
 function filterFilmByRuntime(filmRuntimeAttr, filterRuntime) {
   
+  if (filterRuntime == 0) {
+    return true;
+  }
+
   if (filterRuntime != null) {
     // Get runtime filter in minutes
     filterRuntime *= 60; 
   }
+
   if (filmRuntimeAttr !== 'N/A') {
-    filterRuntime = 120; // TODO: currently use 120 mins as default as not passed in yet
     var filmRuntimeStr = filmRuntimeAttr.replace('min', '');
     var filmRuntime = parseInt(filmRuntimeStr);
     return filmRuntime <= filterRuntime;
