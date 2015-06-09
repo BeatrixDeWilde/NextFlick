@@ -46,7 +46,7 @@ var runtime_filters = [];
 var query_genres = [];
 // Stores how many users have sent off there prefered genres
 var query_collection_count = {};
-/* Stores a boolean for each channel to indicate if there is already a 
+/* Stores a boolean for each room to indicate if there is already a 
    request in progress for the next batch of films (prevents race conditions) */
 var request_in_progress = {};
 /* Stores a boolean to indicate if there is a request to add more films
@@ -60,7 +60,7 @@ var queryBatchSize = 25;
 // Keeps track of the last page of films to be queried
 var lastPageQueried = 0;
 
-/* Stores the last film index (per channel) that has been filtered 
+/* Stores the last film index (per room) that has been filtered 
    for film querying of genres, runtime etc. */
 var nextFilmIndexFilter = [];
 
@@ -157,37 +157,37 @@ io.sockets.on('connection', function(socket) {
   socket.on('disconnect', function() {
     // Called when a user leaves a room (via disconnect), free resources 
     // should tear down the room if username is the last user
-    console.log(socket.username + ' has disconnected from room ' + socket.channel);
-    users_force_leave_if_admin(socket.username, socket.channel);
-    free_resources(socket.username, socket.channel);
+    console.log(socket.username + ' has disconnected from room ' + socket.room);
+    users_force_leave_if_admin(socket.username, socket.room);
+    free_resources(socket.username, socket.room);
   });
 
-  function free_resources(username, channel) {
+  function free_resources(username, room) {
     
-      if (typeof username !== 'undefined' && typeof channel !== 'undefined'
-          && typeof users[channel] !== 'undefined') {
-        delete users[channel][username];
-        io.sockets.in(channel).emit('update_user_list', users[channel]);
+      if (typeof username !== 'undefined' && typeof room !== 'undefined'
+          && typeof users[room] !== 'undefined') {
+        delete users[room][username];
+        io.sockets.in(room).emit('update_user_list', users[room]);
          
         // If the user is not a quest and has requested a change in 
         // password delete the unique ID to username mapping
         if (!/^(guest)/.test(username) && email_ids[username] !== 'undefined'){
           delete email_ids[username];
         }
-        --num_users[channel];
+        --num_users[room];
         // If all users have left, tear down the room after 30 secs
-        if (num_users[channel] == 0) {
+        if (num_users[room] == 0) {
           // Tear down room.
           setTimeout(function() {
-          console.log('Tear down room: ' + channel);
-          remove_room_id(channel);
-          delete users[channel];
-          delete films[channel];
-          delete runtime_filters[channel];
-          delete query_collection_count[channel];
-          delete nextFilmIndexFilter[channel];
-          delete request_in_progress[channel];
-          delete query_genres[channel];
+          console.log('Tear down room: ' + room);
+          remove_room_id(room);
+          delete users[room];
+          delete films[room];
+          delete runtime_filters[room];
+          delete query_collection_count[room];
+          delete nextFilmIndexFilter[room];
+          delete request_in_progress[room];
+          delete query_genres[room];
           }, 30000);
         }
     }
@@ -368,38 +368,38 @@ io.sockets.on('connection', function(socket) {
     // Sets up newly created room, with no users
     // (set_room_id then goes on to add admin to room)
     // TODO: Random Room ID Generator, just using guest for now
-    //var channel = generate_room_id();
-    var channel = guest++;
-    socket.channel = channel;
-    users[channel] = {};
-    num_users[channel] = 0;
-    films[channel] = [];
-    nextFilmIndexFilter[channel] = 0;
-    runtime_filters[channel] = 0;
-    query_genres[channel] = [];
-    query_collection_count[channel] = [];
-    request_in_progress[channel] = false;
+    //var room = generate_room_id();
+    var room = guest++;
+    socket.room = room;
+    users[room] = {};
+    num_users[room] = 0;
+    films[room] = [];
+    nextFilmIndexFilter[room] = 0;
+    runtime_filters[room] = 0;
+    query_genres[room] = [];
+    query_collection_count[room] = [];
+    request_in_progress[room] = false;
     // This then calls user_join on client side to add admin to room.
-    socket.emit('set_room_id', channel);
+    socket.emit('set_room_id', room);
   });
 
-  socket.on('user_join', function(username, channel, is_admin_bool) {
+  socket.on('user_join', function(username, room, is_admin_bool) {
     // Adds a user to a room
     socket.username = username;
-    socket.channel = channel;
-    if (locks[channel] == true) {
+    socket.room = room;
+    if (locks[room] == true) {
       // If a room is already in session (picking films)
       socket.emit('room_is_locked');
-    } else if (typeof users[channel] === 'undefined') {
+    } else if (typeof users[room] === 'undefined') {
       // If a room has not been set up yet
       socket.emit('room_not_initialised');
     } else {
-      // Adds user to channel and send them to the lobby page to wait 
-      users[channel][username] = {username:username, ready:false, is_admin:is_admin_bool};
-      socket.join(channel);
-      ++num_users[channel];
-      socket.emit('joined_room', channel);
-      io.sockets.in(socket.channel).emit('update_user_list', users[channel]);
+      // Adds user to room and send them to the lobby page to wait 
+      users[room][username] = {username:username, ready:false, is_admin:is_admin_bool};
+      socket.join(room);
+      ++num_users[room];
+      socket.emit('joined_room', room);
+      io.sockets.in(socket.room).emit('update_user_list', users[room]);
      }
   });
   
@@ -440,18 +440,18 @@ io.sockets.on('connection', function(socket) {
     for (var i = 0, len = genres.length; i < len; i++) {
       genres[i] = genreIdLookup[genres[i]];
     }
-    query_genres[socket.channel] = query_genres[socket.channel].concat(genres);
-    ++query_collection_count[socket.channel];
-    if (query_collection_count[socket.channel] >= num_users[socket.channel]) {
+    query_genres[socket.room] = query_genres[socket.room].concat(genres);
+    ++query_collection_count[socket.room];
+    if (query_collection_count[socket.room] >= num_users[socket.room]) {
       console.log('All users have voted. Should fire off only once.');
-      generate_films(socket.channel);
+      generate_films(socket.room);
     }
   });
   
   /* runtime filter is an integer specifying the number of hours 
      the film runtime must be less than */
   socket.on('add_runtime_filter', function(runtimeFilter) {
-    runtime_filters[socket.channel] = parseInt(runtimeFilter);
+    runtime_filters[socket.room] = parseInt(runtimeFilter);
   });
 
   function generate_films(room) {
@@ -459,8 +459,9 @@ io.sockets.on('connection', function(socket) {
     // This function now calls back to show the film pages once done
     console.log('About to filter films for room ' + room + ' with genres ' + query_genres[room]);
     if (!request_in_progress[room]) {
-      request_in_progress[socket.channel] = true;
-      filterFilmsForChannel(room, query_genres[room], runtime_filters[room], queryBatchSize);
+      request_in_progress[socket.room] = true;
+      filterFilmsForRoom(room, query_genres[room], runtime_filters[room], queryBatchSize);
+
     }
   }
 
@@ -487,27 +488,27 @@ io.sockets.on('connection', function(socket) {
   socket.on('choice', function(decision, index, inc) {
     // If inc then increments that film's yes count attribute
     if(inc) {
-      films[socket.channel][index].yes_count++;
-      console.log(films[socket.channel][index].yes_count + ' vs ' + num_users[socket.channel]);
+      films[socket.room][index].yes_count++;
+      console.log(films[socket.room][index].yes_count + ' vs ' + num_users[socket.room]);
     }
 
-    if (films[socket.channel][index].yes_count >= num_users[socket.channel]) {
-      film_found(globalFilms[films[socket.channel][index].filmIndex]);
-      // If every user in the channel has said yes to the film then 
+    if (films[socket.room][index].yes_count >= num_users[socket.room]) {
+      film_found(globalFilms[films[socket.room][index].filmIndex]);
+      // If every user in the room has said yes to the film then 
       // take every user to the 'found page' with that film displayed
-      io.sockets.in(socket.channel).emit('film_found', globalFilms[films[socket.channel][index].filmIndex]);
+      io.sockets.in(socket.room).emit('film_found', globalFilms[films[socket.room][index].filmIndex]);
       // Room no longer in session TODO move? delete? Chase
-      locks[socket.channel] = false;
+      locks[socket.room] = false;
     } else {
 
-      if (typeof films[socket.channel][index+1] !== 'undefined'
-          && typeof films[socket.channel][index+1].filmIndex !== 'undefined') {
+      if (typeof films[socket.room][index+1] !== 'undefined'
+          && typeof films[socket.room][index+1].filmIndex !== 'undefined') {
 
-        if (typeof globalFilms[films[socket.channel][index+1].filmIndex] !== 'undefined'
-            && typeof globalFilms[films[socket.channel][index+1].filmIndex].runtime !== 'undefined') {
+        if (typeof globalFilms[films[socket.room][index+1].filmIndex] !== 'undefined'
+            && typeof globalFilms[films[socket.room][index+1].filmIndex].runtime !== 'undefined') {
           // Go to next film
           index++;
-          //var message = ' said ' + decision + ' to movie: ' + globalFilms[films[socket.channel][index-1].title];
+          //var message = ' said ' + decision + ' to movie: ' + globalFilms[films[socket.room][index-1].title];
       	  //socket.emit('update_chat', 'You', message);
           
           // Add 5 batches of films to global list// TODO: no longer needed? 
@@ -515,28 +516,28 @@ io.sockets.on('connection', function(socket) {
             addFilms(5);
           }
 
-          if (index == (films[socket.channel].length - queryDelayBuffer)
-              && !request_in_progress[socket.channel]) {
+          if (index == (films[socket.room].length - queryDelayBuffer)
+              && !request_in_progress[socket.room]) {
             // Gets next request if a request is not in progress
-            request_in_progress[socket.channel] = true;
-            filterFilmsForChannel(socket.channel, query_genres[socket.channel], runtime_filters[socket.channel], queryBatchSize);
+            request_in_progress[socket.room] = true;
+            filterFilmsForRoom(socket.room, query_genres[socket.room], runtime_filters[socket.room], queryBatchSize);
             //var nextPage = Math.floor(index / queryBatchSize) + 2;
           }
           // Send news films to the user with the updated index
-          socket.emit('new_films', globalFilms[films[socket.channel][index].filmIndex], index);
+          socket.emit('new_films', globalFilms[films[socket.room][index].filmIndex], index);
         
         } else {
           //console.log('next film in GLOBAL film list is/has undefined info');
-          //console.log('should be index ' + films[socket.channel][index+1].filmIndex + ' in global list');
+          //console.log('should be index ' + films[socket.room][index+1].filmIndex + ' in global list');
           addFilms(10);
         }
 
       } else {
         //console.log('next film in rooms film list is/has undefined info');
-        //console.log('prev film in room list is at index ' + films[socket.channel][index].filmIndex);
-        if (!request_in_progress[socket.channel]) {
-          request_in_progress[socket.channel] = true;
-          filterFilmsForChannel(socket.channel, query_genres[socket.channel], runtime_filters[socket.channel], queryBatchSize);
+        //console.log('prev film in room list is at index ' + films[socket.room][index].filmIndex);
+        if (!request_in_progress[socket.room]) {
+          request_in_progress[socket.room] = true;
+          filterFilmsForRoom(socket.room, query_genres[socket.room], runtime_filters[socket.room], queryBatchSize);
         }
       }
     }
@@ -691,7 +692,7 @@ io.sockets.on('connection', function(socket) {
 /* Get 20 films of all genres from the array parameter 'genres' 
    from page number pageNum and append them to the list of films */
 
-/*function add20FilmsByGenre(pageNum, channel, genres) {
+/*function add20FilmsByGenre(pageNum, room, genres) {
   console.log('add20Films: Adding 20 films of genres: ' + genres);
   // Only query within range 0 < n <= 1000, otherwise default query page 1
   if (pageNum == 0 || pageNum > 1000) {
@@ -725,46 +726,46 @@ io.sockets.on('connection', function(socket) {
         var film_list = response.results;
 
         // append films to JSON films array
-        var oldLength = films[channel].length;
+        var oldLength = films[room].length;
         if (oldLength == 0) {
-          films[channel] = shuffle(film_list);
+          films[room] = shuffle(film_list);
         } else {
-          films[channel].push.apply(films[channel], shuffle(film_list));
+          films[room].push.apply(films[room], shuffle(film_list));
         }
-        request_in_progress[channel] = false;
+        request_in_progress[room] = false;
 
         for (var i = oldLength, len = oldLength + film_list.length; i < len; i++) {
           // Update films information by modifying required properties
           //   and deleting unnecessary ones
-          films[channel][i].poster_path = 'http://image.tmdb.org/t/p/w342' + films[channel][i].poster_path;
-          delete films[channel][i].overview;
-          delete films[channel][i].backdrop_path;
-          delete films[channel][i].video;
-          delete films[channel][i].vote_average;
-          delete films[channel][i].vote_count;
-          films[channel][i].yes_count = 0;
+          films[room][i].poster_path = 'http://image.tmdb.org/t/p/w342' + films[room][i].poster_path;
+          delete films[room][i].overview;
+          delete films[room][i].backdrop_path;
+          delete films[room][i].video;
+          delete films[room][i].vote_average;
+          delete films[room][i].vote_count;
+          films[room][i].yes_count = 0;
 
-          var filmId = films[channel][i].id;
+          var filmId = films[room][i].id;
           // Check if extra film info is in cache
           filmInfoCache.get(filmId, function(err, filmInfo) {
             if (!err) {
               if (filmInfo == undefined) {
                 // Cache miss so bring film info into cache & update films
-                addExtraFilmInfo(i, channel); 
+                addExtraFilmInfo(i, room); 
               } else {
                 //console.log("######### CACHE HIT #########");
-                //console.log('For film ' + films[channel][i].title);
+                //console.log('For film ' + films[room][i].title);
 
                 // Cache hit so update film information with cached film info
-                films[channel][i].shortPlot = filmInfo.info["Plot"];
-                films[channel][i].rated = filmInfo.info["Rated"];
-                films[channel][i].imdbRating = filmInfo.info["imdbRating"];
-                films[channel][i].metascore = filmInfo.info["Metascore"];
-                films[channel][i].tomatoRating = filmInfo.info["tomatoMeter"];
-                films[channel][i].runtime = filmInfo.info["Runtime"];
+                films[room][i].shortPlot = filmInfo.info["Plot"];
+                films[room][i].rated = filmInfo.info["Rated"];
+                films[room][i].imdbRating = filmInfo.info["imdbRating"];
+                films[room][i].metascore = filmInfo.info["Metascore"];
+                films[room][i].tomatoRating = filmInfo.info["tomatoMeter"];
+                films[room][i].runtime = filmInfo.info["Runtime"];
 
                 if (i == 0) {
-                  initFilmPage(channel);
+                  initFilmPage(room);
                 }
               }
             }  
@@ -785,8 +786,8 @@ function shuffle(o) {
 
 
 // Query OMDb API for extra film information (plot, runtime, rating etc.)
-/*function addExtraFilmInfo(film_index, channel) {
-  var encTitle = encodeURIComponent(films[channel][film_index].title);
+/*function addExtraFilmInfo(film_index, room) {
+  var encTitle = encodeURIComponent(films[room][film_index].title);
   request({
     method: 'GET',
     url: 'http://www.omdbapi.com/?' +
@@ -802,7 +803,7 @@ function shuffle(o) {
         var infoResponse = JSON.parse(body);
 
         // Create cache JSON object to store
-        var filmId = films[channel][film_index].id;
+        var filmId = films[room][film_index].id;
         var filmInfo = {};
         if (infoResponse.Response === 'True') {
           filmInfo = {"info": {
@@ -831,31 +832,31 @@ function shuffle(o) {
         // Add extra film info object to cache
         filmInfoCache.set(filmId, filmInfo, function(err, success) {
           if (!err && success) {
-            //console.log('Film ' + films[channel][film_index].title + ' successfully added to cache');
+            //console.log('Film ' + films[room][film_index].title + ' successfully added to cache');
           }
         });
         
         // Update films with extra film information
-        films[channel][film_index].shortPlot = filmInfo.info["Plot"];
-        films[channel][film_index].rated = filmInfo.info["Rated"];
-        films[channel][film_index].imdbRating = filmInfo.info["imdbRating"];
-        films[channel][film_index].metascore = filmInfo.info["Metascore"];
-        films[channel][film_index].tomatoRating = filmInfo.info["tomatoMeter"];
-        films[channel][film_index].runtime = filmInfo.info["Runtime"];
+        films[room][film_index].shortPlot = filmInfo.info["Plot"];
+        films[room][film_index].rated = filmInfo.info["Rated"];
+        films[room][film_index].imdbRating = filmInfo.info["imdbRating"];
+        films[room][film_index].metascore = filmInfo.info["Metascore"];
+        films[room][film_index].tomatoRating = filmInfo.info["tomatoMeter"];
+        films[room][film_index].runtime = filmInfo.info["Runtime"];
         
         if (film_index == 0) {
-          initFilmPage(channel);
+          initFilmPage(room);
         }
       }
   });
 
 }*/
 
-function initFilmPage(channel) {
+function initFilmPage(room) {
   console.log('Should be showing film page');
-  io.sockets.in(channel).emit('update_chat', 'SERVER', 'Showing films from genres: ' + query_genres[channel]);
-  if (typeof films[channel][0] !== 'undefined') {
-    io.sockets.in(channel).emit('show_film_page', globalFilms[films[channel][0].filmIndex]);
+  io.sockets.in(room).emit('update_chat', 'SERVER', 'Showing films from genres: ' + query_genres[room]);
+  if (typeof films[room][0] !== 'undefined') {
+    io.sockets.in(room).emit('show_film_page', globalFilms[films[room][0].filmIndex]);
   } else {
     console.log('No films in room film list! - make query more general');
   }
@@ -1028,7 +1029,7 @@ function addExtraFilmInfo(film_index, callback) {
 
 }
 
-function filterFilmsForChannel(room, genres, runtime, numFilms) {
+function filterFilmsForRoom(room, genres, runtime, numFilms) {
   //TODO: add loading overlay when films are being filtered and next isn't yet ready
   var listLength = films[room].length;
   //TODO: check films exist in global list (add to list if need to)
