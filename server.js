@@ -1067,7 +1067,15 @@ function filterFilmsForRoom(room, genres, runtime, numFilms) {
   request_in_progress[room] = false;
 
   if (listLength == 0) {
-    initFilmPage(room);
+    if (films[room].length == 0) {
+      // If no films, filter films recursively until room film list is not empty, then initialise
+      setTimeout(filterFilmsForRoom, 5000, room, genres, runtime, numFilms - filmsAdded);
+    } else {
+      initFilmPage(room);
+    }
+  } else {
+    request_in_progress[room] = false;
+
   }
 
 }
