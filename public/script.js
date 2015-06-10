@@ -65,33 +65,31 @@ function set_to_admin(username) {
 
 function add_genre_checkboxes(genre_div, id_extension){
   var string = "";
-  //$(genre_div).append("<table class='table'><tbody>");
-  string += "<table class='table'><tbody>";
   var first= true;
+  string += "<table class='table'><tbody>";
+  string += "<tr><td><div class='checkbox my_checkbox'><input type='checkbox' id='select_all'><label for='select_all'>Select All</label></div></td>";
+  first=false;
   $.each(genreList, function(index, genre){
     if(first){
-      //$(genre_div).append("<tr><td><div class='checkbox checkbox-default'><input type='checkbox' id=" + genre + id_extension + "><label for='" +genre + id_extension +"'>"+ genre + " " + index +"</label></div></td>");
-      string += "<tr><td><div class='checkbox my_checkbox'><input type='checkbox' id=" 
+      string += "<tr><td><div class='checkbox my_checkbox gen'><input type='checkbox' id=" 
         + genre + id_extension + "><label for='" +genre + id_extension +"'>"+ genre + "</label></div></td>";
       first= false;
     }else{
-     // $(genre_div).append("<td><div class='checkbox checkbox-default'><input type='checkbox' id=" + genre + id_extension + 
-       // "><label for='" +genre + id_extension +"'>"+ genre + "</label></div></td></tr>");
-      string += "<td><div class='checkbox my_checkbox'><input type='checkbox' id=" + genre + id_extension + 
+      string += "<td><div class='checkbox my_checkbox gen'><input type='checkbox' id=" + genre + id_extension + 
         "><label for='" + genre + id_extension +"'>"+ genre + "</label></div></td></tr>";
       first = true;
     }
   });
 
   if(first){
-    //$(genre_div).append("</tr>");
     string += "</tr>";
   }
 
-  //$(genre_div).append("</tbody></table>");
   string += "</tbody></table>";
   $(genre_div).append(string);
 }
+
+
 
 function set_genre_checkboxes(addition){
   $.each(user_genres, function(index,genre){
@@ -138,21 +136,13 @@ function scroll_films(){
     });
     // End of displacement so total length of reel
     var total_width_of_reel_of_films = displacement;
-    var c = {current_speed:0, full_speed:2};
-    var $c = $(c);
-    var set_new_speed = function(new_speed, time_length)
-    {
-      if (time_length === undefined){
-        time_length = 600;
-      }
-      $c.stop(true).animate({current_speed:new_speed}, time_length);
-    };
+    var slider = {current_speed:0, full_speed:2};
     // Means it increments placement until the end of
     // the reel of two films then goes back to the beginning of the reel
     var scroll = function()
     {
         var current_placement = list_popular_films.scrollLeft();
-        var new_placement = current_placement + c.current_speed;
+        var new_placement = current_placement + slider.current_speed;
         // If at the end of the reel
         if (new_placement > total_width_of_reel_of_films - width_of_viewing_area){
           new_placement -= total_width_of_reel_of_films/2;
@@ -160,7 +150,7 @@ function scroll_films(){
         list_popular_films.scrollLeft(new_placement);
     };
     setInterval(scroll, 20);
-    set_new_speed(c.full_speed);
+    $(slider).animate({current_speed:slider.full_speed}, 600);
 }
 
 socket.on('connect', function(){
@@ -403,6 +393,7 @@ $(function(){
     socket.emit('new_room');
     is_admin = true;
     $('#go').show();
+    $('#options').show();
     $('#ready').hide();
   });
 
@@ -559,6 +550,11 @@ $(function(){
    $('#genre_overlay').fadeIn();
    disable_checkboxes();
  });
+
+ $('#select_all').click(function(){
+  $('input:checkbox').not(this).prop('checked', this.checked);
+});
+
 });
 
 function disable_checkboxes() {
@@ -587,6 +583,7 @@ socket.on('force_leave', function() {
    socket.emit('leave_room', username, room);
    reset_checkboxes('#genres');
    $('.lobby_page').hide('fast', function() {
+       $('.film_page').hide('fast');
        $('.room_page').fadeIn('fast'); 
        alert('Admin has left the room');
    });
