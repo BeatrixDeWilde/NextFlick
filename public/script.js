@@ -583,6 +583,7 @@ socket.on('force_leave', function() {
    socket.emit('leave_room', username, room);
    reset_checkboxes('#genres');
    $('.lobby_page').hide('fast', function() {
+       $('.film_page').hide('fast');
        $('.room_page').fadeIn('fast'); 
        alert('Admin has left the room');
    });
