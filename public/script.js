@@ -65,19 +65,20 @@ function set_to_admin(username) {
 
 function add_genre_checkboxes(genre_div, id_extension){
   var string = "";
-  //$(genre_div).append("<table class='table'><tbody>");
-  string += "<table class='table'><tbody>";
   var first= true;
+  string += "<table class='table'><tbody>";
+  string += "<tr><td><div class='checkbox my_checkbox'><input type='checkbox' id='select_all'><label for='select_all'>Select All</label></div></td>";
+  first=false;
   $.each(genreList, function(index, genre){
     if(first){
       //$(genre_div).append("<tr><td><div class='checkbox checkbox-default'><input type='checkbox' id=" + genre + id_extension + "><label for='" +genre + id_extension +"'>"+ genre + " " + index +"</label></div></td>");
-      string += "<tr><td><div class='checkbox my_checkbox'><input type='checkbox' id=" 
+      string += "<tr><td><div class='checkbox my_checkbox gen'><input type='checkbox' id=" 
         + genre + id_extension + "><label for='" +genre + id_extension +"'>"+ genre + "</label></div></td>";
       first= false;
     }else{
      // $(genre_div).append("<td><div class='checkbox checkbox-default'><input type='checkbox' id=" + genre + id_extension + 
        // "><label for='" +genre + id_extension +"'>"+ genre + "</label></div></td></tr>");
-      string += "<td><div class='checkbox my_checkbox'><input type='checkbox' id=" + genre + id_extension + 
+      string += "<td><div class='checkbox my_checkbox gen'><input type='checkbox' id=" + genre + id_extension + 
         "><label for='" + genre + id_extension +"'>"+ genre + "</label></div></td></tr>";
       first = true;
     }
@@ -92,6 +93,8 @@ function add_genre_checkboxes(genre_div, id_extension){
   string += "</tbody></table>";
   $(genre_div).append(string);
 }
+
+
 
 function set_genre_checkboxes(addition){
   $.each(user_genres, function(index,genre){
@@ -551,6 +554,11 @@ $(function(){
    $('#genre_overlay').fadeIn();
    disable_checkboxes();
  });
+
+ $('#select_all').click(function(){
+  $('input:checkbox').not(this).prop('checked', this.checked);
+});
+
 });
 
 function disable_checkboxes() {
