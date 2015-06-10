@@ -393,6 +393,7 @@ $(function(){
     socket.emit('new_room');
     is_admin = true;
     $('#go').show();
+    $('#options').show();
     $('#ready').hide();
   });
 
