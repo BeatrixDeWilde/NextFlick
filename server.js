@@ -101,6 +101,10 @@ var genreIdLookup = {
   "Western" : 37
 }
 
+var allGenreIds = ["28", "12", "16", "35", "80", "99", "18", "10751", "14", "10769",
+                   "36", "27", "10402", "9648", "10749", "878", "10770", "53", 
+                   "10752", "37"];
+
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', function(req, res) {
@@ -393,7 +397,33 @@ io.sockets.on('connection', function(socket) {
       socket.emit('room_not_initialised');
     } else {
       // Adds user to room and send them to the lobby page to wait 
-      users[room][username] = {username:username, ready:false, is_admin:is_admin_bool};
+      /* genreLearning is to filter out films which of genres which are repeatedly
+         being said 'no' to by each user - store all genres and record number of
+         yesses for that genre (first element in array) and total number of times
+         the user is shown that genre (second element in the array). */
+      users[room][username] = {username: username, ready: false, is_admin: is_admin_bool,
+                              genreLearning: {"28":    [1,1],
+                                              "12":    [1,1],
+                                              "16":    [1,1],
+                                              "35":    [1,1],
+                                              "80":    [1,1],
+                                              "99":    [1,1],
+                                              "18":    [1,1],
+                                              "10751": [1,1],
+                                              "14":    [1,1],
+                                              "10769": [1,1],
+                                              "36":    [1,1],
+                                              "27":    [1,1],
+                                              "10402": [1,1],
+                                              "9648":  [1,1],
+                                              "10749": [1,1],
+                                              "878":   [1,1],
+                                              "10770": [1,1],
+                                              "53":    [1,1],
+                                              "10752": [1,1],
+                                              "37":    [1,1]
+                                             }
+                              };
       socket.join(room);
       ++num_users[room];
       socket.emit('joined_room', room);
@@ -438,10 +468,16 @@ io.sockets.on('connection', function(socket) {
     for (var i = 0, len = genres.length; i < len; i++) {
       genres[i] = genreIdLookup[genres[i]];
     }
+    console.log('Genres to filter by: ' + genres);
     query_genres[socket.room] = query_genres[socket.room].concat(genres);
     ++query_collection_count[socket.room];
     if (query_collection_count[socket.room] >= num_users[socket.room]) {
       console.log('All users have voted. Should fire off only once.');
+      // Remove duplicate genres from genre array for room
+      var uniqueGenres = query_genres[socket.room].filter(function(item, pos) {
+        return query_genres[socket.room].indexOf(item) == pos;
+      });
+      query_genres[socket.room] = uniqueGenres;
       generate_films(socket.room);
     }
   });
@@ -488,6 +524,71 @@ io.sockets.on('connection', function(socket) {
     if(inc) {
       films[socket.room][index].yes_count++;
       console.log(films[socket.room][index].yes_count + ' vs ' + num_users[socket.room]);
+    }
+
+    // Update genre yes count of film
+    var filmGenres = globalFilms[films[socket.room][index].filmIndex].genre_ids;
+    var numFilmGenres = filmGenres.length;
+    if (numFilmGenres != 0) {
+      for (var i = 0; i < numFilmGenres; i++) {
+        var currGenre = filmGenres[i].toString();
+        if (inc) {
+          users[socket.room][socket.username].genreLearning[currGenre][0]++;
+        }
+        users[socket.room][socket.username].genreLearning[currGenre][1]++;
+      }
+      //console.log(users[socket.room][socket.username].genreLearning);
+    }
+
+    // THE GENRE PURGE (happens every 100 films)
+    if (index % 100 == 0 && index != 0 && query_genres[socket.room].length > 3) {
+      //for (var i = 0; i < ) {
+        var numUsers = Object.keys(users[socket.room]).length;
+        var lowestRatios = [];
+        var lowestRatioAverage = null;
+        var genreToRemove = null;
+        var filterGenres = query_genres[socket.room];
+        for (var genre in filterGenres) {
+          for (var username in users[socket.room]) {
+            var yesCount = users[socket.room][username].genreLearning[filterGenres[genre]][0];
+            var totalCount = users[socket.room][username].genreLearning[filterGenres[genre]][1];
+            var ratio = yesCount / totalCount;
+            if (ratio < 0.1) {
+              lowestRatios.push(ratio);
+            } else {
+              lowestRatios = [];
+              break;
+            }
+            // If on last user whos ratio is less than threshold
+            var ratioCount = lowestRatios.length;
+            if (ratioCount == numUsers) {
+              var ratioSum = 0;
+              for (var i = 0; i < ratioCount; i++) {
+                ratioSum += lowestRatios[i];
+              }
+              var newLowestRatioAverage = ratioSum / ratioCount;
+              if (lowestRatioAverage == null 
+                  || (lowestRatioAverage != null 
+                      && newLowestRatioAverage < lowestRatioAverage)) {
+                lowestRatioAverage = newLowestRatioAverage;
+                genreToRemove = filterGenres[genre];
+                console.log('Lowest ratio average: ' + lowestRatioAverage);
+                console.log('Ratios: ' + lowestRatios);
+                console.log('For genre ' + filterGenres[genre] + ' which has ' + yesCount + ' yesses, and has been seen ' + totalCount + ' times' );
+                lowestRatios = [];
+              }
+            }
+          }
+        }
+        if (genreToRemove != null) {
+          console.log('genre to stop including in filter is ' + genreToRemove);
+          genreToRemove = parseInt(genreToRemove, 10);
+          var indexOfGenre = query_genres[socket.room].indexOf(genreToRemove);
+          if (indexOfGenre > -1) {
+            query_genres[socket.room].splice(indexOfGenre, 1);
+          }
+        }
+        
     }
 
     if (films[socket.room][index].yes_count >= num_users[socket.room]) {
