@@ -1,0 +1,36 @@
+\contentsline {section}{\numberline {1}Introduction}{2}
+\contentsline {subsection}{\numberline {1.1}Description of our Application}{2}
+\contentsline {subsection}{\numberline {1.2}Requirements}{2}
+\contentsline {section}{\numberline {2}Project Management}{2}
+\contentsline {subsection}{\numberline {2.1}Group Structure}{2}
+\contentsline {subsection}{\numberline {2.2}Implementation Languages}{3}
+\contentsline {subsubsection}{\numberline {2.2.1}JavaScript}{3}
+\contentsline {subsubsection}{\numberline {2.2.2}Node.js}{3}
+\contentsline {subsubsection}{\numberline {2.2.3}Socket.io}{3}
+\contentsline {subsubsection}{\numberline {2.2.4}postgreSQL}{3}
+\contentsline {subsection}{\numberline {2.3}Design Processes}{3}
+\contentsline {subsection}{\numberline {2.4}Version Control}{4}
+\contentsline {section}{\numberline {3}Program Description}{4}
+\contentsline {subsection}{\numberline {3.1}Implementation}{4}
+\contentsline {subsubsection}{\numberline {3.1.1}Database}{4}
+\contentsline {subsubsection}{\numberline {3.1.2}Server and Client Interactions}{4}
+\contentsline {subsubsection}{\numberline {3.1.3}API Calls and Storing of Films}{5}
+\contentsline {subsection}{\numberline {3.2}Expected User Interactions}{6}
+\contentsline {subsubsection}{\numberline {3.2.1}User Journey}{6}
+\contentsline {subsubsection}{\numberline {3.2.2}First Page}{6}
+\contentsline {subsubsection}{\numberline {3.2.3}Login Page}{7}
+\contentsline {subsubsection}{\numberline {3.2.4}Sign up and Settings Page}{7}
+\contentsline {subsubsection}{\numberline {3.2.5}Room Page}{8}
+\contentsline {subsubsection}{\numberline {3.2.6}Lobby Page}{8}
+\contentsline {subsubsection}{\numberline {3.2.7}Film Page}{8}
+\contentsline {subsubsection}{\numberline {3.2.8}Film Found Page}{8}
+\contentsline {subsection}{\numberline {3.3}Design Patterns}{8}
+\contentsline {subsection}{\numberline {3.4}System Architecture}{8}
+\contentsline {section}{\numberline {4}Acknowledgements}{9}
+\contentsline {subsection}{\numberline {4.1}Libraries}{9}
+\contentsline {subsection}{\numberline {4.2}Legal Issues}{9}
+\contentsline {section}{\numberline {5}Conclusions}{9}
+\contentsline {subsection}{\numberline {5.1}What was done}{9}
+\contentsline {subsection}{\numberline {5.2}What was not done}{10}
+\contentsline {subsection}{\numberline {5.3}What have we learned}{10}
+\contentsline {subsection}{\numberline {5.4}What would we do differently}{10}
