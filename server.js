@@ -137,17 +137,6 @@ io.sockets.on('connection', function(socket) {
 
   console.log('Obtained connection');
 
-  // Not called ?
-  /*socket.on('generate_films', function(room, genres) {
-    console.log('DEPRECATED: socket on generate_films');
-    query_genres[room] = genres;
-    console.log('Generating films for room ' + room + ' of genres: ' + query_genres[room]);
-    // Initialise film list with results from page 1
-    // This function now calls back to show the film pages once done
-    add20FilmsByGenre(1, room, query_genres[room]);
-    //io.sockets.in(room).emit('initialise', films[room][0]);
-  });*/
-
   socket.on('leave_room', function(username, room) {
     // Called when a user leaves a room (via button), free resources 
     // should tear down the room if username is the last user
@@ -669,7 +658,7 @@ io.sockets.on('connection', function(socket) {
           update_film(film, result.rows[0].count + 1);
         }
         // Checks the size of the list - if it is beyond a limit remove all old entries (by last updated)
-        if (result.rowCount < size_limit) {
+        if (result.rowCount > size_limit) {
           delete_films();
         }
         client.end();
@@ -679,19 +668,21 @@ io.sockets.on('connection', function(socket) {
 
   function delete_films(){
     var delete_size = 20;
-    /*pg.connect(post_database, function(err, client, done) {
+    pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
-      client.query('INSERT INTO popular_films (film_id, poster_url, count, last_time_updated) VALUES($1, $2, 1, $3);',
-                   [film.id, film.poster_path, new Date()], function(err, result) {
+      client.query('DELETE FROM popular_films WHERE film_id in (SELECT film_id FROM popular_films order by last_time_updated limit $1);',
+                   [delete_size], function(err, result) {
         if(err) {
           return console.error('error running query', err);
         }
         client.end();
       });
-    });*/
+    });
   }
+
+
 
   function insert_film(film){
     // Puts the film in the popular films database -> intial count of 1 
