@@ -156,9 +156,9 @@ io.sockets.on('connection', function(socket) {
   });
 
   function free_resources(username, room) {
-    
     if (typeof username !== 'undefined' && typeof room !== 'undefined'
         && typeof users[room] !== 'undefined') {
+      update_user_popular_films(users[room][username].choosen_films, username);
       delete users[room][username];
       io.sockets.in(room).emit('update_user_list', users[room]);
        
@@ -184,6 +184,10 @@ io.sockets.on('connection', function(socket) {
         }, 30000);
       }
     }
+  }
+
+  function update_user_popular_films(choosen_films, username){
+    // TODO
   }
 
   function users_force_leave_if_admin(username, room) { 
@@ -390,7 +394,7 @@ io.sockets.on('connection', function(socket) {
          being said 'no' to by each user - store all genres and record number of
          yesses for that genre (first element in array) and total number of times
          the user is shown that genre (second element in the array). */
-      users[room][username] = {username: username, ready: false, is_admin: is_admin_bool,
+      users[room][username] = {username: username, ready: false, is_admin: is_admin_bool, choosen_films: {},
                               genreLearning: {"28":    [1,1],
                                               "12":    [1,1],
                                               "16":    [1,1],
@@ -512,6 +516,8 @@ io.sockets.on('connection', function(socket) {
     // If inc then increments that film's yes count attribute
     if(inc) {
       films[socket.room][index].yes_count++;
+      var global_film_index = films[socket.room][index].filmIndex;
+      users[socket.room][socket.username].choosen_films[global_film_index] = globalFilms[global_film_index];
       console.log(films[socket.room][index].yes_count + ' vs ' + num_users[socket.room]);
     }
 
@@ -633,47 +639,43 @@ io.sockets.on('connection', function(socket) {
 
   function film_found(film){
     // Updates popular films database with new film found
-    get_film(film);
+    get_film(film, 'popular_films');
+    // If too many films stored deleted the last updated films
+    delete_films('popular_films');
   }
 
-  function get_film(film){
+  function get_film(film, database){
     // Given a film ID 
     //    if an entry exists in popular films -> update
     //    if no entry exists                  -> insert
-    // If too many films stored deleted the last updated films
+    pg.connect(post_database, function(err, client, done) {
+      if(err) {
+        return console.error('error connecting', err);
+      }
+      client.query('SELECT count FROM ' + database + ' WHERE film_id = $1;', [film.id], function(err, result) {
+        if(err) {
+          return console.error('error running query', err);
+        }
+        if (result.rows.length == 0) {
+          insert_film(film, database);
+        }
+        else {
+          update_film(film, result.rows[0].count + 1, database);
+        }
+        client.end();
+      });
+    });
+  }
+
+  function delete_films(database){
+    var delete_size = 20;
     var size_limit = 70;
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
-      client.query('SELECT count FROM popular_films WHERE film_id = $1;', [film.id], function(err, result) {
-        if(err) {
-          return console.error('error running query', err);
-        }
-        if (result.rows.length == 0) {
-          insert_film(film);
-        }
-        else {
-          console.log("Updating film");
-          update_film(film, result.rows[0].count + 1);
-        }
-        // Checks the size of the list - if it is beyond a limit remove all old entries (by last updated)
-        if (result.rowCount > size_limit) {
-          delete_films();
-        }
-        client.end();
-      });
-    });
-  }
-
-  function delete_films(){
-    var delete_size = 20;
-    pg.connect(post_database, function(err, client, done) {
-      if(err) {
-        return console.error('error connecting', err);
-      }
-      client.query('DELETE FROM popular_films WHERE film_id in (SELECT film_id FROM popular_films order by last_time_updated limit $1);',
-                   [delete_size], function(err, result) {
+      client.query('DELETE FROM popular_films WHERE film_id in (SELECT film_id FROM popular_films order by last_time_updated limit $1) and $2 < (select count(*) from popular_films);',
+                   [delete_size, size_limit], function(err, result) {
         if(err) {
           return console.error('error running query', err);
         }
@@ -684,13 +686,13 @@ io.sockets.on('connection', function(socket) {
 
 
 
-  function insert_film(film){
+  function insert_film(film, database){
     // Puts the film in the popular films database -> intial count of 1 
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
-      client.query('INSERT INTO popular_films (film_id, poster_url, count, last_time_updated) VALUES($1, $2, 1, $3);',
+      client.query('INSERT INTO ' + database + ' (film_id, poster_url, count, last_time_updated) VALUES($1, $2, 1, $3);',
                    [film.id, film.poster_path, new Date()], function(err, result) {
         if(err) {
           return console.error('error running query', err);
@@ -700,13 +702,13 @@ io.sockets.on('connection', function(socket) {
     });
   }
 
-  function update_film(film, new_count){
+  function update_film(film, new_count, database){
     // Updates the row to have the new incremented counts
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
-      client.query('UPDATE popular_films SET count=$2, last_time_updated=$3 WHERE film_id=$1;', [film.id, new_count, new Date()], function(err, result) {
+      client.query('UPDATE ' + database + ' SET count=$2, last_time_updated=$3 WHERE film_id=$1;', [film.id, new_count, new Date()], function(err, result) {
         if(err) {
           return console.error('error running query', err);
         }
