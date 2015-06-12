@@ -645,10 +645,10 @@ socket.on('film_found', function(film) {
 document.onkeydown = function(e) {
  if (on_main_page) {
   switch (e.keyCode) {
-    case 37:
+    case 39:
       socket.emit('choice', "yes", index, true);
       break;
-    case 39:
+    case 37:
       socket.emit('choice', "no", index, false);
       break;
     case 40:
