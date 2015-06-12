@@ -419,7 +419,6 @@ $(function(){
   $('#join').click(function() {
     $('#room_message1').hide();
     $('#room_message2').hide();
-    $('#gap').show();
     var RoomID = document.getElementById('RoomID').value;
     if (RoomID.length > 0){
       socket.emit("user_join", username, RoomID, is_admin);
@@ -449,13 +448,11 @@ function message_fade_out(element, time) {
 }
 
 socket.on('room_not_initialised', function(){
-  $('#gap').hide();
   $('#room_message1').show(
     message_fade_out($('#room_message1'), 5000));
 });
 
 socket.on('room_is_locked', function() {
-  $('#gap').hide();
   $('#room_message2').show(
     message_fade_out($('#room_message2'), 5000));
 });
