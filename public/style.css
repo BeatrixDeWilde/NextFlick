@@ -45,6 +45,7 @@ html{
 }
 
 .my_block{
+  position: relative;
   color: #FFFFFF;
   border-radius: 25px;
   margin: 5%;
@@ -52,7 +53,7 @@ html{
   padding: 30px;
   width: auto;
   height: auto;
-  min-height: 400px;
+  min-height: 450px;
   min-width: 250px;
   max-width: 300px;
   border-bottom: 2px solid #333333 !important;
@@ -119,6 +120,17 @@ html{
 #room_message2{
   display:none;
   color: #FFFFFF;
+}
+
+.page_back{
+  position: absolute;
+  bottom: 5%;
+}
+
+#user_settings{
+  position: absolute;
+  left:30%;
+  bottom: 5%;
 }
 
 #user_settings{
