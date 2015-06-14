@@ -6,6 +6,7 @@ var room = 'NOTSET';
 var on_main_page = false;
 var on_film_found_page = false;
 var is_admin = false;
+var set_up = true;
 var user_genres = [];
 var email = 'NOTSET';
 
@@ -109,13 +110,18 @@ function reset_checkboxes(genre_class){
 $(document).ready(function() {
   add_genre_checkboxes('#genres','');
   add_genre_checkboxes('#genre_settings','_settings');
-  socket.emit('get_popular_films');
 });
 
 socket.on('popular_films', function(popular_films){
+  $("#popular_film_list").html("");
   $.each(popular_films, function(index, film){
     $("#popular_film_list").append('<li><img src="' + film.poster_url + '" width="78" height="115" /></li>');
   });
+  if (/^(guest)/.test(username)) {
+    $("#scroller_title").html("Most frequent NextFlicks:");
+  } else {
+    $("#scroller_title").html(username + "'s recommended NextFlicks:");
+  }
   scroll_films();
 });
 
@@ -150,14 +156,17 @@ function scroll_films(){
         list_popular_films.scrollLeft(new_placement);
     };
     setInterval(scroll, 20);
-    $(slider).animate({current_speed:slider.full_speed}, 600);
+    if (set_up) {
+      $(slider).animate({current_speed:slider.full_speed}, 600);
+      set_up = false;
+    }
 }
 
 socket.on('connect', function(){
 });
 
 socket.on('set_username', function(user) {
-  username = user;
+  set_username(user);
 });
 
 // ************************** //
@@ -169,8 +178,6 @@ $(function(){
   $('#guest').click(function() {
     socket.emit('get_guest_id');
     $('.first_page').fadeOut('fast', function() {
-      document.getElementById('room_page_username').innerHTML 
-        = '<b> Username</b>: ' + username;
       $('.room_page').fadeIn('fast');
     });
   });
@@ -190,6 +197,7 @@ function set_username(user){
   username = user;
   document.getElementById('room_page_username').innerHTML 
     = '<b> Username</b>: ' + username;
+  socket.emit('get_popular_films', username);
 }
 
 // ************************** //
@@ -263,7 +271,7 @@ socket.on('signed_in', function(user, user_email){
 
 socket.on('user_already_exists', function(username){
   document.getElementById('username_error_message_sign_up').innerHTML = 
-    'The username ' + username + ' already exists or starts with the word "guest"';
+    'The username ' + username + ' already exists';
   $("#username_error_message_sign_up").show();
   message_fade_out($('#username_error_message_sign_up'), 5000);
 });
@@ -294,6 +302,11 @@ $(function(){
       document.getElementById('email_error_message_sign_up').innerHTML = 'Please enter a valid email';
       $("#email_error_message_sign_up").show();
       message_fade_out($('#email_error_message_sign_up'), 5000); 
+    } else if (/^(guest)/.test(username)) {
+      document.getElementById('username_error_message_sign_up').innerHTML = 
+      'The username ' + username + ' starts with the word "guest"';
+      $("#username_error_message_sign_up").show();
+      message_fade_out($('#username_error_message_sign_up'), 5000);
     } else {
       socket.emit('sign_up', username, password, email);
     }
