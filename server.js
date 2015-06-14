@@ -263,6 +263,19 @@ io.sockets.on('connection', function(socket) {
   // ******* LOGIN PAGE ******* //
   // ************************** //
 
+  socket.on('forgotten_password', function(username){
+    get_user_data(username, 'NOTSET', 'NOTSET', 'NOTSET', forgot_pass);
+  });
+
+  function forgot_pass(username, password, email, new_password, result){
+    // Report error if user does not exist
+    if(result.rows.length != 1) {
+      socket.emit('incorrect_login', "No such user", false);
+      return;
+    }
+    socket.emit('forgotten_password_user_exists', result.rows[0].email, username, result.rows[0].genres);
+  }
+
   socket.on('sign_in', function(username, password) {
     // Gets the row corresponding to username then calls sign in with this row
     get_user_data(username, password, 'NOTSET', 'NOTSET', sign_in);
@@ -334,12 +347,11 @@ io.sockets.on('connection', function(socket) {
     // Sets the mapping from username to unique ID 
     // (deleted when user disconnects)
     email_ids[username] = generate_id();
-    console.log(email_ids[username]);
     // Set up email
     var mailOptions={
       to : email,
       subject : 'Password unique id',
-      text : 'ID: ' + id
+      text : 'ID: ' + email_ids[username]
     }
     // Send email
     smtpTransport.sendMail(mailOptions, function(error, response){
@@ -351,19 +363,23 @@ io.sockets.on('connection', function(socket) {
     });
   });
 
-  socket.on('change_password', function(id, username, old_password, new_password) {
-    // Checks that the user has entered the correct unique ID (sent in email)
-    if (email_ids[username] == id) {
-      // Encrypts new password
-      var salt = bcrypt.genSaltSync();
-      var hash = bcrypt.hashSync(new_password, salt);
-      // Checks old password is correct then inserts new hashed password
-      get_user_data(username, old_password, 'NOTSET', hash, check_old_password);
-    }
-    else{
-      // Incorrect unique ID has been entered
-      socket.emit('incorrect_input', "Incorrect unique ID");
-    }
+  socket.on('change_password', function(id, username, old_password, new_password, forgotten_password) {
+      // Checks that the user has entered the correct unique ID (sent in email)
+      if (email_ids[username] == id) {
+        // Encrypts new password
+        var salt = bcrypt.genSaltSync();
+        var hash = bcrypt.hashSync(new_password, salt);
+        if (!forgotten_password) {
+          // Checks old password is correct then inserts new hashed password
+          get_user_data(username, old_password, 'NOTSET', hash, check_old_password);
+        } else {
+          update_password(username, hash);
+        }
+      }
+      else{
+        // Incorrect unique ID has been entered
+        socket.emit('incorrect_input', "Incorrect unique ID");
+      }
   });
 
   // ************************* //
@@ -824,7 +840,7 @@ io.sockets.on('connection', function(socket) {
           return console.error('error running query update password', err);
         }
         console.log("Changed password of user: " + username);
-        socket.emit('changed_password');
+        socket.emit('changed_password', username);
       });
     });
   }
