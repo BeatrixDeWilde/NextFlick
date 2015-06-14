@@ -602,7 +602,7 @@ io.sockets.on('connection', function(socket) {
     }
 
     if (films[socket.room][index].yes_count >= num_users[socket.room]) {
-      //film_found(globalFilms[films[socket.room][index].filmIndex]);
+      film_found(globalFilms[films[socket.room][index].filmIndex]);
       // If every user in the room has said yes to the film then 
       // take every user to the 'found page' with that film displayed
       io.sockets.in(socket.room).emit('film_found', globalFilms[films[socket.room][index].filmIndex]);
