@@ -16,6 +16,8 @@ var pg = require("pg");
 // Asynchronous module for async requests with a max concurrency limit
 var async = require("async");
 
+var pythonShell = require('python-shell');
+
 // Security information that needs to be moved to a skeleton file.
 var post_database = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
 var api_param = 'api_key=a91369e1857e8c0cf2bd02b5daa38260';
@@ -62,6 +64,7 @@ var lastPageQueried = 0;
 var nextFilmIndexFilter = [];
 
 var guest = 0;
+var channel_ids = [];
 // If a room is already in session (choosing films) a new user cannot join
 // so the rooms lock is set to true
 var locks = {};
@@ -95,10 +98,6 @@ var genreIdLookup = {
   "Western" : 37
 }
 
-var allGenreIds = ["28", "12", "16", "35", "80", "99", "18", "10751", "14", "10769",
-                   "36", "27", "10402", "9648", "10749", "878", "10770", "53", 
-                   "10752", "37"];
-
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', function(req, res) {
@@ -120,6 +119,11 @@ extraInfoReqQueue.drain = function() {
   console.log('All OMDb requests have been processed for current batch');
 }
 
+/* Gets date for 3 months ago so only suggests films that have been released 
+   on DVD or are avaiblable to stream */
+var queryDate = new Date();
+queryDate.setMonth(queryDate.getMonth() - 3);
+queryDate.toISOString().substring(0,10);
 
 console.log('Server started.');
 
@@ -127,7 +131,7 @@ console.log('Server started.');
 //TODO: When server goes live, set this to 1000 and remove occurences of 
 //      addFilms in rest of code (much faster processing but slower startup)
 // Current way dynamically adds to global list
-addFilms(10);
+addFilms(5);
 
 
 io.sockets.on('connection', function(socket) {
@@ -175,6 +179,7 @@ io.sockets.on('connection', function(socket) {
       --num_users[room];
       // If all users have left, tear down the room after 30 secs
       if (num_users[room] == 0) {
+        locks[room] = true;
         // Tear down room.
         setTimeout(function() {
         console.log('Tear down room: ' + room);
@@ -187,6 +192,8 @@ io.sockets.on('connection', function(socket) {
         delete nextFilmIndexFilter[room];
         delete request_in_progress[room];
         delete query_genres[room];
+        channel_ids[room] = false;
+        delete locks[room];
         }, 30000);
       }
     }
@@ -212,7 +219,7 @@ io.sockets.on('connection', function(socket) {
   }
 
   function generate_id() { 
-    return Math.random().toString(10).substring(2,6);
+    return Math.random().toString(10).substring(2,5);
   }
   
   function generate_guest_id() {
@@ -229,7 +236,6 @@ io.sockets.on('connection', function(socket) {
       id = generate_id();
     }
     list[id] = true;
-    console.log(id);
     return id;
   }
  
@@ -347,17 +353,18 @@ io.sockets.on('connection', function(socket) {
     // Sets the mapping from username to unique ID 
     // (deleted when user disconnects)
     email_ids[username] = generate_id();
+    console.log("HERE " + email_ids[username]);
     // Set up email
     var mailOptions={
       to : email,
-      subject : 'Password unique id',
-      text : 'ID: ' + email_ids[username]
+      subject : 'NextFlick: Unique ID',
+      text : 'Hey from NextFlick. User ' + username + " has requested a new password please enter the unique ID " + email_ids[username] + " into the page shown. This ID will become invalid as soon as you leave this page."
     }
     // Send email
     smtpTransport.sendMail(mailOptions, function(error, response){
-      if(error){
+      if (error) {
         console.log(error);
-      }else{
+      } else {
         console.log("Message sent: " + response.message);
       }
     });
@@ -365,11 +372,13 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('change_password', function(id, username, old_password, new_password, forgotten_password) {
       // Checks that the user has entered the correct unique ID (sent in email)
+      console.log(" username " + username + " HERE " + email_ids[username]);
       if (email_ids[username] == id) {
         // Encrypts new password
         var salt = bcrypt.genSaltSync();
         var hash = bcrypt.hashSync(new_password, salt);
         if (!forgotten_password) {
+
           // Checks old password is correct then inserts new hashed password
           get_user_data(username, old_password, 'NOTSET', hash, check_old_password);
         } else {
@@ -390,8 +399,7 @@ io.sockets.on('connection', function(socket) {
     // Sets up newly created room, with no users
     // (set_room_id then goes on to add admin to room)
     // TODO: Random Room ID Generator, just using guest for now
-    //var room = generate_room_id();
-    var room = guest++;
+    var room = generate_room_id();
     socket.room = room;
     users[room] = {};
     num_users[room] = 0;
@@ -989,7 +997,7 @@ function addFilmsByGenre(pageNum, reqCounter, numBatches) {
            '&page=' + pageNum + 
            '&include_adult=false' + 
            '&sort_by=popularity.desc' + 
-           '&release_date.lte=' + (new Date()).toISOString().substring(0,10),
+           '&release_date.lte=' + queryDate,
       headers: {
         'Accept': 'application/json'
       }}, 
@@ -1022,13 +1030,18 @@ function addFilmsByGenre(pageNum, reqCounter, numBatches) {
               extraInfoReqQueue.push(i , function(err) {
                 //console.log('finished processing request for index ' + i);
               }); //TODO: remove callback function
+              globalFilms[i].onNetflix = false;
+              globalFilms[i].linkNetflix = null;
+              globalFilms[i].onAIV = false;
+              globalFilms[i].linkAIV = null;
+              get_streaming_services(globalFilms[i].title, i);
               globalFilms[i].poster_path = 'http://image.tmdb.org/t/p/w342' + globalFilms[i].poster_path;
               delete globalFilms[i].overview;
               delete globalFilms[i].backdrop_path;
               delete globalFilms[i].video;
               delete globalFilms[i].vote_average;
               delete globalFilms[i].vote_count;
-
+              
             }
           } else {
             console.log('Server returned invalid JSON for TMDb query');
@@ -1115,7 +1128,6 @@ function addExtraFilmInfo(film_index, callback) {
         globalFilms[film_index].metascore = filmInfo.info["Metascore"];
         globalFilms[film_index].tomatoRating = filmInfo.info["tomatoMeter"];
         globalFilms[film_index].runtime = filmInfo.info["Runtime"];
-       
       } else {
         console.log('OMDb API request failed for film index ' + film_index);
       }
@@ -1236,10 +1248,35 @@ function addFilms(numBatches) {
     addFilmsByGenre(lastPageQueried, 0, numBatches);
     //TODO: If a TMDb request fails make sure retried
   } else {
-    //console.log('GLOBAL REQUEST IN PROGRESS!');
     if (isGlobalFilmListMaxed) {
       console.log('Global film list is MAXED!!');
     }
   }
 }
 
+function get_streaming_services(title, index) {
+  var options = {
+    mode: 'json',
+    args: [title],
+    scriptPath: 'CanIStreamIt/canistreamit'
+  };
+
+  pythonShell.run('script.py', options, function (err, results) {
+    if (err) {
+      console.log('Python script error');
+      return;
+    }
+    if (results != null) {
+      if (results[0]["amazon_prime_instant_video"] != undefined) { 
+        //It is available on Amazon Instant Video
+        globalFilms[index].onAIV = true;
+        globalFilms[index].linkAIV = results[0]["amazon_prime_instant_video"]["direct_url"];
+      } 
+      if (results[0]["netflix_instant"] != undefined) {
+        //It is available on Netflix
+        globalFilms[index].onNetflix = true;
+        globalFilms[index].linkNetflix = results[0]["netflix_instant"]["direct_url"];
+      }
+    }
+});
+}
