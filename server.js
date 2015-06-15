@@ -19,6 +19,8 @@ var NodeCache = require("node-cache");
 var async = require("async");
 //var filmInfoCache = new NodeCache({stdTTL: 86400, useClones: true});
 
+var pythonShell = require('python-shell');
+
 // Security information that needs to be moved to a skeleton file.
 var post_database = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
 var api_param = 'api_key=a91369e1857e8c0cf2bd02b5daa38260';
@@ -981,7 +983,7 @@ function addExtraFilmInfo(film_index, callback) {
         globalFilms[film_index].metascore = filmInfo.info["Metascore"];
         globalFilms[film_index].tomatoRating = filmInfo.info["tomatoMeter"];
         globalFilms[film_index].runtime = filmInfo.info["Runtime"];
-       
+        get_streaming_services(globalFilms[film_index].title);
       } else {
         console.log('OMDb API request failed for film index ' + film_index);
       }
@@ -1109,3 +1111,22 @@ function addFilms(numBatches) {
   }
 }
 
+function get_streaming_services(title) {
+  var options = {
+    mode: 'json',
+    args: [title],
+    scriptPath: 'CanIStreamIt/canistreamit'
+  };
+
+  pythonShell.run('script.py', options, function (err, results) {
+    if (err) throw err;
+    if (results != null) {
+      if (results[0]["amazon_prime_instant_video"] != undefined) { 
+        //It has Amazon Prime, add your functions
+      }
+      if (results[0]["netflix_instant"] != undefined) {
+        //It has Netflix, add your functions
+      }
+    }
+});
+}
