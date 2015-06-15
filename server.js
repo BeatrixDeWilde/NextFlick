@@ -1273,13 +1273,22 @@ function getStreamingServices(index, callback) {
       console.log('Error, film title: ' + globalFilms[index].title);
     } else {
       if (results != null) {
-        if (results[0]["amazon_prime_instant_video"] != undefined) { 
-          //It is available on Amazon Instant Video
+        if (results[0] != undefined 
+            && results[0]["amazon_prime_instant_video"] != undefined
+            && results[0]["amazon_prime_instant_video"]["direct_url"] != undefined) { 
+          //Film is available on Amazon Instant Video
           globalFilms[index].onAIV = true;
           globalFilms[index].linkAIV = results[0]["amazon_prime_instant_video"]["direct_url"];
-        } 
-        if (results[0]["netflix_instant"] != undefined) {
-          //It is available on Netflix
+        } else if (results[1] != undefined 
+                   && results[1]["amazon_video_rental"] != undefined
+                   && results[1]["amazon_video_rental"]["url"] != undefined) {
+          //Film is available to rent on Amazon Instant Video
+          globalFilms[index].onAIV = true;
+          globalFilms[index].linkAIV = results[1]["amazon_video_rental"]["url"];
+        }
+        if (results[0] != undefined 
+            && results[0]["netflix_instant"] != undefined) {
+          //Film is available on Netflix
           globalFilms[index].onNetflix = true;
           globalFilms[index].linkNetflix = results[0]["netflix_instant"]["direct_url"];
         }
