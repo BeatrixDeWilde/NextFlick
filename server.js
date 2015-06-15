@@ -365,7 +365,6 @@ io.sockets.on('connection', function(socket) {
     // Sets the mapping from username to unique ID 
     // (deleted when user disconnects)
     email_ids[username] = generate_id();
-    console.log("HERE " + email_ids[username]);
     // Set up email
     var mailOptions={
       to : email,
@@ -384,7 +383,6 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('change_password', function(id, username, old_password, new_password, forgotten_password) {
       // Checks that the user has entered the correct unique ID (sent in email)
-      console.log(" username " + username + " HERE " + email_ids[username]);
       if (email_ids[username] == id) {
         // Encrypts new password
         var salt = bcrypt.genSaltSync();

@@ -279,7 +279,6 @@ socket.on('forgotten_password_user_exists', function(email_address, user, genres
   set_username(user);
   $('.login_page').fadeOut('fast', function() {
     $('.change_password_page').fadeIn('fast');
-    alert("Hiding");
     $('#old_password').hide();
   });
 });
@@ -426,10 +425,7 @@ socket.on('changed_password', function(user){
   if ($('#old_password').is(":visible")) {
     go_back();
   } else {
-    alert("Showing");
-    $('#old_password').show();
-    document.getElementById('username').value = '';
-    document.getElementById('pwd').value = '';
+    leave_forgotten_password();
     set_username(user);
     $("#user_settings").show();
     $('.change_password_page').fadeOut('fast', function() {
@@ -437,6 +433,12 @@ socket.on('changed_password', function(user){
     });
   }
 });
+
+function leave_forgotten_password(){
+  document.getElementById('unique_id').value = '';
+  document.getElementById('new_pwd_change').value = '';
+  $('#old_password').show();
+}
 
 function go_back(){
   document.getElementById('unique_id').value = '';
@@ -447,8 +449,7 @@ function go_back(){
       $('.settings_page').fadeIn('fast');
     });
   } else{
-    alert("Showing");
-    $('#old_password').show();
+    leave_forgotten_password();
     $('.change_password_page').fadeOut('fast', function() {
       $('.login_page').fadeIn('fast');
     });
@@ -705,15 +706,10 @@ socket.on('new_films', function(film, new_index) {
 
 function adjustTitle(){
   var fontSize = 29;
-  //$('#title').css('font-size', fontSize.toString() + 'px');
   do{
      fontSize--;
     $('#title').css('font-size', fontSize.toString() + 'px');
-  //  alert("$('#title').height(): " + $('#title').height());
-    //alert("$('#title_block').height(): " +$('#title_block').height());
   } while($('#title').height() >= $('#title_block').height());
-   
-  //alert("adjustTitle " + fontSize);
 }
 
 socket.on('film_found', function(film) {
