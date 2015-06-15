@@ -118,6 +118,8 @@ extraInfoReqQueue.drain = function() {
   console.log('All OMDb requests have been processed for current batch');
 }
 
+/* Gets date for 3 months ago so only suggests films that have been released 
+   on DVD or are avaiblable to stream */
 var queryDate = new Date();
 queryDate.setMonth(queryDate.getMonth() - 3);
 queryDate.toISOString().substring(0,10);
@@ -128,7 +130,7 @@ console.log('Server started.');
 //TODO: When server goes live, set this to 1000 and remove occurences of 
 //      addFilms in rest of code (much faster processing but slower startup)
 // Current way dynamically adds to global list
-addFilms(10);
+addFilms(5);
 
 
 io.sockets.on('connection', function(socket) {
@@ -1023,13 +1025,18 @@ function addFilmsByGenre(pageNum, reqCounter, numBatches) {
               extraInfoReqQueue.push(i , function(err) {
                 //console.log('finished processing request for index ' + i);
               }); //TODO: remove callback function
+              globalFilms[i].onNetflix = false;
+              globalFilms[i].linkNetflix = null;
+              globalFilms[i].onAIV = false;
+              globalFilms[i].linkAIV = null;
+              get_streaming_services(globalFilms[i].title, i);
               globalFilms[i].poster_path = 'http://image.tmdb.org/t/p/w342' + globalFilms[i].poster_path;
               delete globalFilms[i].overview;
               delete globalFilms[i].backdrop_path;
               delete globalFilms[i].video;
               delete globalFilms[i].vote_average;
               delete globalFilms[i].vote_count;
-
+              
             }
           } else {
             console.log('Server returned invalid JSON for TMDb query');
@@ -1116,7 +1123,6 @@ function addExtraFilmInfo(film_index, callback) {
         globalFilms[film_index].metascore = filmInfo.info["Metascore"];
         globalFilms[film_index].tomatoRating = filmInfo.info["tomatoMeter"];
         globalFilms[film_index].runtime = filmInfo.info["Runtime"];
-        get_streaming_services(globalFilms[film_index].title);
       } else {
         console.log('OMDb API request failed for film index ' + film_index);
       }
@@ -1237,14 +1243,13 @@ function addFilms(numBatches) {
     addFilmsByGenre(lastPageQueried, 0, numBatches);
     //TODO: If a TMDb request fails make sure retried
   } else {
-    //console.log('GLOBAL REQUEST IN PROGRESS!');
     if (isGlobalFilmListMaxed) {
       console.log('Global film list is MAXED!!');
     }
   }
 }
 
-function get_streaming_services(title) {
+function get_streaming_services(title, index) {
   var options = {
     mode: 'json',
     args: [title],
@@ -1255,10 +1260,14 @@ function get_streaming_services(title) {
     if (err) throw err;
     if (results != null) {
       if (results[0]["amazon_prime_instant_video"] != undefined) { 
-        //It has Amazon Prime, add your functions
-      }
+        //It is available on Amazon Instant Video
+        globalFilms[index].onAIV = true;
+        globalFilms[index].linkAIV = results[0]["amazon_prime_instant_video"]["direct_url"];
+      } 
       if (results[0]["netflix_instant"] != undefined) {
-        //It has Netflix, add your functions
+        //It is available on Netflix
+        globalFilms[index].onNetflix = true;
+        globalFilms[index].linkNetflix = results[0]["netflix_instant"]["direct_url"];
       }
     }
 });
