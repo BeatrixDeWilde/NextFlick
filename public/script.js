@@ -560,6 +560,16 @@ function initialise_film_page(film) {
   document.getElementById('plot').innerHTML = film.shortPlot;
   document.getElementById('runtime').innerHTML = film.runtime;
   document.getElementById('imdbRating').innerHTML = film.imdbRating;
+  if (film.onNetflix) {
+    document.getElementById('onNetflix').innerHTML = '<span class="glyphicon glyphicon-ok"></span>';
+  } else {
+    document.getElementById('onNetflix').innerHTML = '<span class="glyphicon glyphicon-remove"></span>';
+  }
+  if (film.onAIV) {
+    document.getElementById('onAIV').innerHTML = '<span class="glyphicon glyphicon-ok"></span>';
+  } else {
+    document.getElementById('onAIV').innerHTML = '<span class="glyphicon glyphicon-remove"></span>';
+  }
   $("img").on("dragstart", function(event){
     event.preventDefault();
   });
@@ -681,6 +691,16 @@ socket.on('new_films', function(film, new_index) {
   document.getElementById('plot').innerHTML = film.shortPlot;
   document.getElementById('runtime').innerHTML = film.runtime;
   document.getElementById('imdbRating').innerHTML = film.imdbRating;
+  if (film.onNetflix) {
+    document.getElementById('onNetflix').innerHTML = '<span class="glyphicon glyphicon-ok"></span>';
+  } else {
+    document.getElementById('onNetflix').innerHTML = '<span class="glyphicon glyphicon-remove"></span>';
+  }
+  if (film.onAIV) {
+    document.getElementById('onAIV').innerHTML = '<span class="glyphicon glyphicon-ok"></span>';
+  } else {
+    document.getElementById('onAIV').innerHTML = '<span class="glyphicon glyphicon-remove"></span>';
+  }
 });
 
 function adjustTitle(){
