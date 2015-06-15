@@ -1,4 +1,4 @@
-from canistreamit import streaming, search
+from canistreamit import streaming, search, rental
 
 import sys, json
 
@@ -13,6 +13,8 @@ if (len(movie_info) > 0):
   dump = json.dumps(stream_list)
 
   print dump
+
+  print json.dumps(rental(movie['_id']))
 
 else:
   

@@ -64,18 +64,15 @@
               </div>
               <br>
               <button class="btn my_btn" type="button" data-toggle="collapse" data-target="#filmInfo" aria-expanded="false" aria-controls="filmInfo" id="filmInfoBtn">
-                <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span> Film Information
+                <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span> <b>Film Information</b>
               </button>
               <div class="collapse" id="filmInfo" width="20%" height="20%">
-                <h4>Plot:</h4>
+                <h4><b>Runtime: </b><span id="runtime"></span></h4>
+                <h4><b>IMDb Rating: </b><span id="imdbRating"></span></h4>
+                <h4><b>Netflix: </b><span class="inline" id="onNetflix"></span></h4>
+                <h4><b>Amazon Instant Video: </b><span class="inline" id="onAIV"></span></h4>
+                <h4><b>Plot:</b></h4>
                 <p id="plot"></p>
-                <h4>Runtime:</h4>
-                <p id="runtime"></p>
-                <h4>IMDb Rating:</h4>
-                <p id="imdbRating"></p>
-                <h4>Available on:</h4>
-                <h5>Netflix: <span class="glyphicon glyphicon-ok"></span></h5>
-                <h5>Amazon Instant Video:<span class="glyphicon glyphicon-remove"></span></h5>
               </div>
             </div>
           </div>
@@ -101,21 +98,21 @@
                   <input type="text" class="form-control" id="username_sign_up" placeholder="Enter username">
                 </div>
                 <div class="form-group">
-                  <p class="alert alert-danger init_hidden" id="username_error_message_sign_up"></p>
+                  <div class="init_hidden" id="username_error_message_sign_up"></div>
                 </div>
                 <div class="form-group">
                   <label for="pwd" value="" class="message">Password:</label>
                   <input type="password" class="form-control" id="pwd_sign_up" placeholder="Enter password">
                 </div>
                 <div class="form-group">
-                  <p class="alert alert-danger init_hidden" id="password_error_message_sign_up"></p>
+                  <div class="init_hidden" id="password_error_message_sign_up"></div>
                 </div>
                 <div class="form-group">
                   <label for="email" class="message" >Email address:</label>
                   <input type="email" class="form-control" id="email_sign_up" placeholder="Enter email">
                 </div>
                 <div class="form-group">
-                  <p class="alert alert-danger init_hidden" id="email_error_message_sign_up"></p>
+                  <div class="init_hidden" id="email_error_message_sign_up"></div>
                 </div>
                 <div class="form-group">
                   <button type="button" id="sign_up_button" class="btn my_btn" value="">Sign up</button>
@@ -184,7 +181,7 @@
                       <input type="password" class="form-control" id="new_pwd_change" placeholder="Enter new password">
                     </div>
                     <div class="form-group">
-                      <p class="alert alert-danger init_hidden" id="change_pwd_error_message_settings"></p>
+                      <div class="init_hidden" id="change_pwd_error_message_settings"></div>
                     </div>
                     <div class="form-group">
                       <button type="button" id="new_password" class="btn my_btn" value="">Set new password</button>
@@ -210,14 +207,14 @@
                   <input type="text" class="form-control" id="username" placeholder="Enter username">
                 </div>
                 <div class="form-group">
-                  <p class="alert alert-danger init_hidden" id="username_error_message"></p> 
+                  <div class="init_hidden" id="username_error_message"></div> 
                 </div>
                 <div class="form-group">
                   <label for="pwd" value="" class="message">Password:</label>
                   <input type="password" class="form-control" id="pwd" placeholder="Enter password">
                 </div>
                 <div class="form-group">
-                  <p class="alert alert-danger init_hidden" id="password_error_message"></p>
+                  <div class="init_hidden" id="password_error_message"></div>
                 </div>
                 <div class="form-group">
                   <button type="button" id="sign_in" class="btn my_btn" value="">Sign in</button>
