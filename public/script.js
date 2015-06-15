@@ -237,12 +237,12 @@ $(function(){
     document.getElementById('username_error_message').innerHTML = '';
     document.getElementById('password_error_message').innerHTML = '';
     if (username.length < 1) {
-      document.getElementById('username_error_message').innerHTML = 'Please enter a username';
+      document.getElementById('username_error_message').innerHTML = '<b>Please enter a username</b>';
       $("#username_error_message").show();
       message_fade_out($('#username_error_message'), 5000);
     } else if (password.length < 1)
     {
-      document.getElementById('password_error_message').innerHTML = 'Please enter a password';
+      document.getElementById('password_error_message').innerHTML = '<b>Please enter a password</b>';
       $("#password_error_message").show();
       message_fade_out($('#password_error_message'), 5000); 
     }
@@ -263,7 +263,7 @@ $(function(){
       document.getElementById('username').value = '';
     }
     else {
-      document.getElementById('username_error_message').innerHTML = "Please enter a username";
+      document.getElementById('username_error_message').innerHTML = "<b>Please enter a username</b>";
       $("#username_error_message").show();
       message_fade_out($('#username_error_message'), 5000);
     }
@@ -299,7 +299,7 @@ socket.on('signed_in', function(user, user_email){
 
 socket.on('user_already_exists', function(username){
   document.getElementById('username_error_message_sign_up').innerHTML = 
-    'The username ' + username + ' already exists';
+    '<b>The username ' + username + ' already exists</b>';
   $("#username_error_message_sign_up").show();
   message_fade_out($('#username_error_message_sign_up'), 5000);
 });
@@ -317,22 +317,22 @@ $(function(){
     document.getElementById('pwd_sign_up').value = '';
     document.getElementById('email_sign_up').value = '';
     if (username.length < 1) {
-      document.getElementById('username_error_message_sign_up').innerHTML = 'Please enter a username';
+      document.getElementById('username_error_message_sign_up').innerHTML = '<b>Please enter a username</b>';
       $("#username_error_message_sign_up").show();
       message_fade_out($('#username_error_message_sign_up'), 5000);
     } else if (password.length < 1)
     {
-      document.getElementById('password_error_message_sign_up').innerHTML = 'Please enter a password';
+      document.getElementById('password_error_message_sign_up').innerHTML = '<b>Please enter a password</b>';
       $("#password_error_message_sign_up").show();
       message_fade_out($('#password_error_message_sign_up'), 5000);
     } else if (email.length < 1 || !regex_for_email.test(email))
     {
-      document.getElementById('email_error_message_sign_up').innerHTML = 'Please enter a valid email';
+      document.getElementById('email_error_message_sign_up').innerHTML = '<b>Please enter a valid email</b>';
       $("#email_error_message_sign_up").show();
       message_fade_out($('#email_error_message_sign_up'), 5000); 
     } else if (/^(guest)/.test(username)) {
       document.getElementById('username_error_message_sign_up').innerHTML = 
-      'The username ' + username + ' starts with the word "guest"';
+      '<b>The username ' + username + ' starts with the word "guest"</b>';
       $("#username_error_message_sign_up").show();
       message_fade_out($('#username_error_message_sign_up'), 5000);
     } else {
@@ -398,13 +398,13 @@ $(function(){
     if ($('#old_password').is(":visible")) {
       var old_password = document.getElementById('old_pwd_change').value;
       if (old_password.length < 1) {
-        change_pass_error("Please enter an old password");
+        change_pass_error("<b>Please enter an old password</b>");
       }
     }
     if (id.length < 1) {
-      change_pass_error("Please enter a valid id");
+      change_pass_error("<b>Please enter a valid id</b>");
     } else if (new_password.length < 1) {
-      change_pass_error("Please enter a new password");
+      change_pass_error("<b>Please enter a new password</b>");
     }
     else {
       socket.emit('change_password', id, username, old_password, new_password, !$('#old_password').is(":visible"));

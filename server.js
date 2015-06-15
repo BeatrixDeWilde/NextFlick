@@ -283,7 +283,7 @@ io.sockets.on('connection', function(socket) {
   function forgot_pass(username, password, email, new_password, result){
     // Report error if user does not exist
     if(result.rows.length != 1) {
-      socket.emit('incorrect_login', "No such user", false);
+      socket.emit('incorrect_login', "<b>No such user</b>", false);
       return;
     }
     socket.emit('forgotten_password_user_exists', result.rows[0].email, username, result.rows[0].genres);
@@ -297,12 +297,12 @@ io.sockets.on('connection', function(socket) {
   function sign_in(username, password, email, hash, result){
     // Report error if user does not exist
     if(result.rows.length != 1) {
-      socket.emit('incorrect_login',"No such user", false);
+      socket.emit('incorrect_login',"<b>No such user</b>", false);
       return;
     }
     // Report error if the password is incorrect
     if(!bcrypt.compareSync(password,result.rows[0].password)) {
-      socket.emit('incorrect_login', "Incorrect password",true);
+      socket.emit('incorrect_login', "<b>Incorrect password</b>",true);
       return;
     }
     // Correct password entered -> sign in
