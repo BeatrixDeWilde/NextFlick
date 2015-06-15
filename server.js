@@ -1257,7 +1257,10 @@ function get_streaming_services(title) {
   };
 
   pythonShell.run('script.py', options, function (err, results) {
-    if (err) throw err;
+    if (err) {
+      console.log('Python script error');
+      return;
+    }
     if (results != null) {
       if (results[0]["amazon_prime_instant_video"] != undefined) { 
         //It has Amazon Prime, add your functions
