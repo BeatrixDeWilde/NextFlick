@@ -351,17 +351,18 @@ io.sockets.on('connection', function(socket) {
     // Sets the mapping from username to unique ID 
     // (deleted when user disconnects)
     email_ids[username] = generate_id();
+    console.log("HERE " + email_ids[username]);
     // Set up email
     var mailOptions={
       to : email,
-      subject : 'Password unique id',
-      text : 'ID: ' + email_ids[username]
+      subject : 'NextFlick: Unique ID',
+      text : 'Hey from NextFlick. User ' + username + " has requested a new password please enter the unique ID " + email_ids[username] + " into the page shown. This ID will become invalid as soon as you leave this page."
     }
     // Send email
     smtpTransport.sendMail(mailOptions, function(error, response){
-      if(error){
+      if (error) {
         console.log(error);
-      }else{
+      } else {
         console.log("Message sent: " + response.message);
       }
     });
@@ -369,11 +370,13 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('change_password', function(id, username, old_password, new_password, forgotten_password) {
       // Checks that the user has entered the correct unique ID (sent in email)
+      console.log(" username " + username + " HERE " + email_ids[username]);
       if (email_ids[username] == id) {
         // Encrypts new password
         var salt = bcrypt.genSaltSync();
         var hash = bcrypt.hashSync(new_password, salt);
         if (!forgotten_password) {
+
           // Checks old password is correct then inserts new hashed password
           get_user_data(username, old_password, 'NOTSET', hash, check_old_password);
         } else {
