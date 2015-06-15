@@ -59,8 +59,8 @@
               </div>
   
               <div>
-                <button type="button" id="no" class="btn my_btn">NO</button>
-                <button type="button" id="yes" class="btn my_btn">YES</button>
+                <button type="button" id="no" class="btn my_btn"><b>NO</b></button>
+                <button type="button" id="yes" class="btn my_btn"><b>YES</b></button>
               </div>
               <br>
               <button class="btn my_btn" type="button" data-toggle="collapse" data-target="#filmInfo" aria-expanded="false" aria-controls="filmInfo" id="filmInfoBtn">
@@ -175,7 +175,7 @@
                       <label class="message">Unique ID:</label>
                       <input type="text" class="form-control" id="unique_id" placeholder="Enter unique id">
                     </div>
-                    <div class="form-group">
+                    <div class="form-group" id="old_password">
                       <label for="pwd" value="" class="message">Old password:</label>
                       <input type="password" class="form-control" id="old_pwd_change" placeholder="Enter old password">
                     </div>
@@ -192,7 +192,7 @@
                   </form>
                 </div>
                 <div class="form-group">
-                      <button type="button" id="change_password_back" class="btn my_btn page_back" value="">Back</button>
+                      <button type="button" id="change_password_back" class="btn my_btn" value="">Back</button>
                 </div>
               </form>
             </div>
@@ -221,6 +221,7 @@
                 </div>
                 <div class="form-group">
                   <button type="button" id="sign_in" class="btn my_btn" value="">Sign in</button>
+                  <button type="button" id="forgotten_password_button" class="btn my_btn" value="">Forgotten password</button>
                 </div>
                   <button type="button" id="login_page_back" class="btn my_btn page_back" value="">Back</button>
               </form>
@@ -303,7 +304,7 @@
               <button type="button" id="lobby_page_back" class="btn my_btn">Leave Room</button>
               <br>
               <br>
-              <b class="message">Most frequent NextFlicks:</b>
+              <b class="message" id="scroller_title"></b>
               <div id="poster_scroller" style="width: 100%; height: 115px; margin: 0 auto;">
                 <div class="list_for_scroller">
                   <ul id="popular_film_list">

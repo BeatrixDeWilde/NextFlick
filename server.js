@@ -13,11 +13,8 @@ var nodemailer = require("nodemailer");
 var bcrypt = require('bcrypt-nodejs');
 // To connect to the database
 var pg = require("pg");
-// Internal memory cache
-var NodeCache = require("node-cache");
 // Asynchronous module for async requests with a max concurrency limit
 var async = require("async");
-//var filmInfoCache = new NodeCache({stdTTL: 86400, useClones: true});
 
 var pythonShell = require('python-shell');
 
@@ -76,9 +73,6 @@ var email_ids = [];
 var guest_ids = [];
 var room_ids = [];
 
-//TODO: get current date not date when server started
-var dateToday = (new Date()).toISOString().substring(0,10);
-
 // Genre IDs for movie queries
 var genreIdLookup = {
   "Action" : 28,
@@ -103,15 +97,18 @@ var genreIdLookup = {
   "Western" : 37
 }
 
-var allGenreIds = ["28", "12", "16", "35", "80", "99", "18", "10751", "14", "10769",
-                   "36", "27", "10402", "9648", "10749", "878", "10770", "53", 
-                   "10752", "37"];
-
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', function(req, res) {
    res.sendFile(__dirname + '/index.html');
 });
+
+var insert_limit = 1;
+var insertQueue = async.queue(queue_insert_func, insert_limit);
+
+insertQueue.drain = function() {
+  console.log('All database update/insert requests completed');
+}
 
 // OMDb requests limited to 20 concurrent requests by async queue
 var maxConcurrency = 20;
@@ -121,6 +118,9 @@ extraInfoReqQueue.drain = function() {
   console.log('All OMDb requests have been processed for current batch');
 }
 
+var queryDate = new Date();
+queryDate.setMonth(queryDate.getMonth() - 3);
+queryDate.toISOString().substring(0,10);
 
 console.log('Server started.');
 
@@ -160,7 +160,11 @@ io.sockets.on('connection', function(socket) {
   function free_resources(username, room) {
     if (typeof username !== 'undefined' && typeof room !== 'undefined'
         && typeof users[room] !== 'undefined') {
-      update_user_popular_films(users[room][username].choosen_films, username);
+      //console.log("Queue state: running: " + insertQueue.running() + " idle: " + insertQueue.idle() + " length: " + insertQueue.length() + " paused: " + insertQueue.paused);
+      //console.log("FREEING RESOURCES: " + username);
+      if (typeof users[room][username] !== 'undefined') {
+        update_user_popular_films(users[room][username].chosen_films, username);
+      }
       delete users[room][username];
       io.sockets.in(room).emit('update_user_list', users[room]);
        
@@ -175,6 +179,7 @@ io.sockets.on('connection', function(socket) {
         // Tear down room.
         setTimeout(function() {
         console.log('Tear down room: ' + room);
+        //console.log(" Room tear down Queue state: running: " + insertQueue.running() + " idle: " + insertQueue.idle() + " length: " + insertQueue.length() + " paused: " + insertQueue.paused);
         remove_room_id(room);
         delete users[room];
         delete films[room];
@@ -188,8 +193,13 @@ io.sockets.on('connection', function(socket) {
     }
   }
 
-  function update_user_popular_films(choosen_films, username){
-    // TODO
+  function update_user_popular_films(chosen_films, user){
+    if (!/^(guest)/.test(user)) {
+      for(var index in chosen_films) {
+        insertQueue.push({film:chosen_films[index],username:user}, function(err) {
+        });
+      }
+    }
   }
 
   function users_force_leave_if_admin(username, room) { 
@@ -254,6 +264,19 @@ io.sockets.on('connection', function(socket) {
   // ******* LOGIN PAGE ******* //
   // ************************** //
 
+  socket.on('forgotten_password', function(username){
+    get_user_data(username, 'NOTSET', 'NOTSET', 'NOTSET', forgot_pass);
+  });
+
+  function forgot_pass(username, password, email, new_password, result){
+    // Report error if user does not exist
+    if(result.rows.length != 1) {
+      socket.emit('incorrect_login', "No such user", false);
+      return;
+    }
+    socket.emit('forgotten_password_user_exists', result.rows[0].email, username, result.rows[0].genres);
+  }
+
   socket.on('sign_in', function(username, password) {
     // Gets the row corresponding to username then calls sign in with this row
     get_user_data(username, password, 'NOTSET', 'NOTSET', sign_in);
@@ -288,7 +311,7 @@ io.sockets.on('connection', function(socket) {
   function sign_up(username, password, email, new_password, result){
     // If a user with the same username has been found or the 
     // username includes the word guest report an error to client
-    if(result.rows.length != 0 || /^(guest)/.test(username)){
+    if(result.rows.length != 0){
       socket.emit('user_already_exists', username);
     } 
     else
@@ -313,10 +336,10 @@ io.sockets.on('connection', function(socket) {
         return console.error('error connecting', err);
       }
       client.query('UPDATE users SET genres=$2 WHERE username=$1;', [username,genres], function(err, result) {
+        done();
         if(err) {
-          return console.error('error running query', err);
+          return console.error('error running query change settings', err);
         }
-        client.end();
       });
     });
   });
@@ -325,12 +348,11 @@ io.sockets.on('connection', function(socket) {
     // Sets the mapping from username to unique ID 
     // (deleted when user disconnects)
     email_ids[username] = generate_id();
-    console.log(email_ids[username]);
     // Set up email
     var mailOptions={
       to : email,
       subject : 'Password unique id',
-      text : 'ID: ' + id
+      text : 'ID: ' + email_ids[username]
     }
     // Send email
     smtpTransport.sendMail(mailOptions, function(error, response){
@@ -342,19 +364,23 @@ io.sockets.on('connection', function(socket) {
     });
   });
 
-  socket.on('change_password', function(id, username, old_password, new_password) {
-    // Checks that the user has entered the correct unique ID (sent in email)
-    if (email_ids[username] == id) {
-      // Encrypts new password
-      var salt = bcrypt.genSaltSync();
-      var hash = bcrypt.hashSync(new_password, salt);
-      // Checks old password is correct then inserts new hashed password
-      get_user_data(username, old_password, 'NOTSET', hash, check_old_password);
-    }
-    else{
-      // Incorrect unique ID has been entered
-      socket.emit('incorrect_input', "Incorrect unique ID");
-    }
+  socket.on('change_password', function(id, username, old_password, new_password, forgotten_password) {
+      // Checks that the user has entered the correct unique ID (sent in email)
+      if (email_ids[username] == id) {
+        // Encrypts new password
+        var salt = bcrypt.genSaltSync();
+        var hash = bcrypt.hashSync(new_password, salt);
+        if (!forgotten_password) {
+          // Checks old password is correct then inserts new hashed password
+          get_user_data(username, old_password, 'NOTSET', hash, check_old_password);
+        } else {
+          update_password(username, hash);
+        }
+      }
+      else{
+        // Incorrect unique ID has been entered
+        socket.emit('incorrect_input', "Incorrect unique ID");
+      }
   });
 
   // ************************* //
@@ -396,7 +422,7 @@ io.sockets.on('connection', function(socket) {
          being said 'no' to by each user - store all genres and record number of
          yesses for that genre (first element in array) and total number of times
          the user is shown that genre (second element in the array). */
-      users[room][username] = {username: username, ready: false, is_admin: is_admin_bool, choosen_films: {},
+      users[room][username] = {username: username, ready: false, is_admin: is_admin_bool, chosen_films: {},
                               genreLearning: {"28":    [1,1],
                                               "12":    [1,1],
                                               "16":    [1,1],
@@ -430,23 +456,86 @@ io.sockets.on('connection', function(socket) {
      users[room][username].is_admin = true;
   });
 
-  socket.on('get_popular_films', function(){
+  socket.on('get_popular_films', function(username){
+    if (/^(guest)/.test(username)) {
+      guest_popular_films();
+    } 
+    else {
+      user_popular_films(username);
+    }
+  });
+
+
+  function guest_popular_films(){
     // Gets the 'limit' most popular films
     var limit = 20;
     pg.connect(post_database, function(err, client, done) {
-      if(err) {
-        return console.error('error connecting', err);
-      }
+      if(err) {return console.error('error connecting', err);}
       client.query('SELECT poster_url FROM popular_films ORDER BY count DESC LIMIT $1;', [limit], function(err, result) {
+        done();
         if(err) {
-          return console.error('error running query', err);
+          return console.error('error running query get popular films', err);
         }
         socket.emit('popular_films', result.rows);
+      });
+    });
+  }
+  
+  function user_popular_films(username){
+    // Gets films relating to user
+    var client = new pg.Client(post_database);
+    client.connect(function(err){
+      if(err) {return console.error('could not connect to postgres user_popular_films', err);}
+      client.query("SELECT distinct U.username, count(*) as num from user_popular_films U inner join user_popular_films " 
+                    + " P ON U.film_id = P.film_id and U.username <> P.username WHERE U.username <> '" 
+                    + username + "' GROUP BY U.username ORDER BY num;", function(err, result) {
+        if(err) {return console.error('error running query user_popular_films', err);}
+        loop_until_ten_popular_films(result.rows, [], username);
         client.end();
       });
     });
-  });
-  
+  }
+
+  function loop_until_ten_popular_films(users, films, original_user) {
+    var limit = 20;
+    if (users.length == 0) {
+      // Base case
+      socket.emit('popular_films', films);
+      return;
+    }
+    // Recursive case
+    var user = users.pop();
+    var client = new pg.Client(post_database);
+    client.connect(function(err){
+      if(err) {return console.error('could not connect to postgres loop_until_ten_popular_films', err);}
+      client.query("SELECT U.poster_url from user_popular_films U where U.username = '" 
+                    + user.username + "' except select P.poster_url from user_popular_films P where P.username = '" 
+                    + original_user + "';", function(err, result) {
+        if(err) {return console.error('error running query loop_until_ten_popular_films', err);}
+        films = add_user_films_list(films, result.rows, limit);
+        if (films.length >= limit) {
+          socket.emit('popular_films', films);
+        }
+        else {
+          loop_until_ten_popular_films(users, films, original_user);
+        }
+        client.end();
+      });
+    });
+  }
+
+  function add_user_films_list(films, result, limit) {
+    for (var i = 0; i < result.length; i++) {
+      if (films.indexOf(result[i]) < 0 ) {
+        films.push(result[i]);
+      }
+      if (films.length >= limit) {
+        break;
+      }
+    }
+    return films;
+  }
+
   socket.on('reset_user', function(username) {
     console.log('reset user: '+ username );
     remove_guest_id(username);
@@ -519,7 +608,9 @@ io.sockets.on('connection', function(socket) {
     if(inc) {
       films[socket.room][index].yes_count++;
       var global_film_index = films[socket.room][index].filmIndex;
-      users[socket.room][socket.username].choosen_films[global_film_index] = globalFilms[global_film_index];
+      if (!/^(guest)/.test(socket.username)) {
+        users[socket.room][socket.username].chosen_films[global_film_index] = globalFilms[global_film_index];
+      }
       console.log(films[socket.room][index].yes_count + ' vs ' + num_users[socket.room]);
     }
 
@@ -641,12 +732,24 @@ io.sockets.on('connection', function(socket) {
 
   function film_found(film){
     // Updates popular films database with new film found
-    get_film(film, 'popular_films');
+    add_popular_film(film);
     // If too many films stored deleted the last updated films
-    delete_films('popular_films');
+    delete_films();
   }
 
-  function get_film(film, database){
+  function insert_film(film){
+    // Puts the film in the popular films database -> intial count of 1 
+    pg.connect(post_database, function(err, client, done) {
+      if(err) {return console.error('error connecting', err);}
+      client.query('INSERT INTO popular_films (film_id, poster_url, count, last_time_updated) VALUES($1, $2, 1, $3);',
+                   [film.id, film.poster_path, new Date()], function(err, result) {
+        done();
+        if(err) {return console.error('error running query insert film', err);}
+      });
+    });
+  }
+
+  function add_popular_film(film){
     // Given a film ID 
     //    if an entry exists in popular films -> update
     //    if no entry exists                  -> insert
@@ -654,67 +757,47 @@ io.sockets.on('connection', function(socket) {
       if(err) {
         return console.error('error connecting', err);
       }
-      client.query('SELECT count FROM ' + database + ' WHERE film_id = $1;', [film.id], function(err, result) {
+      client.query('SELECT count FROM popular_films WHERE film_id = $1 ;', [film.id], function(err, result) {
+        done();
         if(err) {
-          return console.error('error running query', err);
+          return console.error('error running query add popular film', err);
         }
         if (result.rows.length == 0) {
-          insert_film(film, database);
+          insert_film(film);
         }
         else {
-          update_film(film, result.rows[0].count + 1, database);
+          update_film(film, result.rows[0].count + 1);
         }
-        client.end();
       });
     });
   }
 
-  function delete_films(database){
-    var delete_size = 20;
-    var size_limit = 70;
-    pg.connect(post_database, function(err, client, done) {
-      if(err) {
-        return console.error('error connecting', err);
-      }
-      client.query('DELETE FROM popular_films WHERE film_id in (SELECT film_id FROM popular_films order by last_time_updated limit $1) and $2 < (select count(*) from popular_films);',
-                   [delete_size, size_limit], function(err, result) {
-        if(err) {
-          return console.error('error running query', err);
-        }
-        client.end();
-      });
-    });
-  }
-
-
-
-  function insert_film(film, database){
-    // Puts the film in the popular films database -> intial count of 1 
-    pg.connect(post_database, function(err, client, done) {
-      if(err) {
-        return console.error('error connecting', err);
-      }
-      client.query('INSERT INTO ' + database + ' (film_id, poster_url, count, last_time_updated) VALUES($1, $2, 1, $3);',
-                   [film.id, film.poster_path, new Date()], function(err, result) {
-        if(err) {
-          return console.error('error running query', err);
-        }
-        client.end();
-      });
-    });
-  }
-
-  function update_film(film, new_count, database){
+  function update_film(film, new_count){
     // Updates the row to have the new incremented counts
     pg.connect(post_database, function(err, client, done) {
       if(err) {
         return console.error('error connecting', err);
       }
-      client.query('UPDATE ' + database + ' SET count=$2, last_time_updated=$3 WHERE film_id=$1;', [film.id, new_count, new Date()], function(err, result) {
+      client.query('UPDATE popular_films SET count=$2, last_time_updated=$3 WHERE film_id=$1;', [film.id, new_count, new Date()], function(err, result) {
+        done();
         if(err) {
-          return console.error('error running query', err);
+          return console.error('error running query update film', err);
         }
-        client.end();
+      });
+    });
+  }
+
+  function delete_films(){
+    // Number of films to be deleted from popular films
+    var delete_size = 20; 
+    // Max number of popular films
+    var size_limit = 70;
+    pg.connect(post_database, function(err, client, done) {
+      if(err) {return console.error('error connecting', err);}
+      client.query('DELETE FROM popular_films WHERE film_id in (SELECT film_id FROM popular_films order by last_time_updated limit $1) and $2 < (select count(*) from popular_films);',
+                   [delete_size, size_limit], function(err, result) {
+        done();
+        if(err) {return console.error('error running query delete films', err);}
       });
     });
   }
@@ -753,12 +836,12 @@ io.sockets.on('connection', function(socket) {
         return console.error('error connecting', err);
       }
       client.query('UPDATE users SET password=$2 WHERE username=$1;', [username,hash], function(err, result) {
+        done();
         if(err) {
-          return console.error('error running query', err);
+          return console.error('error running query update password', err);
         }
         console.log("Changed password of user: " + username);
-        socket.emit('changed_password');
-        client.end();
+        socket.emit('changed_password', username);
       });
     });
   }
@@ -770,10 +853,10 @@ io.sockets.on('connection', function(socket) {
         return console.error('error connecting', err);
       }
       client.query('INSERT INTO users(username, password, genres, email) values($1,$2,$3,$4);', [username, password, "{}",email], function(err, result) {
+        done();
         if(err) {
-          return console.error('error running query', err);
+          return console.error('error running query insert user', err);
         }
-        client.end();
       });
     });
   }
@@ -787,18 +870,69 @@ io.sockets.on('connection', function(socket) {
       }
 
       client.query('SELECT * FROM users WHERE username = $1', [username], function(err, result) {
+        done();
         if(err) {
-          return console.error('error running query', err);
+          return console.error('error running query get user data', err);
         }
         func(username, password, email, hash, result);
-        client.end();
       });
     });
   }
 
 });
 
+// *********************************** //
+// **** INSERT USER POPULAR FILMS  *** //
+// *********************************** //
 
+function queue_insert_func(args, callback){
+  user_add_popular_film(args.film, args.username);
+  callback();
+}
+function user_insert_film(film, username){
+  //console.log("Start of insert film " + username + " film.id " + film.id);
+  var client = new pg.Client(post_database);
+  client.connect(function(err){
+    if(err) {return console.error('could not connect to postgres user insert film', err);}
+    client.query("INSERT INTO user_popular_films (film_id, poster_url, count, last_time_updated, username) VALUES($1, $2, 1, $3,'" + username + "');",
+                 [film.id, film.poster_path, new Date()], function(err, result) {
+      if(err) {return console.error('error running query user insert film', err);}
+      client.end();
+    });
+  });
+}
+
+function user_add_popular_film(film, username){
+  var client = new pg.Client(post_database);
+  client.connect(function(err){
+    if(err) {return console.error('could not connect to postgres user add popular film', err);}
+    client.query("SELECT count FROM user_popular_films WHERE film_id = $1 and username ='" + username + "' ;",
+     [film.id], function(err, result) {
+      if(err) {return console.error('error running query user add popular film', err);}
+      if (result.rows.length == 0) {
+        //console.log("INSERTING user popular film " + film.id);
+        user_insert_film(film, username);
+      }
+      else {
+        //console.log("UPDATING user popular film " + film.id);
+        user_update_film(film, result.rows[0].count + 1, username);
+      }
+      client.end();
+    });
+  });
+}
+
+function user_update_film(film, new_count, username){
+  var client = new pg.Client(post_database);
+  client.connect(function(err){
+    if(err) {return console.error('could not connect to postgres user update film', err);}
+    client.query("UPDATE user_popular_films SET count=$2, last_time_updated=$3 WHERE film_id=$1 and username= '" + username + "' ;",
+     [film.id, new_count, new Date()], function(err, result) {
+      if(err) {return console.error('error running query user update film', err);}
+      client.end();
+    });
+  });
+}
 
 // ************************** //
 // **** MOVIE API QUERIES *** //
@@ -856,7 +990,7 @@ function addFilmsByGenre(pageNum, reqCounter, numBatches) {
            '&page=' + pageNum + 
            '&include_adult=false' + 
            '&sort_by=popularity.desc' + 
-           '&release_date.lte=' + dateToday,
+           '&release_date.lte=' + queryDate,
       headers: {
         'Accept': 'application/json'
       }}, 
@@ -918,7 +1052,6 @@ function addFilmsByGenre(pageNum, reqCounter, numBatches) {
     isGlobalFilmListMaxed = true;
   }
 }
-
 
 // Query OMDb API for extra film information (plot, runtime, rating etc.)
 function addExtraFilmInfo(film_index, callback) {

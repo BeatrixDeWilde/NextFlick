@@ -6,6 +6,7 @@ var room = 'NOTSET';
 var on_main_page = false;
 var on_film_found_page = false;
 var is_admin = false;
+var set_up = true;
 var user_genres = [];
 var email = 'NOTSET';
 
@@ -109,13 +110,18 @@ function reset_checkboxes(genre_class){
 $(document).ready(function() {
   add_genre_checkboxes('#genres','');
   add_genre_checkboxes('#genre_settings','_settings');
-  socket.emit('get_popular_films');
 });
 
 socket.on('popular_films', function(popular_films){
+  $("#popular_film_list").html("");
   $.each(popular_films, function(index, film){
     $("#popular_film_list").append('<li><img src="' + film.poster_url + '" width="78" height="115" /></li>');
   });
+  if (/^(guest)/.test(username)) {
+    $("#scroller_title").html("Most frequent NextFlicks:");
+  } else {
+    $("#scroller_title").html(username + "'s recommended NextFlicks:");
+  }
   scroll_films();
 });
 
@@ -150,14 +156,17 @@ function scroll_films(){
         list_popular_films.scrollLeft(new_placement);
     };
     setInterval(scroll, 20);
-    $(slider).animate({current_speed:slider.full_speed}, 600);
+    if (set_up) {
+      $(slider).animate({current_speed:slider.full_speed}, 600);
+      set_up = false;
+    }
 }
 
 socket.on('connect', function(){
 });
 
 socket.on('set_username', function(user) {
-  username = user;
+  set_username(user);
 });
 
 // ************************** //
@@ -169,8 +178,6 @@ $(function(){
   $('#guest').click(function() {
     socket.emit('get_guest_id');
     $('.first_page').fadeOut('fast', function() {
-      document.getElementById('room_page_username').innerHTML 
-        = '<b> Username</b>: ' + username;
       $('.room_page').fadeIn('fast');
     });
   });
@@ -190,6 +197,7 @@ function set_username(user){
   username = user;
   document.getElementById('room_page_username').innerHTML 
     = '<b> Username</b>: ' + username;
+  socket.emit('get_popular_films', username);
 }
 
 // ************************** //
@@ -242,11 +250,34 @@ $(function(){
       socket.emit('sign_in', username, password);
     }
   });
- $('#login_page_back').click(function() {
-   $('.login_page').fadeOut('fast', function() {
-     $('.first_page').fadeIn('fast');
+  $('#login_page_back').click(function() {
+    $('.login_page').fadeOut('fast', function() {
+      $('.first_page').fadeIn('fast');
+    });
   });
- });
+  $('#forgotten_password_button').click(function() {
+    var user = document.getElementById('username').value;
+    if (user.length > 0) {
+      socket.emit('forgotten_password',user);
+    }
+    else {
+      document.getElementById('username_error_message').innerHTML = "Please enter a username";
+      $("#username_error_message").show();
+      message_fade_out($('#username_error_message'), 5000);
+    }
+  });
+});
+
+socket.on('forgotten_password_user_exists', function(email_address, user, genres){
+  socket.emit('send_email', email_address, username);
+  document.getElementById('change_password_email').innerHTML = 'Email: ' + email_address;
+  user_genres = genres;
+  email = email_address;
+  document.getElementById('change_password_username').innerHTML = 'User: ' + user;
+  $('.login_page').fadeOut('fast', function() {
+    $('.change_password_page').fadeIn('fast');
+    $('#old_password').hide();
+  });
 });
 
 // **************************** //
@@ -258,12 +289,13 @@ socket.on('signed_in', function(user, user_email){
   set_username(user);
   $('.sign_up_page').fadeOut('fast', function() {
     $('.settings_page').fadeIn('fast');
+    $('#change_password_btn').hide();
   });
 });
 
 socket.on('user_already_exists', function(username){
   document.getElementById('username_error_message_sign_up').innerHTML = 
-    'The username ' + username + ' already exists or starts with the word "guest"';
+    'The username ' + username + ' already exists';
   $("#username_error_message_sign_up").show();
   message_fade_out($('#username_error_message_sign_up'), 5000);
 });
@@ -294,6 +326,11 @@ $(function(){
       document.getElementById('email_error_message_sign_up').innerHTML = 'Please enter a valid email';
       $("#email_error_message_sign_up").show();
       message_fade_out($('#email_error_message_sign_up'), 5000); 
+    } else if (/^(guest)/.test(username)) {
+      document.getElementById('username_error_message_sign_up').innerHTML = 
+      'The username ' + username + ' starts with the word "guest"';
+      $("#username_error_message_sign_up").show();
+      message_fade_out($('#username_error_message_sign_up'), 5000);
     } else {
       socket.emit('sign_up', username, password, email);
     }
@@ -334,6 +371,7 @@ $(function(){
 });
 
 function change_settings_view(){
+  $('#change_password_btn').show();
   $("#user_settings").show();
   reset_checkboxes('#genre_settings');
   $('.settings_page').fadeOut('fast', function() {
@@ -355,11 +393,11 @@ $(function(){
     var old_password = document.getElementById('old_pwd_change').value;
     document.getElementById('change_pwd_error_message_settings').innerHTML = '';
     if (id.length < 1 || new_password.length < 1 || old_password.length < 1) {
-      document.getElementById('change_pwd_error_message_settings').innerHTML = 'Please entera valid id, old and new password';
+      document.getElementById('change_pwd_error_message_settings').innerHTML = 'Please enter a valid id, old and new password';
       $("#change_pwd_error_message_settings").show();
       message_fade_out($('#change_pwd_error_message_settings'), 5000);
     } else {
-      socket.emit('change_password', id, username, old_password, new_password);
+      socket.emit('change_password', id, username, old_password, new_password, $('#old_password').is(":visible"));
     }
   });
 });
@@ -370,8 +408,18 @@ socket.on('incorrect_input', function(message){
   message_fade_out($('#change_pwd_error_message_settings'), 5000);
 });
 
-socket.on('changed_password', function(){
-  go_back();
+socket.on('changed_password', function(user){
+  if ($('#old_password').is(":visible")) {
+    go_back();
+  } else {
+    document.getElementById('username').value = '';
+    document.getElementById('pwd').value = '';
+    set_username(user);
+    $("#user_settings").show();
+    $('.change_password_page').fadeOut('fast', function() {
+      $('.room_page').fadeIn('fast');
+    });
+  }
 });
 
 function go_back(){
