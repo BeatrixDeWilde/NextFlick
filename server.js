@@ -95,10 +95,6 @@ var genreIdLookup = {
   "Western" : 37
 }
 
-var allGenreIds = ["28", "12", "16", "35", "80", "99", "18", "10751", "14", "10769",
-                   "36", "27", "10402", "9648", "10749", "878", "10770", "53", 
-                   "10752", "37"];
-
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', function(req, res) {
@@ -120,6 +116,9 @@ extraInfoReqQueue.drain = function() {
   console.log('All OMDb requests have been processed for current batch');
 }
 
+var queryDate = new Date();
+queryDate.setMonth(queryDate.getMonth() - 3);
+queryDate.toISOString().substring(0,10);
 
 console.log('Server started.');
 
@@ -989,7 +988,7 @@ function addFilmsByGenre(pageNum, reqCounter, numBatches) {
            '&page=' + pageNum + 
            '&include_adult=false' + 
            '&sort_by=popularity.desc' + 
-           '&release_date.lte=' + (new Date()).toISOString().substring(0,10),
+           '&release_date.lte=' + queryDate,
       headers: {
         'Accept': 'application/json'
       }}, 
