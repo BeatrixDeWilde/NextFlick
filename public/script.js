@@ -722,6 +722,23 @@ socket.on('film_found', function(film) {
   socket.emit('leave_room', username, room);
   document.getElementById('found_film_title').innerHTML = film.title;
   document.getElementById('found_film_image').src = film.poster_path;
+
+  // Set watching options buttons to netflix/AIV links or disable buttons
+  if (film.onNetflix && film.linkNetflix != null) {
+    document.getElementById('watchNetflix').href = film.linkNetflix;
+    $('#watchNetflix').attr('disabled', false);
+  } else {
+    document.getElementById('watchNetflix').href = '';
+    $('#watchNetflix').attr('disabled', true);
+  }
+  if (film.onAIV && film.linkAIV != null) {
+    document.getElementById('watchAmazon').href = film.linkAIV;
+    $('#watchAmazon').attr('disabled', false);
+  } else {
+    document.getElementById('watchAmazon').href = '';
+    $('#watchAmazon').attr('disabled', true);
+  }
+
   // TODO: Show winning page;
   $('.film_page').hide("slow", function() {
     $('.found_page').fadeIn();
