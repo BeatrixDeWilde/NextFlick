@@ -119,11 +119,18 @@ extraInfoReqQueue.drain = function() {
   console.log('All OMDb requests have been processed for current batch');
 }
 
+// CanIStreamItRequests are also limited to 20 concurrent requests by async queue
+var canIStreamItQueue = async.queue(getStreamingServices, maxConcurrency);
+
+canIStreamItQueue.drain = function() {
+  console.log('All CanIStreamIt API requests have been processed for current batch');
+}
+
 /* Gets date for 3 months ago so only suggests films that have been released 
    on DVD or are avaiblable to stream */
-var queryDate = new Date();
-queryDate.setMonth(queryDate.getMonth() - 3);
-queryDate.toISOString().substring(0,10);
+var date = new Date();
+date.setMonth(date.getMonth() - 3);
+var queryDate = date.toISOString().substring(0,10);
 
 console.log('Server started.');
 
@@ -131,7 +138,7 @@ console.log('Server started.');
 //TODO: When server goes live, set this to 1000 and remove occurences of 
 //      addFilms in rest of code (much faster processing but slower startup)
 // Current way dynamically adds to global list
-addFilms(5);
+addFilms(10);
 
 
 io.sockets.on('connection', function(socket) {
@@ -1021,20 +1028,19 @@ function addFilmsByGenre(pageNum, reqCounter, numBatches) {
               globalFilms.push.apply(globalFilms, film_list);
             }
          
-            //TODO: possibly use async queue for requests to add films to list
-
             for (var i = oldLength, len = oldLength + film_list.length; i < len; i++) {
               // Update films information by modifying required properties
-              //   and deleting unnecessary ones
+              // and deleting unnecessary ones
               //TODO: base URL in variable at top of file
-              extraInfoReqQueue.push(i , function(err) {
-                //console.log('finished processing request for index ' + i);
-              }); //TODO: remove callback function
+              extraInfoReqQueue.push(i);
+              
               globalFilms[i].onNetflix = false;
               globalFilms[i].linkNetflix = null;
               globalFilms[i].onAIV = false;
               globalFilms[i].linkAIV = null;
-              get_streaming_services(globalFilms[i].title, i);
+              
+              canIStreamItQueue.push(i);
+
               globalFilms[i].poster_path = 'http://image.tmdb.org/t/p/w342' + globalFilms[i].poster_path;
               delete globalFilms[i].overview;
               delete globalFilms[i].backdrop_path;
@@ -1254,29 +1260,31 @@ function addFilms(numBatches) {
   }
 }
 
-function get_streaming_services(title, index) {
+function getStreamingServices(index, callback) {
   var options = {
     mode: 'json',
-    args: [title],
+    args: [globalFilms[index].title],
     scriptPath: 'CanIStreamIt/canistreamit'
   };
 
   pythonShell.run('script.py', options, function (err, results) {
     if (err) {
       console.log('Python script error');
-      return;
-    }
-    if (results != null) {
-      if (results[0]["amazon_prime_instant_video"] != undefined) { 
-        //It is available on Amazon Instant Video
-        globalFilms[index].onAIV = true;
-        globalFilms[index].linkAIV = results[0]["amazon_prime_instant_video"]["direct_url"];
-      } 
-      if (results[0]["netflix_instant"] != undefined) {
-        //It is available on Netflix
-        globalFilms[index].onNetflix = true;
-        globalFilms[index].linkNetflix = results[0]["netflix_instant"]["direct_url"];
+      console.log('Error, film title: ' + globalFilms[index].title);
+    } else {
+      if (results != null) {
+        if (results[0]["amazon_prime_instant_video"] != undefined) { 
+          //It is available on Amazon Instant Video
+          globalFilms[index].onAIV = true;
+          globalFilms[index].linkAIV = results[0]["amazon_prime_instant_video"]["direct_url"];
+        } 
+        if (results[0]["netflix_instant"] != undefined) {
+          //It is available on Netflix
+          globalFilms[index].onNetflix = true;
+          globalFilms[index].linkNetflix = results[0]["netflix_instant"]["direct_url"];
+        }
       }
     }
-});
+    callback();
+  });
 }
