@@ -64,6 +64,7 @@ var lastPageQueried = 0;
 var nextFilmIndexFilter = [];
 
 var guest = 0;
+var channel_ids = [];
 // If a room is already in session (choosing films) a new user cannot join
 // so the rooms lock is set to true
 var locks = {};
@@ -178,6 +179,7 @@ io.sockets.on('connection', function(socket) {
       --num_users[room];
       // If all users have left, tear down the room after 30 secs
       if (num_users[room] == 0) {
+        locks[room] = true;
         // Tear down room.
         setTimeout(function() {
         console.log('Tear down room: ' + room);
@@ -190,6 +192,8 @@ io.sockets.on('connection', function(socket) {
         delete nextFilmIndexFilter[room];
         delete request_in_progress[room];
         delete query_genres[room];
+        channel_ids[room] = false;
+        delete locks[room];
         }, 30000);
       }
     }
@@ -215,7 +219,7 @@ io.sockets.on('connection', function(socket) {
   }
 
   function generate_id() { 
-    return Math.random().toString(10).substring(2,6);
+    return Math.random().toString(10).substring(2,5);
   }
   
   function generate_guest_id() {
@@ -232,7 +236,6 @@ io.sockets.on('connection', function(socket) {
       id = generate_id();
     }
     list[id] = true;
-    console.log(id);
     return id;
   }
  
@@ -350,17 +353,18 @@ io.sockets.on('connection', function(socket) {
     // Sets the mapping from username to unique ID 
     // (deleted when user disconnects)
     email_ids[username] = generate_id();
+    console.log("HERE " + email_ids[username]);
     // Set up email
     var mailOptions={
       to : email,
-      subject : 'Password unique id',
-      text : 'ID: ' + email_ids[username]
+      subject : 'NextFlick: Unique ID',
+      text : 'Hey from NextFlick. User ' + username + " has requested a new password please enter the unique ID " + email_ids[username] + " into the page shown. This ID will become invalid as soon as you leave this page."
     }
     // Send email
     smtpTransport.sendMail(mailOptions, function(error, response){
-      if(error){
+      if (error) {
         console.log(error);
-      }else{
+      } else {
         console.log("Message sent: " + response.message);
       }
     });
@@ -368,11 +372,13 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('change_password', function(id, username, old_password, new_password, forgotten_password) {
       // Checks that the user has entered the correct unique ID (sent in email)
+      console.log(" username " + username + " HERE " + email_ids[username]);
       if (email_ids[username] == id) {
         // Encrypts new password
         var salt = bcrypt.genSaltSync();
         var hash = bcrypt.hashSync(new_password, salt);
         if (!forgotten_password) {
+
           // Checks old password is correct then inserts new hashed password
           get_user_data(username, old_password, 'NOTSET', hash, check_old_password);
         } else {
@@ -393,8 +399,7 @@ io.sockets.on('connection', function(socket) {
     // Sets up newly created room, with no users
     // (set_room_id then goes on to add admin to room)
     // TODO: Random Room ID Generator, just using guest for now
-    //var room = generate_room_id();
-    var room = guest++;
+    var room = generate_room_id();
     socket.room = room;
     users[room] = {};
     num_users[room] = 0;
@@ -1257,7 +1262,10 @@ function get_streaming_services(title, index) {
   };
 
   pythonShell.run('script.py', options, function (err, results) {
-    if (err) throw err;
+    if (err) {
+      console.log('Python script error');
+      return;
+    }
     if (results != null) {
       if (results[0]["amazon_prime_instant_video"] != undefined) { 
         //It is available on Amazon Instant Video

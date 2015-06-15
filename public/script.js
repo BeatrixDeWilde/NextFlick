@@ -256,9 +256,11 @@ $(function(){
     });
   });
   $('#forgotten_password_button').click(function() {
+    document.getElementById('pwd').value = '';
     var user = document.getElementById('username').value;
     if (user.length > 0) {
       socket.emit('forgotten_password',user);
+      document.getElementById('username').value = '';
     }
     else {
       document.getElementById('username_error_message').innerHTML = "Please enter a username";
@@ -269,13 +271,15 @@ $(function(){
 });
 
 socket.on('forgotten_password_user_exists', function(email_address, user, genres){
-  socket.emit('send_email', email_address, username);
+  socket.emit('send_email', email_address, user);
   document.getElementById('change_password_email').innerHTML = 'Email: ' + email_address;
   user_genres = genres;
   email = email_address;
   document.getElementById('change_password_username').innerHTML = 'User: ' + user;
+  set_username(user);
   $('.login_page').fadeOut('fast', function() {
     $('.change_password_page').fadeIn('fast');
+    alert("Hiding");
     $('#old_password').hide();
   });
 });
@@ -390,28 +394,40 @@ $(function(){
   $('#new_password').click(function() {
     var id = document.getElementById('unique_id').value;
     var new_password = document.getElementById('new_pwd_change').value;
-    var old_password = document.getElementById('old_pwd_change').value;
     document.getElementById('change_pwd_error_message_settings').innerHTML = '';
-    if (id.length < 1 || new_password.length < 1 || old_password.length < 1) {
-      document.getElementById('change_pwd_error_message_settings').innerHTML = 'Please enter a valid id, old and new password';
-      $("#change_pwd_error_message_settings").show();
-      message_fade_out($('#change_pwd_error_message_settings'), 5000);
-    } else {
-      socket.emit('change_password', id, username, old_password, new_password, $('#old_password').is(":visible"));
+    if ($('#old_password').is(":visible")) {
+      var old_password = document.getElementById('old_pwd_change').value;
+      if (old_password.length < 1) {
+        change_pass_error("Please enter an old password");
+      }
+    }
+    if (id.length < 1) {
+      change_pass_error("Please enter a valid id");
+    } else if (new_password.length < 1) {
+      change_pass_error("Please enter a new password");
+    }
+    else {
+      socket.emit('change_password', id, username, old_password, new_password, !$('#old_password').is(":visible"));
     }
   });
 });
 
-socket.on('incorrect_input', function(message){
+function change_pass_error(message){
   document.getElementById('change_pwd_error_message_settings').innerHTML = message;
   $("#change_pwd_error_message_settings").show();
   message_fade_out($('#change_pwd_error_message_settings'), 5000);
+}
+
+socket.on('incorrect_input', function(message){
+  change_pass_error(message);
 });
 
 socket.on('changed_password', function(user){
   if ($('#old_password').is(":visible")) {
     go_back();
   } else {
+    alert("Showing");
+    $('#old_password').show();
     document.getElementById('username').value = '';
     document.getElementById('pwd').value = '';
     set_username(user);
@@ -425,10 +441,18 @@ socket.on('changed_password', function(user){
 function go_back(){
   document.getElementById('unique_id').value = '';
   document.getElementById('new_pwd_change').value = '';
-  document.getElementById('old_pwd_change').value = '';
-  $('.change_password_page').fadeOut('fast', function() {
-    $('.settings_page').fadeIn('fast');
-  });
+  if ($('#old_password').is(":visible")) {
+    document.getElementById('old_pwd_change').value = '';
+    $('.change_password_page').fadeOut('fast', function() {
+      $('.settings_page').fadeIn('fast');
+    });
+  } else{
+    alert("Showing");
+    $('#old_password').show();
+    $('.change_password_page').fadeOut('fast', function() {
+      $('.login_page').fadeIn('fast');
+    });
+  }
 }
 
 
