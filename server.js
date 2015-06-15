@@ -64,6 +64,7 @@ var lastPageQueried = 0;
 var nextFilmIndexFilter = [];
 
 var guest = 0;
+var channel_ids = [];
 // If a room is already in session (choosing films) a new user cannot join
 // so the rooms lock is set to true
 var locks = {};
@@ -176,6 +177,7 @@ io.sockets.on('connection', function(socket) {
       --num_users[room];
       // If all users have left, tear down the room after 30 secs
       if (num_users[room] == 0) {
+        locks[room] = true;
         // Tear down room.
         setTimeout(function() {
         console.log('Tear down room: ' + room);
@@ -188,6 +190,8 @@ io.sockets.on('connection', function(socket) {
         delete nextFilmIndexFilter[room];
         delete request_in_progress[room];
         delete query_genres[room];
+        channel_ids[room] = false;
+        delete locks[room];
         }, 30000);
       }
     }
@@ -213,7 +217,7 @@ io.sockets.on('connection', function(socket) {
   }
 
   function generate_id() { 
-    return Math.random().toString(10).substring(2,6);
+    return Math.random().toString(10).substring(2,5);
   }
   
   function generate_guest_id() {
@@ -230,7 +234,6 @@ io.sockets.on('connection', function(socket) {
       id = generate_id();
     }
     list[id] = true;
-    console.log(id);
     return id;
   }
  
@@ -391,8 +394,7 @@ io.sockets.on('connection', function(socket) {
     // Sets up newly created room, with no users
     // (set_room_id then goes on to add admin to room)
     // TODO: Random Room ID Generator, just using guest for now
-    //var room = generate_room_id();
-    var room = guest++;
+    var room = generate_room_id();
     socket.room = room;
     users[room] = {};
     num_users[room] = 0;
