@@ -16,6 +16,8 @@ var pg = require("pg");
 // Asynchronous module for async requests with a max concurrency limit
 var async = require("async");
 
+var pythonShell = require('python-shell');
+
 // Security information that needs to be moved to a skeleton file.
 var post_database = "pg://g1427106_u:mSsFHJc6zU@db.doc.ic.ac.uk:5432/g1427106_u";
 var api_param = 'api_key=a91369e1857e8c0cf2bd02b5daa38260';
@@ -95,10 +97,6 @@ var genreIdLookup = {
   "Western" : 37
 }
 
-var allGenreIds = ["28", "12", "16", "35", "80", "99", "18", "10751", "14", "10769",
-                   "36", "27", "10402", "9648", "10749", "878", "10770", "53", 
-                   "10752", "37"];
-
 app.use(express.static(__dirname + '/public'));
 
 app.get('/', function(req, res) {
@@ -120,6 +118,9 @@ extraInfoReqQueue.drain = function() {
   console.log('All OMDb requests have been processed for current batch');
 }
 
+var queryDate = new Date();
+queryDate.setMonth(queryDate.getMonth() - 3);
+queryDate.toISOString().substring(0,10);
 
 console.log('Server started.');
 
@@ -992,7 +993,7 @@ function addFilmsByGenre(pageNum, reqCounter, numBatches) {
            '&page=' + pageNum + 
            '&include_adult=false' + 
            '&sort_by=popularity.desc' + 
-           '&release_date.lte=' + (new Date()).toISOString().substring(0,10),
+           '&release_date.lte=' + queryDate,
       headers: {
         'Accept': 'application/json'
       }}, 
@@ -1118,7 +1119,7 @@ function addExtraFilmInfo(film_index, callback) {
         globalFilms[film_index].metascore = filmInfo.info["Metascore"];
         globalFilms[film_index].tomatoRating = filmInfo.info["tomatoMeter"];
         globalFilms[film_index].runtime = filmInfo.info["Runtime"];
-       
+        get_streaming_services(globalFilms[film_index].title);
       } else {
         console.log('OMDb API request failed for film index ' + film_index);
       }
@@ -1246,3 +1247,22 @@ function addFilms(numBatches) {
   }
 }
 
+function get_streaming_services(title) {
+  var options = {
+    mode: 'json',
+    args: [title],
+    scriptPath: 'CanIStreamIt/canistreamit'
+  };
+
+  pythonShell.run('script.py', options, function (err, results) {
+    if (err) throw err;
+    if (results != null) {
+      if (results[0]["amazon_prime_instant_video"] != undefined) { 
+        //It has Amazon Prime, add your functions
+      }
+      if (results[0]["netflix_instant"] != undefined) {
+        //It has Netflix, add your functions
+      }
+    }
+});
+}

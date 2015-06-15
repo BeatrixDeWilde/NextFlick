@@ -10,7 +10,8 @@
     "node-cache": "",
     "nodemailer": "~0.7.1",
     "async": "",
-    "request": ""
+    "request": "",
+    "python-shell": ""
   },
   "scripts": {
     "start": "node server.js"
