@@ -112,10 +112,14 @@ $(document).ready(function() {
   add_genre_checkboxes('#genre_settings','_settings');
 });
 
-socket.on('popular_films', function(popular_films){
+socket.on('popular_films', function(popular_films, guest){
   $("#popular_film_list").html("");
   $.each(popular_films, function(index, film){
-    $("#popular_film_list").append('<li><img src="' + film.poster_url + '" width="78" height="115" /></li>');
+    if (guest) {
+      $("#popular_film_list").append('<li><img src="' + film.poster_url + '" width="78" height="115" /></li>');
+    } else {
+      $("#popular_film_list").append('<li><img src="' + film + '" width="78" height="115" /></li>');
+    }
   });
   if (/^(guest)/.test(username)) {
     $("#scroller_title").html("Most frequent NextFlicks:");
@@ -155,8 +159,8 @@ function scroll_films(){
         }
         list_popular_films.scrollLeft(new_placement);
     };
-    setInterval(scroll, 20);
     if (set_up) {
+      setInterval(scroll, 35);
       $(slider).animate({current_speed:slider.full_speed}, 600);
       set_up = false;
     }
