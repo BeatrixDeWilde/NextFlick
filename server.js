@@ -74,6 +74,10 @@ var email_ids = [];
 var guest_ids = [];
 var room_ids = [];
 
+var frequencyToFilterOutGenres = 100;
+var ratioToFilterOutGenres = 0.1;
+var minNumberOfGenres = 3;
+
 // Genre IDs for movie queries
 var genreIdLookup = {
   "Action" : 28,
@@ -172,7 +176,6 @@ io.sockets.on('connection', function(socket) {
   function free_resources(username, room) {
     if (typeof username !== 'undefined' && typeof room !== 'undefined'
         && typeof users[room] !== 'undefined') {
-      //console.log("Queue state: running: " + insertQueue.running() + " idle: " + insertQueue.idle() + " length: " + insertQueue.length() + " paused: " + insertQueue.paused);
       if (typeof users[room][username] !== 'undefined') {
         update_user_popular_films(users[room][username].chosen_films, username);
       }
@@ -191,7 +194,6 @@ io.sockets.on('connection', function(socket) {
         // Tear down room.
         setTimeout(function() {
         console.log('Tear down room: ' + room);
-        //console.log(" Room tear down Queue state: running: " + insertQueue.running() + " idle: " + insertQueue.idle() + " length: " + insertQueue.length() + " paused: " + insertQueue.paused);
         remove_room_id(room);
         delete users[room];
         delete films[room];
@@ -641,15 +643,19 @@ io.sockets.on('connection', function(socket) {
     if (numFilmGenres != 0) {
       for (var i = 0; i < numFilmGenres; i++) {
         var currGenre = filmGenres[i].toString();
-        if (inc) {
-          users[socket.room][socket.username].genreLearning[currGenre][0]++;
+        if (users[socket.room][socket.username] != undefined
+            && users[socket.room][socket.username].genreLearning != undefined
+            && users[socket.room][socket.username].genreLearning[currGenre] != undefined) {
+          if (inc) {
+            users[socket.room][socket.username].genreLearning[currGenre][0]++;
+          }
+          users[socket.room][socket.username].genreLearning[currGenre][1]++;
         }
-        users[socket.room][socket.username].genreLearning[currGenre][1]++;
       }
     }
 
     // THE GENRE PURGE (happens every 100 films)
-    if (index % 100 == 0 && index != 0 && query_genres[socket.room].length > 3) {
+    if (index % frequencyToFilterOutGenres == 0 && index != 0 && query_genres[socket.room].length > minNumberOfGenres) {
       //for (var i = 0; i < ) {
         var numUsers = Object.keys(users[socket.room]).length;
         var lowestRatios = [];
@@ -658,32 +664,38 @@ io.sockets.on('connection', function(socket) {
         var filterGenres = query_genres[socket.room];
         for (var genre in filterGenres) {
           for (var username in users[socket.room]) {
-            var yesCount = users[socket.room][username].genreLearning[filterGenres[genre]][0];
-            var totalCount = users[socket.room][username].genreLearning[filterGenres[genre]][1];
-            var ratio = yesCount / totalCount;
-            if (ratio < 0.1) {
-              lowestRatios.push(ratio);
-            } else {
-              lowestRatios = [];
-              break;
-            }
-            // If on last user whos ratio is less than threshold
-            var ratioCount = lowestRatios.length;
-            if (ratioCount == numUsers) {
-              var ratioSum = 0;
-              for (var i = 0; i < ratioCount; i++) {
-                ratioSum += lowestRatios[i];
-              }
-              var newLowestRatioAverage = ratioSum / ratioCount;
-              if (lowestRatioAverage == null 
-                  || (lowestRatioAverage != null 
-                      && newLowestRatioAverage < lowestRatioAverage)) {
-                lowestRatioAverage = newLowestRatioAverage;
-                genreToRemove = filterGenres[genre];
-                console.log('Lowest ratio average: ' + lowestRatioAverage);
-                console.log('Ratios: ' + lowestRatios);
-                console.log('For genre ' + filterGenres[genre] + ' which has ' + yesCount + ' yesses, and has been seen ' + totalCount + ' times' );
+            
+            if (users[socket.room][socket.username] != undefined
+                && users[socket.room][socket.username].genreLearning != undefined
+                && users[socket.room][socket.username].genreLearning[filterGenres[genre]] != undefined
+                && users[socket.room][socket.username].genreLearning[filterGenres[genre]][0] != undefined) {
+              var yesCount = users[socket.room][username].genreLearning[filterGenres[genre]][0];
+              var totalCount = users[socket.room][username].genreLearning[filterGenres[genre]][1];
+              var ratio = yesCount / totalCount;
+              if (ratio < ratioToFilterOutGenres) {
+                lowestRatios.push(ratio);
+              } else {
                 lowestRatios = [];
+                break;
+              }
+              // If on last user whos ratio is less than threshold
+              var ratioCount = lowestRatios.length;
+              if (ratioCount == numUsers) {
+                var ratioSum = 0;
+                for (var i = 0; i < ratioCount; i++) {
+                  ratioSum += lowestRatios[i];
+                }
+                var newLowestRatioAverage = ratioSum / ratioCount;
+                if (lowestRatioAverage == null 
+                    || (lowestRatioAverage != null 
+                        && newLowestRatioAverage < lowestRatioAverage)) {
+                  lowestRatioAverage = newLowestRatioAverage;
+                  genreToRemove = filterGenres[genre];
+                  console.log('Lowest ratio average: ' + lowestRatioAverage);
+                  console.log('Ratios: ' + lowestRatios);
+                  console.log('For genre ' + filterGenres[genre] + ' which has ' + yesCount + ' yesses, and has been seen ' + totalCount + ' times' );
+                  lowestRatios = [];
+                }
               }
             }
           }
@@ -715,8 +727,6 @@ io.sockets.on('connection', function(socket) {
             && typeof globalFilms[films[socket.room][index+1].filmIndex].runtime !== 'undefined') {
           // Go to next film
           index++;
-          //var message = ' said ' + decision + ' to movie: ' + globalFilms[films[socket.room][index-1].title];
-      	  //socket.emit('update_chat', 'You', message);
           
           // Add 5 batches of films to global list 
           if (index == (globalFilms.length - queryBatchSize)) {
@@ -734,14 +744,10 @@ io.sockets.on('connection', function(socket) {
           socket.emit('new_films', globalFilms[films[socket.room][index].filmIndex], index);
         
         } else {
-          //console.log('next film in GLOBAL film list is/has undefined info');
-          //console.log('should be index ' + films[socket.room][index+1].filmIndex + ' in global list');
           addFilms(10);
         }
 
       } else {
-        //console.log('next film in rooms film list is/has undefined info');
-        //console.log('prev film in room list is at index ' + films[socket.room][index].filmIndex);
         if (!request_in_progress[socket.room]) {
           request_in_progress[socket.room] = true;
           filterFilmsForRoom(socket.room, query_genres[socket.room], runtime_filters[socket.room], queryBatchSize);
