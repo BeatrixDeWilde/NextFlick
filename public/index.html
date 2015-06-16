@@ -59,20 +59,23 @@
               </div>
   
               <div>
-                <button type="button" id="no" class="btn my_btn"><span class="glyphicon glyphicon-arrow-left"></span><b> NO</b></button>
-                <button type="button" id="yes" class="btn my_btn"><b>YES </b><span class="glyphicon glyphicon-arrow-right"></span></button>
+                <button type="button" id="no" class="btn my_btn"><span class="glyphicon glyphicon-arrow-left"></span> NO</button>
+                <button type="button" id="yes" class="btn my_btn">YES <span class="glyphicon glyphicon-arrow-right"></span></button>
               </div>
               <br>
               <button class="btn my_btn" type="button" data-toggle="collapse" data-target="#filmInfo" aria-expanded="false" aria-controls="filmInfo" id="filmInfoBtn">
-                <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span> <b>Film Information</b>
+                <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span> Film Information
               </button>
               <div class="collapse" id="filmInfo" width="20%" height="20%">
-                <h4><b>Runtime: </b><span id="runtime"></span></h4>
-                <h4><b>IMDb Rating: </b><span id="imdbRating"></span></h4>
-                <h4><b>Netflix: </b><span class="inline" id="onNetflix"></span></h4>
-                <h4><b>Amazon Instant Video: </b><span class="inline" id="onAIV"></span></h4>
-                <h4><b>Plot:</b></h4>
-                <p id="plot"></p>
+                <!-- <div class="lightblock"> -->
+                  <h4>Runtime: <span style="font-size:0.8em"id="runtime"></span></h4>
+                  <h4>IMDb Rating:  <span style="font-size:0.8em" id="imdbRating"></span></h4>  
+                  <h4>Netflix: <span style="font-size:0.8em"class="inline" id="onNetflix"></span></h4>
+                  <h4>Amazon Instant Video: <span style="font-size:0.8em"class="inline" id="onAIV"></span></h4>
+                  <hr width="20%">
+                  <!-- <h4>Plot:</h4> -->
+                  <p> <b>Synopsis: </b><span id="plot"></span></p>
+                <!-- </div> -->
               </div>
             </div>
           </div>
@@ -256,7 +259,7 @@
               <div id="lobby_page_username" class="message"></div>
               <div id="myRoom" class="message"></div>
               <br>
-              <div id = "userblock">
+              <div id = "userblock" class="lightblock">
                 <b class="message">USERS</b>
                 <!--this only works when you change the id of users on main page (which breaks that)-->
                 <div id="users" class="message"></div>

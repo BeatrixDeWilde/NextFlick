@@ -145,11 +145,20 @@ html{
   display:none;
 }
 
+#no{
+  width: 40%;
+}
+#yes{
+  width: 40%;
+}
+#filmInfoBtn{
+  width: 81%;
+}
 .message{
   color: #FFFFFF;
 }
 
-#userblock{
+.lightblock{
   background-color: #606060;
   /*border-style: solid;
   border-color: #FFFFFF; */
