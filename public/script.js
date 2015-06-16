@@ -305,7 +305,7 @@ socket.on('user_already_exists', function(username){
 
 $(function(){
   $('#sign_up_button').click(function() {
-    var username = document.getElementById('username_sign_up').value;
+    var user = document.getElementById('username_sign_up').value;
     var password = document.getElementById('pwd_sign_up').value;
     var email = document.getElementById('email_sign_up').value;
     var regex_for_email = /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
@@ -315,7 +315,7 @@ $(function(){
     document.getElementById('username_sign_up').value = '';
     document.getElementById('pwd_sign_up').value = '';
     document.getElementById('email_sign_up').value = '';
-    if (username.length < 1) {
+    if (user.length < 1) {
       document.getElementById('username_error_message_sign_up').innerHTML = '<b>Please enter a username</b>';
       $("#username_error_message_sign_up").show();
       message_fade_out($('#username_error_message_sign_up'), 5000);
@@ -329,13 +329,13 @@ $(function(){
       document.getElementById('email_error_message_sign_up').innerHTML = '<b>Please enter a valid email</b>';
       $("#email_error_message_sign_up").show();
       message_fade_out($('#email_error_message_sign_up'), 5000); 
-    } else if (/^(guest)/.test(username)) {
+    } else if (/^(guest)/.test(user)) {
       document.getElementById('username_error_message_sign_up').innerHTML = 
-      '<b>The username ' + username + ' starts with the word "guest"</b>';
+      '<b>The username ' + user + ' starts with the word "guest"</b>';
       $("#username_error_message_sign_up").show();
       message_fade_out($('#username_error_message_sign_up'), 5000);
     } else {
-      socket.emit('sign_up', username, password, email);
+      socket.emit('sign_up', user, password, email);
     }
   });
   $('#sign_up_back').click(function() {
