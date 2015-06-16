@@ -139,6 +139,16 @@ html{
   right:30px;
 }
 
+#film_found_confirm {
+  width: 80%;
+}
+#watchNetflix {
+  width: 39%;
+}
+#watchAmazon{
+  width: 39%;
+}
+
 #user_settings{
   position: absolute;
   left:30%;
