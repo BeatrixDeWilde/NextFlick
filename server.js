@@ -153,7 +153,12 @@ io.sockets.on('connection', function(socket) {
     // Called when a user leaves a room (via button), free resources 
     // should tear down the room if username is the last user
     socket.leave(room);
-    users[room][username].ready = false;
+    if (username != undefined 
+        && room != undefined 
+        && users[room] != undefined 
+        && users[room][username] != undefined) {
+      users[room][username].ready = false;
+    }
     
     console.log(username + ' is leaving room ' + room);
     free_resources(username, room);
@@ -617,6 +622,10 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('choice', function(decision, index, inc) {
     // If inc then increments that film's yes count attribute
+    if (films[socket.room] == undefined || films[socket.room][index] == undefined) {
+      // Does nothing as page from an old/invalid session
+      return;
+    }
     if(inc) {
       films[socket.room][index].yes_count++;
       var global_film_index = films[socket.room][index].filmIndex;

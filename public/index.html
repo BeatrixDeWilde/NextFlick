@@ -59,8 +59,8 @@
               </div>
   
               <div>
-                <button type="button" id="no" class="btn my_btn"><b>NO</b></button>
-                <button type="button" id="yes" class="btn my_btn"><b>YES</b></button>
+                <button type="button" id="no" class="btn my_btn"><span class="glyphicon glyphicon-arrow-left"></span><b> NO</b></button>
+                <button type="button" id="yes" class="btn my_btn"><b>YES </b><span class="glyphicon glyphicon-arrow-right"></span></button>
               </div>
               <br>
               <button class="btn my_btn" type="button" data-toggle="collapse" data-target="#filmInfo" aria-expanded="false" aria-controls="filmInfo" id="filmInfoBtn">
@@ -319,7 +319,11 @@
               <h3>Your chosen film is...</h3>
               <img id="found_film_image" src="http://image.tmdb.org/t/p/w500/j6NCjU6Zh7SkfIeN5zDaoTmBn4m.jpg" class="img-rounded" width="80%">
                <h3 id="found_film_title" align="center"></h3>
-               <button type="button" id="film_found_confirm" class="btn my_btn">OK</button>
+               <button type="button" id="film_found_confirm" class="btn my_btn">Return to Main Menu</button>
+               <br>
+               <h4><b>Watching options:</b></h4>
+               <a id="watchNetflix" class="btn my_btn" target="_blank" href='' disabled>Netflix</a>
+               <a id="watchAmazon" class="btn my_btn" target="_blank" href='' disabled>Amazon Instant Video</a>
              </div>
           </div> 
         </li>
