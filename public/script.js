@@ -112,10 +112,14 @@ $(document).ready(function() {
   add_genre_checkboxes('#genre_settings','_settings');
 });
 
-socket.on('popular_films', function(popular_films){
+socket.on('popular_films', function(popular_films, guest){
   $("#popular_film_list").html("");
   $.each(popular_films, function(index, film){
-    $("#popular_film_list").append('<li><img src="' + film.poster_url + '" width="78" height="115" /></li>');
+    if (guest) {
+      $("#popular_film_list").append('<li><img src="' + film.poster_url + '" width="78" height="115" /></li>');
+    } else {
+      $("#popular_film_list").append('<li><img src="' + film + '" width="78" height="115" /></li>');
+    }
   });
   if (/^(guest)/.test(username)) {
     $("#scroller_title").html("Most frequent NextFlicks:");
@@ -155,8 +159,8 @@ function scroll_films(){
         }
         list_popular_films.scrollLeft(new_placement);
     };
-    setInterval(scroll, 20);
     if (set_up) {
+      setInterval(scroll, 35);
       $(slider).animate({current_speed:slider.full_speed}, 600);
       set_up = false;
     }
@@ -305,7 +309,7 @@ socket.on('user_already_exists', function(username){
 
 $(function(){
   $('#sign_up_button').click(function() {
-    var username = document.getElementById('username_sign_up').value;
+    var user = document.getElementById('username_sign_up').value;
     var password = document.getElementById('pwd_sign_up').value;
     var email = document.getElementById('email_sign_up').value;
     var regex_for_email = /^([\w-]+(?:\.[\w-]+)*)@((?:[\w-]+\.)*\w[\w-]{0,66})\.([a-z]{2,6}(?:\.[a-z]{2})?)$/i;
@@ -315,7 +319,7 @@ $(function(){
     document.getElementById('username_sign_up').value = '';
     document.getElementById('pwd_sign_up').value = '';
     document.getElementById('email_sign_up').value = '';
-    if (username.length < 1) {
+    if (user.length < 1) {
       document.getElementById('username_error_message_sign_up').innerHTML = '<b>Please enter a username</b>';
       $("#username_error_message_sign_up").show();
       message_fade_out($('#username_error_message_sign_up'), 5000);
@@ -329,13 +333,13 @@ $(function(){
       document.getElementById('email_error_message_sign_up').innerHTML = '<b>Please enter a valid email</b>';
       $("#email_error_message_sign_up").show();
       message_fade_out($('#email_error_message_sign_up'), 5000); 
-    } else if (/^(guest)/.test(username)) {
+    } else if (/^(guest)/.test(user)) {
       document.getElementById('username_error_message_sign_up').innerHTML = 
-      '<b>The username ' + username + ' starts with the word "guest"</b>';
+      '<b>The username ' + user + ' starts with the word "guest"</b>';
       $("#username_error_message_sign_up").show();
       message_fade_out($('#username_error_message_sign_up'), 5000);
     } else {
-      socket.emit('sign_up', username, password, email);
+      socket.emit('sign_up', user, password, email);
     }
   });
   $('#sign_up_back').click(function() {
@@ -532,7 +536,7 @@ socket.on('room_is_locked', function() {
 
 socket.on("joined_room", function(channel){
   room = channel;
-  document.getElementById('myRoom').innerHTML = '<b> Your Room:</b> ' + room + '<br>';
+  document.getElementById('myRoom').innerHTML = '<b> Your Room ID:</b> ' + room + '<br>';
   document.getElementById('lobby_page_username').innerHTML 
     = '<b> Username</b>: ' + username;
   set_up_lobby_page();
@@ -747,7 +751,7 @@ socket.on('film_found', function(film) {
 
 // Keyboard shortcuts for 'yes' and 'no'
 
-document.onkeydown = function(e) {
+document.onkeyup = function(e) {
  if (on_main_page) {
   switch (e.keyCode) {
     case 39:

@@ -488,7 +488,7 @@ io.sockets.on('connection', function(socket) {
         if(err) {
           return console.error('error running query get popular films', err);
         }
-        socket.emit('popular_films', result.rows);
+        socket.emit('popular_films', result.rows, true);
       });
     });
   }
@@ -510,9 +510,14 @@ io.sockets.on('connection', function(socket) {
 
   function loop_until_ten_popular_films(users, films, original_user) {
     var limit = 20;
+    var scroller_image_min = 3;
     if (users.length == 0) {
       // Base case
-      socket.emit('popular_films', films);
+      if (films.length > scroller_image_min) {
+        socket.emit('popular_films', films, false);
+      } else {
+        guest_popular_films();
+      }
       return;
     }
     // Recursive case
@@ -526,7 +531,7 @@ io.sockets.on('connection', function(socket) {
         if(err) {return console.error('error running query loop_until_ten_popular_films', err);}
         films = add_user_films_list(films, result.rows, limit);
         if (films.length >= limit) {
-          socket.emit('popular_films', films);
+          socket.emit('popular_films', films, false);
         }
         else {
           loop_until_ten_popular_films(users, films, original_user);
@@ -538,8 +543,8 @@ io.sockets.on('connection', function(socket) {
 
   function add_user_films_list(films, result, limit) {
     for (var i = 0; i < result.length; i++) {
-      if (films.indexOf(result[i]) < 0 ) {
-        films.push(result[i]);
+      if (films.indexOf(result[i].poster_url) < 0 ) {
+        films.push(result[i].poster_url);
       }
       if (films.length >= limit) {
         break;
@@ -816,7 +821,7 @@ io.sockets.on('connection', function(socket) {
       });
     });
   }
- 
+
   // ************************** //
   // ******* FOUND PAGE ******* //
   // ************************** //
@@ -902,8 +907,10 @@ io.sockets.on('connection', function(socket) {
 
 function queue_insert_func(args, callback){
   user_add_popular_film(args.film, args.username);
+  delete_user_popular_films(args.username);
   callback();
 }
+
 function user_insert_film(film, username){
   //console.log("Start of insert film " + username + " film.id " + film.id);
   var client = new pg.Client(post_database);
@@ -945,6 +952,21 @@ function user_update_film(film, new_count, username){
      [film.id, new_count, new Date()], function(err, result) {
       if(err) {return console.error('error running query user update film', err);}
       client.end();
+    });
+  });
+}
+
+function delete_user_popular_films(username){
+  // Number of films to be deleted from popular films
+  var delete_size = 5; 
+  // Max number of popular films
+  var size_limit = 20;
+  pg.connect(post_database, function(err, client, done) {
+    if(err) {return console.error('error connecting', err);}
+    client.query("DELETE FROM user_popular_films WHERE film_id in (SELECT film_id FROM user_popular_films where username='" + username + "' order by last_time_updated limit $1) and $2 < (select count(*) from popular_films where username='" + username + "') and username='" + username + "';",
+                 [delete_size, size_limit], function(err, result) {
+      done();
+      if(err) {return console.error('error running query delete films', err);}
     });
   });
 }
