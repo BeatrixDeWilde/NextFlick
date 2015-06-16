@@ -175,8 +175,6 @@ io.sockets.on('connection', function(socket) {
   function free_resources(username, room) {
     if (typeof username !== 'undefined' && typeof room !== 'undefined'
         && typeof users[room] !== 'undefined') {
-      //console.log("Queue state: running: " + insertQueue.running() + " idle: " + insertQueue.idle() + " length: " + insertQueue.length() + " paused: " + insertQueue.paused);
-      //console.log("FREEING RESOURCES: " + username);
       if (typeof users[room][username] !== 'undefined') {
         update_user_popular_films(users[room][username].chosen_films, username);
       }
@@ -269,7 +267,6 @@ io.sockets.on('connection', function(socket) {
   // ************************** //
 
   socket.on('get_guest_id', function() {
-    // TODO: random guest id?
     var guest_id = guest++;
     //var guest_id = generate_guest_id();
     // Gets an unused guest id then calls set username 
@@ -408,7 +405,6 @@ io.sockets.on('connection', function(socket) {
   socket.on('new_room', function() {
     // Sets up newly created room, with no users
     // (set_room_id then goes on to add admin to room)
-    // TODO: Random Room ID Generator, just using guest for now
     var room = generate_room_id();
     socket.room = room;
     users[room] = {};
@@ -710,7 +706,6 @@ io.sockets.on('connection', function(socket) {
       // If every user in the room has said yes to the film then 
       // take every user to the 'found page' with that film displayed
       io.sockets.in(socket.room).emit('film_found', globalFilms[films[socket.room][index].filmIndex]);
-      // Room no longer in session TODO move? delete? Chase
       locks[socket.room] = false;
     } else {
 
@@ -721,10 +716,8 @@ io.sockets.on('connection', function(socket) {
             && typeof globalFilms[films[socket.room][index+1].filmIndex].runtime !== 'undefined') {
           // Go to next film
           index++;
-          //var message = ' said ' + decision + ' to movie: ' + globalFilms[films[socket.room][index-1].title];
-      	  //socket.emit('update_chat', 'You', message);
           
-          // Add 5 batches of films to global list// TODO: no longer needed? 
+          // Add 5 batches of films to global list
           if (index == (globalFilms.length - queryBatchSize)) {
             addFilms(5);
           }
