@@ -87,8 +87,8 @@ html{
   position: absolute;
 }
 
-@media only screen and (max-height:450px){
-  #poster_scroller{
+@media only screen and (max-height:768px){
+  .mobile-hide{
     display:none;
   }
 }
