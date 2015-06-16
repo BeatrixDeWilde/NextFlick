@@ -135,10 +135,7 @@ var queryDate = date.toISOString().substring(0,10);
 console.log('Server started.');
 
 // Populate film list with films on server start
-//TODO: When server goes live, set this to 1000 and remove occurences of 
-//      addFilms in rest of code (much faster processing but slower startup)
-// Current way dynamically adds to global list
-addFilms(10);
+addFilms(100);
 
 
 io.sockets.on('connection', function(socket) {
@@ -176,7 +173,6 @@ io.sockets.on('connection', function(socket) {
     if (typeof username !== 'undefined' && typeof room !== 'undefined'
         && typeof users[room] !== 'undefined') {
       //console.log("Queue state: running: " + insertQueue.running() + " idle: " + insertQueue.idle() + " length: " + insertQueue.length() + " paused: " + insertQueue.paused);
-      //console.log("FREEING RESOURCES: " + username);
       if (typeof users[room][username] !== 'undefined') {
         update_user_popular_films(users[room][username].chosen_films, username);
       }
@@ -408,7 +404,6 @@ io.sockets.on('connection', function(socket) {
   socket.on('new_room', function() {
     // Sets up newly created room, with no users
     // (set_room_id then goes on to add admin to room)
-    // TODO: Random Room ID Generator, just using guest for now
     var room = generate_room_id();
     socket.room = room;
     users[room] = {};
@@ -646,7 +641,6 @@ io.sockets.on('connection', function(socket) {
         }
         users[socket.room][socket.username].genreLearning[currGenre][1]++;
       }
-      //console.log(users[socket.room][socket.username].genreLearning);
     }
 
     // THE GENRE PURGE (happens every 100 films)
@@ -719,7 +713,7 @@ io.sockets.on('connection', function(socket) {
           //var message = ' said ' + decision + ' to movie: ' + globalFilms[films[socket.room][index-1].title];
       	  //socket.emit('update_chat', 'You', message);
           
-          // Add 5 batches of films to global list// TODO: no longer needed? 
+          // Add 5 batches of films to global list 
           if (index == (globalFilms.length - queryBatchSize)) {
             addFilms(5);
           }
@@ -965,13 +959,6 @@ function user_update_film(film, new_count, username){
 /* Get 20 films of all genres from the array parameter 'genres' 
    from page number pageNum and append them to the list of films */
 
-// Shuffling algorithm
-function shuffle(o) {
-	for(var j, x, i = o.length; i; j = parseInt(Math.random() * i), x = o[--i], o[i] = o[j], o[j] = x);
-	return o;
-}
-
-
 function initFilmPage(room) {
   console.log('Should be showing film page');
   io.sockets.in(room).emit('update_chat', 'SERVER', 'Showing films from genres: ' + query_genres[room]);
@@ -1038,7 +1025,6 @@ function addFilmsByGenre(pageNum, reqCounter, numBatches) {
             for (var i = oldLength, len = oldLength + film_list.length; i < len; i++) {
               // Update films information by modifying required properties
               // and deleting unnecessary ones
-              //TODO: base URL in variable at top of file
               extraInfoReqQueue.push(i);
               
               globalFilms[i].onNetflix = false;
@@ -1154,7 +1140,6 @@ function addExtraFilmInfo(film_index, callback) {
 function filterFilmsForRoom(room, genres, runtime, numFilms) {
   //TODO: add loading overlay when films are being filtered and next isn't yet ready
   var listLength = films[room].length;
-  //TODO: check films exist in global list (add to list if need to)
   var numQueryGenres = genres.length;
   var filmsAdded = 0;
   var filterIndex = nextFilmIndexFilter[room];
