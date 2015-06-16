@@ -543,7 +543,7 @@ socket.on('room_is_locked', function() {
 
 socket.on("joined_room", function(channel){
   room = channel;
-  document.getElementById('myRoom').innerHTML = '<b> Your Room:</b> ' + room + '<br>';
+  document.getElementById('myRoom').innerHTML = '<b> Your Room ID:</b> ' + room + '<br>';
   document.getElementById('lobby_page_username').innerHTML 
     = '<b> Username</b>: ' + username;
   set_up_lobby_page();
@@ -755,7 +755,7 @@ socket.on('film_found', function(film) {
 
 // Keyboard shortcuts for 'yes' and 'no'
 
-document.onkeydown = function(e) {
+document.onkeyup = function(e) {
  if (on_main_page) {
   switch (e.keyCode) {
     case 39:

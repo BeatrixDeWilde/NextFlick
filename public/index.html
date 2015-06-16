@@ -67,27 +67,15 @@
                 <span class="glyphicon glyphicon-info-sign" aria-hidden="true"></span> Film Information
               </button>
               <div class="collapse" id="filmInfo" width="20%" height="20%">
-                <!-- <div class="lightblock"> -->
                   <h4>Runtime: <span style="font-size:0.8em"id="runtime"></span></h4>
                   <h4>IMDb Rating:  <span style="font-size:0.8em" id="imdbRating"></span></h4>  
                   <h4>Netflix: <span style="font-size:0.8em"class="inline" id="onNetflix"></span></h4>
                   <h4>Amazon Instant Video: <span style="font-size:0.8em"class="inline" id="onAIV"></span></h4>
                   <hr width="20%">
-                  <!-- <h4>Plot:</h4> -->
-                  <p> <b>Synopsis: </b><span id="plot"></span></p>
-                <!-- </div> -->
+                  <h4>Synopsis:</h4><div id="plot"></div>
               </div>
             </div>
           </div>
-      <!--    <div style="float:left;width:100px;border-right:1px solid black;height:300px;padding:10px;overflow:scroll-y;">
-            <b>USERS</b>
-            <div id="main_page_users"></div>
-          </div>
-          <div style="float:left;width:500px;height:250px;overflow:scroll-y;padding:10px;">
-            <div id="chat"></div>
-            <input id="data" style="width:200px;" />
-            <input type="button" id="datasend" value="send" />
-          </div>-->
         </li>
 
         <!-- SIGN UP PAGE (create new username and password) -->
@@ -236,6 +224,10 @@
             <div class= "my_block" align ="left">
               <div id="room_page_username"><b>Username</b>: UNSET</div>
               <br>
+              <h5 class="message">Start a new session:</h5> 
+              <button type="button" id="create" class="btn my_btn btn-block">Create Room</button>
+              <br>
+              <h5 class="message">Join your friends with their unique ID:</h5> 
               <form class="form-horizontal" role="form">
                 <input class="form-control" id="RoomID" placeholder="RoomID">
                 <button type="button" id="join" class="btn my_btn btn-block">Join Room</button>
@@ -244,7 +236,6 @@
               <div id="room_message1"><b> That room does not exist please enter an existing room or create a new room.</b></div>
               <div id="room_message2"><b> Room is already in session.</b><br><br><br></div>
               <br>
-              <button type="button" id="create" class="btn my_btn btn-block">Create Room</button>
               <button type="button" id="room_page_back" class="btn my_btn page_back" value="">Back</button>
               <button type="button" id="user_settings" class="btn my_btn" value="">Settings</button>
             </div>
@@ -258,6 +249,7 @@
             <div class= "my_block" align ="left">
               <div id="lobby_page_username" class="message"></div>
               <div id="myRoom" class="message"></div>
+               <button type="button" id="lobby_page_back" class="btn my_btn">Leave</button>
               <br>
               <div id = "userblock" class="lightblock">
                 <b class="message">USERS</b>
@@ -299,16 +291,16 @@
                  </div>
               </form>
               <br>
-              <button type="button" id="go" class="btn my_btn">Go</button>
-              <button type="button" id="ready" class="btn my_btn">Ready</button>
-              <button type="button" id="lobby_page_back" class="btn my_btn">Leave Room</button>
+              <button type="button" id="go" class="btn my_btn btn-block">Go</button>
+              <button type="button" id="ready" class="btn my_btn btn-block">Ready</button>
               <br>
-              <br>
-              <b class="message" id="scroller_title"></b>
-              <div id="poster_scroller" style="width: 100%; height: 115px; margin: 0 auto;">
-                <div class="list_for_scroller">
-                  <ul id="popular_film_list">
-                  </ul>
+              <div class="mobile-hide">
+                <b class="message" id="scroller_title"></b>
+                <div id="poster_scroller" style="width: 100%; height: 115px; margin: 0 auto;">
+                  <div class="list_for_scroller">
+                    <ul id="popular_film_list">
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
@@ -322,11 +314,11 @@
               <h3>Your chosen film is...</h3>
               <img id="found_film_image" src="http://image.tmdb.org/t/p/w500/j6NCjU6Zh7SkfIeN5zDaoTmBn4m.jpg" class="img-rounded" width="80%">
                <h3 id="found_film_title" align="center"></h3>
-               <button type="button" id="film_found_confirm" class="btn my_btn">Return to Main Menu</button>
+               <button type="button" id="film_found_confirm" class="btn my_btn">Done</button>
                <br>
-               <h4><b>Watching options:</b></h4>
+               <h4>Streaming options:</h4>
                <a id="watchNetflix" class="btn my_btn" target="_blank" href='' disabled>Netflix</a>
-               <a id="watchAmazon" class="btn my_btn" target="_blank" href='' disabled>Amazon Instant Video</a>
+               <a id="watchAmazon" class="btn my_btn" target="_blank" href='' disabled>Amazon </a>
              </div>
           </div> 
         </li>
