@@ -48,7 +48,7 @@ html{
   position: relative;
   color: #FFFFFF;
   border-radius: 25px;
-  margin: 5%;
+  margin: 3%;
   background-color: #464545;
   padding: 30px;
   width: auto;
@@ -85,6 +85,12 @@ html{
   list-style-type: none;
   margin: 0;
   position: absolute;
+}
+
+@media only screen and (max-height:450px){
+  #poster_scroller{
+    display:none;
+  }
 }
 
 .my_btn{
@@ -125,6 +131,12 @@ html{
 .page_back{
   position: absolute;
   bottom: 5%;
+}
+
+#lobby_page_back{
+  position: absolute;
+  top: 30px;
+  right:30px;
 }
 
 #user_settings{
