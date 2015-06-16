@@ -267,7 +267,6 @@ io.sockets.on('connection', function(socket) {
   // ************************** //
 
   socket.on('get_guest_id', function() {
-    // TODO: random guest id?
     var guest_id = guest++;
     //var guest_id = generate_guest_id();
     // Gets an unused guest id then calls set username 
@@ -716,7 +715,6 @@ io.sockets.on('connection', function(socket) {
       // If every user in the room has said yes to the film then 
       // take every user to the 'found page' with that film displayed
       io.sockets.in(socket.room).emit('film_found', globalFilms[films[socket.room][index].filmIndex]);
-      // Room no longer in session TODO move? delete? Chase
       locks[socket.room] = false;
     } else {
 
@@ -728,7 +726,7 @@ io.sockets.on('connection', function(socket) {
           // Go to next film
           index++;
           
-          // Add 5 batches of films to global list 
+          // Add 5 batches of films to global list
           if (index == (globalFilms.length - queryBatchSize)) {
             addFilms(5);
           }

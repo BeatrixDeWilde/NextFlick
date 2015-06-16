@@ -224,13 +224,9 @@ socket.on('correct_login',function(user, genres, user_email){
 
 socket.on('incorrect_login', function(message, password) {
   if (password) {
-    document.getElementById('password_error_message').innerHTML = message;
-    $("#password_error_message").show();
-    message_fade_out($('#password_error_message'), 5000);
+    login_password_error(message);
   } else {
-    document.getElementById('username_error_message').innerHTML = message;
-    $("#username_error_message").show();
-    message_fade_out($('#username_error_message'), 5000);
+    login_username_error(message);
   }
 });
 
@@ -241,20 +237,18 @@ $(function(){
     document.getElementById('username_error_message').innerHTML = '';
     document.getElementById('password_error_message').innerHTML = '';
     if (username.length < 1) {
-      document.getElementById('username_error_message').innerHTML = '<b>Please enter a username</b>';
-      $("#username_error_message").show();
-      message_fade_out($('#username_error_message'), 5000);
+      login_username_error('<b>Please enter a username</b>');
     } else if (password.length < 1)
     {
-      document.getElementById('password_error_message').innerHTML = '<b>Please enter a password</b>';
-      $("#password_error_message").show();
-      message_fade_out($('#password_error_message'), 5000); 
+      login_password_error('<b>Please enter a password</b>');
     }
     else {
       socket.emit('sign_in', username, password);
     }
   });
   $('#login_page_back').click(function() {
+    document.getElementById('username').value = '';
+    document.getElementById('pwd').value = '';
     $('.login_page').fadeOut('fast', function() {
       $('.first_page').fadeIn('fast');
     });
@@ -267,12 +261,22 @@ $(function(){
       document.getElementById('username').value = '';
     }
     else {
-      document.getElementById('username_error_message').innerHTML = "<b>Please enter a username</b>";
-      $("#username_error_message").show();
-      message_fade_out($('#username_error_message'), 5000);
+      login_username_error("<b>Please enter a username</b>");
     }
   });
 });
+
+function login_password_error(message){
+  document.getElementById('password_error_message').innerHTML = message;
+  $("#password_error_message").show();
+  message_fade_out($('#password_error_message'), 5000); 
+}
+
+function login_username_error(message){
+  document.getElementById('username_error_message').innerHTML = message;
+      $("#username_error_message").show();
+      message_fade_out($('#username_error_message'), 5000); 
+}
 
 socket.on('forgotten_password_user_exists', function(email_address, user, genres){
   socket.emit('send_email', email_address, user);
@@ -343,6 +347,9 @@ $(function(){
     }
   });
   $('#sign_up_back').click(function() {
+    document.getElementById('username_sign_up').value = '';
+    document.getElementById('pwd_sign_up').value = '';
+    document.getElementById('email_sign_up').value = '';
     $('.sign_up_page').fadeOut('fast', function() {
        $('.first_page').fadeIn('fast');
   });
@@ -587,7 +594,6 @@ socket.on('show_film_page', function(film) {
     $('#room_build_overlay').fadeOut();
   });
   on_main_page = true;
-  //$('#chat').empty();
   initialise_film_page(film);
   reset_checkboxes('#genres');
   $('.lobby_page').hide('fast', function() {
@@ -611,7 +617,6 @@ $(function(){
     if (is_admin) {
       socket.emit('go_signal', room);
       socket.emit('add_runtime_filter', $("#selection input[name='runtime']:checked").val());
-      //socket.emit('generate_films', room, genres);
     }
   });
 
@@ -739,7 +744,6 @@ socket.on('film_found', function(film) {
     $('#watchAmazon').attr('disabled', true);
   }
 
-  // TODO: Show winning page;
   $('.film_page').hide("slow", function() {
     $('.found_page').fadeIn();
   });
